@@ -7,6 +7,7 @@
 #include <drivers/driver.h>
 #include <drivers/keyboard.h>
 #include <drivers/mouse.h>
+#include <drivers/vga.h>
 
 using namespace sys;
 using namespace sys::common;
@@ -145,7 +146,6 @@ extern "C" void kernelMain(void* multiboot_structure, uint32_t magicNumber) {
     KeyboardDriver keyboard(&interrupts, &keyboardHandler);
     driverManager.addDriver(&keyboard);
     
-    
     MyMouseHandler mouseHandler;
     MouseDriver mouse(&interrupts, &mouseHandler);
     driverManager.addDriver(&mouse);
@@ -153,12 +153,28 @@ extern "C" void kernelMain(void* multiboot_structure, uint32_t magicNumber) {
     PeripheralComponentInterconnect PCIController;
     PCIController.selectDrivers(&driverManager, &interrupts);
     
+    VideoGraphicsArray vga;
+    
     driverManager.activateAll();
     
     printf("Enabling interrupts\n");
     interrupts.enableInterrupts();
     
     printf("Done...\n");
+    
+    printf("Trying to go to VGA mode\n");
+    
+    vga.setMode(320, 200, 8);
+    
+    for(int x = 0; x < 320; x++) {
+      for(int y = 0; y < 200; y++) {
+        if(x > 80 && x < 240 && y > 50 && y < 150) {
+          vga.putPixel(x, y, 42, 0, 42);
+        } else {
+          vga.putPixel(x, y, 0, 0, 42);
+        }
+      }
+    }
     
     while(true);
 }

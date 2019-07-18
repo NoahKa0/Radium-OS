@@ -9,34 +9,34 @@
         namespace drivers {
             class VideoGraphicsArray {
             protected:
-                hardware::Port8Bit miscPort;
+                sys::hardware::Port8Bit miscPort;
                 
-                hardware::Port8Bit ctrlIndexPort;
-                hardware::Port8Bit ctrlDataPort;
+                sys::hardware::Port8Bit ctrlIndexPort;
+                sys::hardware::Port8Bit ctrlDataPort;
                 
-                hardware::Port8Bit sequencerIndexPort;
-                hardware::Port8Bit sequencerDataPort;
+                sys::hardware::Port8Bit sequencerIndexPort;
+                sys::hardware::Port8Bit sequencerDataPort;
                 
-                hardware::Port8Bit graphicsControllerIndexPort;
-                hardware::Port8Bit graphicsControllerDataPort;
+                sys::hardware::Port8Bit graphicsControllerIndexPort;
+                sys::hardware::Port8Bit graphicsControllerDataPort;
                 
-                hardware::Port8Bit attributeControllerIndexPort;
-                hardware::Port8Bit attributeControllerReadPort;
-                hardware::Port8Bit attributeControllerWritePort;
-                hardware::Port8Bit attributeControllerResetPort;
+                sys::hardware::Port8Bit attributeControllerIndexPort;
+                sys::hardware::Port8Bit attributeControllerReadPort;
+                sys::hardware::Port8Bit attributeControllerWritePort;
+                sys::hardware::Port8Bit attributeControllerResetPort;
                 
-                void writeRegisters(uint8_t* registers);
+                void writeRegisters(sys::common::uint8_t* registers);
                 
-                uint8_t* getFrameBufferSegment();
+                sys::common::uint8_t* getFrameBufferSegment();
                 
-                virtual void putPixel(uint32_t x, uint32_t y, uint8_t color);
-                virtual uint8_t getColorIndex(uint8_t r, uint8_t g, uint8_t b);
+                virtual void putPixel(sys::common::uint32_t x, sys::common::uint32_t y, sys::common::uint8_t color);
+                virtual sys::common::uint8_t getColorIndex(sys::common::uint8_t r, sys::common::uint8_t g, sys::common::uint8_t b);
             public:
                 VideoGraphicsArray();
-                virtual ~VideoGraphicsArray();
-                virtual bool supportsMode(uint32_t width, uint32_t height, uint32_t colorDepth);
-                virtual bool setMode(uint32_t width, uint32_t height, uint32_t colorDepth);
-                virtual void putPixel(uint32_t x, uint32_t y, uint8_t r, uint8_t g, uint8_t b);
+                ~VideoGraphicsArray();
+                virtual bool supportsMode(sys::common::uint32_t width, sys::common::uint32_t height, sys::common::uint32_t colorDepth);
+                virtual bool setMode(sys::common::uint32_t width, sys::common::uint32_t height, sys::common::uint32_t colorDepth);
+                virtual void putPixel(sys::common::uint32_t x, sys::common::uint32_t y, sys::common::uint8_t r, sys::common::uint8_t g, sys::common::uint8_t b);
             };
         }
     }
