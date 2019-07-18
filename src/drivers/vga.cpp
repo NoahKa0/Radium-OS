@@ -1,12 +1,11 @@
 #include <drivers/vga.h>
 
+using namespace sys::common;
 using namespace sys::drivers;
 using namespace sys::hardware;
 
-class VideoGraphicsArray {
-  
   // Constructor
-  VideoGraphicsArray()
+  VideoGraphicsArray::VideoGraphicsArray()
   : miscPort(0x3c2),
     ctrlIndexPort(0x3d4),
     ctrlDataPort(0x3d5),
@@ -20,9 +19,9 @@ class VideoGraphicsArray {
     attributeControllerResetPort(0x3ca) {}
   
   // Destructor
-  ~VideoGraphicsArray() {}
+  VideoGraphicsArray::~VideoGraphicsArray() {}
   
-  void writeRegisters(uint8_t* registers) {
+  void VideoGraphicsArray::writeRegisters(uint8_t* registers) {
     miscPort.Write(*registers);
     *registers++;
     for(uint8_t i = 0; i < 5; i++) {
@@ -31,10 +30,10 @@ class VideoGraphicsArray {
       *registers++;
     }
     
-    crtcIndexPort.Write(0x03);
-    crtcDataPort.Write(crtcDataPort.Read() | 0x80);
-    crtcIndexPort.Write(0x11);
-    crtcDataPort.Write(crtcDataPort.Read() & ~0x80);
+    ctrlIndexPort.Write(0x03);
+    ctrlDataPort.Write(ctrlDataPort.Read() | 0x80);
+    ctrlIndexPort.Write(0x11);
+    ctrlDataPort.Write(ctrlDataPort.Read() & ~0x80);
 
     registers[0x03] = registers[0x03] | 0x80;
     registers[0x11] = registers[0x11] & ~0x80;
@@ -62,12 +61,12 @@ class VideoGraphicsArray {
     attributeControllerIndexPort.Write(0x20);
   }
   
-  bool supportsMode(uint32_t width, uint32_t height, uint32_t colorDepth) {
+  bool VideoGraphicsArray::supportsMode(uint32_t width, uint32_t height, uint32_t colorDepth) {
     return (width == 320) && (height == 200) && (colorDepth == 8);
   }
   
-  bool setMode(uint32_t width, uint32_t height, uint32_t colorDepth) {
-    if(!SupportsMode(width, height, colordepth)) {
+  bool VideoGraphicsArray::setMode(uint32_t width, uint32_t height, uint32_t colorDepth) {
+    if(!supportsMode(width, height, colorDepth)) {
       return false;
     }
 
@@ -91,15 +90,15 @@ class VideoGraphicsArray {
         0x41, 0x00, 0x0F, 0x00, 0x00
     };
 
-    WriteRegisters(g_320x200x256);
+    writeRegisters(g_320x200x256);
     return true;
   }
   
-  void putPixel(uint32_t x, uint32_t y, uint8_t r, uint8_t g, uint8_t b) {
+  void VideoGraphicsArray::putPixel(uint32_t x, uint32_t y, uint8_t r, uint8_t g, uint8_t b) {
     putPixel(x, y, getColorIndex(r, g, b));
   }
   
-  uint8_t* getFrameBufferSegment() {
+  uint8_t* VideoGraphicsArray::getFrameBufferSegment() {
     graphicsControllerIndexPort.Write(0x06);
     uint8_t segmentNumber = graphicsControllerDataPort.Read() & (3<<2);
     switch(segmentNumber)
@@ -112,12 +111,12 @@ class VideoGraphicsArray {
     }
   }
   
-  void putPixel(uint32_t x, uint32_t y, uint8_t color) {
-    *pixelAddress = getFrameBufferSegment() + 320*y+x;
+  void VideoGraphicsArray::putPixel(uint32_t x, uint32_t y, uint8_t color) {
+    uint8_t* pixelAddress = getFrameBufferSegment() + 320*y+x;
     *pixelAddress = color;
   }
   
-  void getColorIndex(uint8_t r, uint8_t g, uint8_t b) {
+  uint8_t VideoGraphicsArray::getColorIndex(uint8_t r, uint8_t g, uint8_t b) {
     if(r > 10 && g == r && b == r) {
       return 0x07;
     }
@@ -138,5 +137,4 @@ class VideoGraphicsArray {
     }
     return 0x00;
   }
-  
-};
+
