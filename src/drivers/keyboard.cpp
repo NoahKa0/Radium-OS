@@ -25,24 +25,24 @@ commandPort(0x64)
 KeyboardDriver::~KeyboardDriver() {}
 
 void KeyboardDriver::activate() {
-    while(commandPort.Read() & 0x1) {
-        dataPort.Read();
+    while(commandPort.read() & 0x1) {
+        dataPort.read();
     }
     
-    commandPort.Write(0xAE);
+    commandPort.write(0xAE);
     
-    commandPort.Write(0x20); // Get current state
-    uint8_t status = (dataPort.Read() | 1) & ~0x10;
+    commandPort.write(0x20); // Get current state
+    uint8_t status = (dataPort.read() | 1) & ~0x10;
     
-    commandPort.Write(0x60); // Set state
+    commandPort.write(0x60); // Set state
     
-    dataPort.Write(status);
+    dataPort.write(status);
     
-    dataPort.Write(0xF4);
+    dataPort.write(0xF4);
 }
 
 uint32_t KeyboardDriver::handleInterrupt(uint32_t esp) {
-    uint8_t key = dataPort.Read();
+    uint8_t key = dataPort.read();
     
     if(handler == 0) {
         return esp;

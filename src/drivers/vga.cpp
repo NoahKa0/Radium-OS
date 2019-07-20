@@ -22,43 +22,43 @@ VideoGraphicsArray::VideoGraphicsArray()
 VideoGraphicsArray::~VideoGraphicsArray() {}
 
 void VideoGraphicsArray::writeRegisters(uint8_t* registers) {
-  miscPort.Write(*registers);
+  miscPort.write(*registers);
   *registers++;
   for(uint8_t i = 0; i < 5; i++) {
-    sequencerIndexPort.Write(i);
-    sequencerDataPort.Write(*registers);
+    sequencerIndexPort.write(i);
+    sequencerDataPort.write(*registers);
     *registers++;
   }
   
-  ctrlIndexPort.Write(0x03);
-  ctrlDataPort.Write(ctrlDataPort.Read() | 0x80);
-  ctrlIndexPort.Write(0x11);
-  ctrlDataPort.Write(ctrlDataPort.Read() & ~0x80);
+  ctrlIndexPort.write(0x03);
+  ctrlDataPort.write(ctrlDataPort.read() | 0x80);
+  ctrlIndexPort.write(0x11);
+  ctrlDataPort.write(ctrlDataPort.read() & ~0x80);
 
   registers[0x03] = registers[0x03] | 0x80;
   registers[0x11] = registers[0x11] & ~0x80;
   
   for(uint8_t i = 0; i < 25; i++) {
-    ctrlIndexPort.Write(i);
-    ctrlDataPort.Write(*registers);
+    ctrlIndexPort.write(i);
+    ctrlDataPort.write(*registers);
     *registers++;
   }
   
   for(uint8_t i = 0; i < 9; i++) {
-    graphicsControllerIndexPort.Write(i);
-    graphicsControllerDataPort.Write(*registers);
+    graphicsControllerIndexPort.write(i);
+    graphicsControllerDataPort.write(*registers);
     *registers++;
   }
   
   for(uint8_t i = 0; i < 21; i++) {
-    attributeControllerResetPort.Read();
-    attributeControllerIndexPort.Write(i);
-    attributeControllerWritePort.Write(*registers);
+    attributeControllerResetPort.read();
+    attributeControllerIndexPort.write(i);
+    attributeControllerWritePort.write(*registers);
     *registers++;
   }
   
-  attributeControllerResetPort.Read();
-  attributeControllerIndexPort.Write(0x20);
+  attributeControllerResetPort.read();
+  attributeControllerIndexPort.write(0x20);
 }
 
 bool VideoGraphicsArray::supportsMode(uint32_t width, uint32_t height, uint32_t colorDepth) {
@@ -99,8 +99,8 @@ void VideoGraphicsArray::putPixel(uint32_t x, uint32_t y, uint8_t r, uint8_t g, 
 }
 
 uint8_t* VideoGraphicsArray::getFrameBufferSegment() {
-  graphicsControllerIndexPort.Write(0x06);
-  uint8_t segmentNumber = graphicsControllerDataPort.Read() & (3<<2);
+  graphicsControllerIndexPort.write(0x06);
+  uint8_t segmentNumber = graphicsControllerDataPort.read() & (3<<2);
   switch(segmentNumber)
   {
     default:

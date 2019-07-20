@@ -30,8 +30,8 @@ uint32_t PeripheralComponentInterconnect::read(uint16_t bus, uint16_t device, ui
         | ((function & 0x07) << 8)
         | (registeroffset & 0xFC);
     
-    commandPort.Write(id);
-    uint32_t result = dataPort.Read();
+    commandPort.write(id);
+    uint32_t result = dataPort.read();
     return result >> (8* (registeroffset % 4));
 }
 
@@ -43,8 +43,8 @@ void PeripheralComponentInterconnect::write(uint16_t bus, uint16_t device, uint1
         | ((device & 0x1F) << 11)
         | ((function & 0x07) << 8)
         | (registeroffset & 0xFC);
-    commandPort.Write(id);
-    dataPort.Write(value); 
+    commandPort.write(id);
+    dataPort.write(value); 
 }
 
 bool PeripheralComponentInterconnect::hasFunctions(uint16_t bus, uint16_t device) {

@@ -29,29 +29,29 @@ commandPort(0x64)
 MouseDriver::~MouseDriver() {}
 
 void MouseDriver::activate() {
-    commandPort.Write(0xA8);
+    commandPort.write(0xA8);
     
-    commandPort.Write(0x20); // Get current state
-    uint8_t status = dataPort.Read() | 2;
+    commandPort.write(0x20); // Get current state
+    uint8_t status = dataPort.read() | 2;
     
-    commandPort.Write(0x60); // Set state
+    commandPort.write(0x60); // Set state
     
-    dataPort.Write(status);
+    dataPort.write(status);
     
-    commandPort.Write(0xD4);
-    dataPort.Write(0xF4);
+    commandPort.write(0xD4);
+    dataPort.write(0xF4);
     
-    dataPort.Read();
+    dataPort.read();
 }
 
 uint32_t MouseDriver::handleInterrupt(uint32_t esp) {
-    uint8_t status = commandPort.Read();
+    uint8_t status = commandPort.read();
     
     if(!(status & 0x20) || handler == 0) {
         return esp;
     }
     
-    buffer[offset] = dataPort.Read();
+    buffer[offset] = dataPort.read();
     
     offset = (offset + 1) % 3;
     
