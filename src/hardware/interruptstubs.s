@@ -37,6 +37,7 @@ handleException 0x12
 .global _ZN3sys8hardware16InterruptManager26handleInterruptRequest\num\()Ev
 _ZN3sys8hardware16InterruptManager26handleInterruptRequest\num\()Ev:
     movb $\num + IRQ_BASE, (interruptnumber)
+    pushl $0
     jmp int_handler
 .endm
 
@@ -59,27 +60,33 @@ handleInterruptRequest 0x0F
 handleInterruptRequest 0x31
 
 int_handler:
-    # add all registers to the stack so they can be restored.
-    pusha
-    pushl %ds
-    pushl %es
-    pushl %fs
-    pushl %gs
+    # add all registers to the stack so they can be restored later.
+    pushl ebp;
+    pushl edi;
+    pushl esi;
     
+    pushl edx;
+    pushl ecx;
+    pushl ebx;
+    pushl eax;
+    
+    # Call onInterrupt in C++;
     pushl %esp
     push (interruptnumber)
-    
     call _ZN3sys8hardware16InterruptManager11onInterruptEhj
-    
     movl %eax, %esp
     
-    
     # restore all registers so we can continue doing what we were doing before the interrupt came to bother us.
-    popl %gs
-    popl %fs
-    popl %es
-    popl %ds
-    popa
+    popl eax;
+    popl ebx;
+    popl ecx;
+    popl edx;
+
+    popl esi;
+    popl edi;
+    popl ebp;
+    
+    add $4, %esp;
     
 _ZN3sys8hardware16InterruptManager22ignoreInterruptRequestEv:
     

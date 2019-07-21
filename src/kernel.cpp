@@ -9,6 +9,8 @@
 #include <drivers/mouse.h>
 #include <drivers/vga.h>
 
+#include <multitasking.h>
+
 using namespace sys;
 using namespace sys::common;
 using namespace sys::drivers;
@@ -124,20 +126,21 @@ extern "C" void kernelMain(void* multiboot_structure, uint32_t magicNumber) {
             printf(" ");
     printf("\n");
     
-    for(uint8_t y = 0; y < 28; y++) {
-        for(uint8_t x = 0; x < y; x++) {
-            printf("*");
-        }
-        printf("\n");
-    }
     printf("Hello World! --- http://noahk.ddns.net");
     printf("\nThis is\njust a test!\n\n");
     
     printf("Setting up GlobalDescriptorTable\n");
     GlobalDescriptorTable gdt;
     
+    TaskManager taskManager;
+    Task task1(&gdt, taskA);
+    Task task2(&gdt, taskB);
+    
+    taskManager->addTask(&task1);
+    taskManager->addTask(&task2);
+    
     printf("Setting up InterruptDescriptorTable\n");
-    InterruptManager interrupts(&gdt);
+    InterruptManager interrupts(&gdt, &taskManager);
     
     printf("Setting up Drivers\n");
     DriverManager driverManager;
@@ -153,17 +156,12 @@ extern "C" void kernelMain(void* multiboot_structure, uint32_t magicNumber) {
     PeripheralComponentInterconnect PCIController;
     PCIController.selectDrivers(&driverManager, &interrupts);
     
-    VideoGraphicsArray vga;
+    //VideoGraphicsArray vga;
     
     driverManager.activateAll();
     
-    printf("Enabling interrupts\n");
-    interrupts.enableInterrupts();
-    
-    printf("Done...\n");
-    
+    /**
     printf("Trying to go to VGA mode\n");
-    
     vga.setMode(320, 200, 8);
     
     for(int x = 0; x < 320; x++) {
@@ -175,6 +173,23 @@ extern "C" void kernelMain(void* multiboot_structure, uint32_t magicNumber) {
         }
       }
     }
+    **/
+    
+    printf("Enabling interrupts\n");
+    interrupts.enableInterrupts();
+    printf("Done...\n");
     
     while(true);
+}
+
+void taskA() {
+  while(true) {
+    printf("|");
+  }
+}
+
+void taskB() {
+  while(true) {
+    printf("_");
+  }
 }

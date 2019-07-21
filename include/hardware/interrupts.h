@@ -4,6 +4,7 @@
     #include <common/types.h>
     #include <hardware/port.h>
     #include <gdt.h>
+    #include <multitasking.h>
     
     namespace sys {
         namespace hardware {
@@ -17,7 +18,6 @@
                 
                 InterruptHandler(sys::common::uint8_t interruptNumber, InterruptManager* interruptManager);
                 ~InterruptHandler();
-                
             public:
                 virtual sys::common::uint32_t handleInterrupt(sys::common::uint32_t esp);
             };
@@ -26,8 +26,9 @@
             friend class InterruptHandler;
             protected:
                 static InterruptManager* activeInterruptManager;
-                
                 InterruptHandler* handlers[256];
+                
+                TaskManager* taskManager;
                 
                 struct GateDescriptor {
                     sys::common::uint16_t handlerAdressLowBits;
@@ -60,7 +61,7 @@
                 sys::hardware::Port8BitSlow picSlaveData;
                 
             public:
-                InterruptManager(sys::GlobalDescriptorTable* gdt);
+                InterruptManager(sys::GlobalDescriptorTable* gdt, TaskManager* taskManager);
                 ~InterruptManager();
                 
                 void enableInterrupts();

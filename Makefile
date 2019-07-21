@@ -9,6 +9,7 @@ objects = tmp/loader.o \
           tmp/drivers/keyboard.o \
           tmp/drivers/mouse.o \
           tmp/drivers/vga.o \
+          tmp/multitasking.o \
           tmp/kernel.o
 
 tmp/%.o: src/%.cpp
