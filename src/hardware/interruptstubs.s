@@ -61,14 +61,14 @@ handleInterruptRequest 0x31
 
 int_handler:
     # add all registers to the stack so they can be restored later.
-    pushl ebp;
-    pushl edi;
-    pushl esi;
+    pushl %ebp;
+    pushl %edi;
+    pushl %esi;
     
-    pushl edx;
-    pushl ecx;
-    pushl ebx;
-    pushl eax;
+    pushl %edx;
+    pushl %ecx;
+    pushl %ebx;
+    pushl %eax;
     
     # Call onInterrupt in C++;
     pushl %esp
@@ -77,14 +77,14 @@ int_handler:
     movl %eax, %esp
     
     # restore all registers so we can continue doing what we were doing before the interrupt came to bother us.
-    popl eax;
-    popl ebx;
-    popl ecx;
-    popl edx;
+    popl %eax;
+    popl %ebx;
+    popl %ecx;
+    popl %edx;
 
-    popl esi;
-    popl edi;
-    popl ebp;
+    popl %esi;
+    popl %edi;
+    popl %ebp;
     
     add $4, %esp;
     

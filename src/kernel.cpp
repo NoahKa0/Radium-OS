@@ -120,6 +120,18 @@ extern "C" void callConstructors() {
     }
 }
 
+void taskA() {
+  while(true) {
+    printf("_");
+  }
+}
+
+void taskB() {
+  while(true) {
+    printf("|");
+  }
+}
+
 extern "C" void kernelMain(void* multiboot_structure, uint32_t magicNumber) {
     for(uint8_t y = 0; y < 25; y++)
         for(uint8_t x = 0; x < 80; x++) 
@@ -136,8 +148,8 @@ extern "C" void kernelMain(void* multiboot_structure, uint32_t magicNumber) {
     Task task1(&gdt, taskA);
     Task task2(&gdt, taskB);
     
-    taskManager->addTask(&task1);
-    taskManager->addTask(&task2);
+    taskManager.addTask(&task1);
+    taskManager.addTask(&task2);
     
     printf("Setting up InterruptDescriptorTable\n");
     InterruptManager interrupts(&gdt, &taskManager);
@@ -180,16 +192,4 @@ extern "C" void kernelMain(void* multiboot_structure, uint32_t magicNumber) {
     printf("Done...\n");
     
     while(true);
-}
-
-void taskA() {
-  while(true) {
-    printf("|");
-  }
-}
-
-void taskB() {
-  while(true) {
-    printf("_");
-  }
 }

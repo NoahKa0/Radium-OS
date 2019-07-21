@@ -2,7 +2,7 @@
 #define __SYS__MULTITASKING_H
 
   #include <common/types.h>
-  #include <common/gdt.h>
+  #include <gdt.h>
   namespace sys {
     struct CPUState {
       common::uint32_t eax;
@@ -27,16 +27,16 @@
     class Task {
     friend class TaskManager;
     private:
-      common::uint8_t stack[4*1024];
+      common::uint8_t stack[4096];
       CPUState* cpuState;
     public:
-      Task(GlobalDescriptorTable* gdt, void entrypoint);
+      Task(GlobalDescriptorTable* gdt, void entrypoint());
       ~Task();
     };
     
     class TaskManager {
     private:
-      Task tasks[256];
+      Task* tasks[256];
       int numTasks;
       int currentTask;
     public:
