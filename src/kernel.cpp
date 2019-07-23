@@ -1,6 +1,6 @@
 #include <common/types.h>
 #include <gdt.h>
-#include <memoryManager.h>
+#include <memorymanagement.h>
 
 #include <hardware/interrupts.h>
 #include <hardware/pci.h>
@@ -144,7 +144,7 @@ extern "C" void kernelMain(void* multiboot_structure, uint32_t magicNumber) {
     
     size_t heap = 10*1024*1024;
     
-    uint32_t freeMemory = (uint32_t*) (((size_t) multiboot_structure)+8);
+    uint32_t freeMemory = *(uint32_t*) (((size_t) multiboot_structure)+8);
     freeMemory = freeMemory * 1024 - heap - (10*1024);
     
     MemoryManager memoryManager(heap, freeMemory);
@@ -196,9 +196,8 @@ extern "C" void kernelMain(void* multiboot_structure, uint32_t magicNumber) {
     }
     **/
     
-    printf("Enabling interrupts\n");
+    printf("Enabling interrupts...\n");
     interrupts.enableInterrupts();
-    printf("Done...\n");
     
     while(true);
 }

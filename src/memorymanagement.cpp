@@ -5,7 +5,7 @@ using namespace sys::common;
 
 MemoryManager* MemoryManager::activeMemoryManager = 0;
 
-MemoryManager::MemoryManager(common:size_t first, common:size_t size) {
+MemoryManager::MemoryManager(size_t start, size_t size) {
   activeMemoryManager = this;
   
   if(size < sizeof(MemoryChunk)) {
@@ -52,7 +52,7 @@ void* MemoryManager::malloc(size_t size) {
 }
 
 void MemoryManager::free(void* pointer) {
-  MemoryChunk* chunk = (MemoryChunk)(size_t) pointer - sizeof(MemoryChunk);
+  MemoryChunk* chunk = (MemoryChunk*)(size_t) pointer - sizeof(MemoryChunk);
   
   chunk->allocated = false;
   
