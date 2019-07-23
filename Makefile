@@ -1,6 +1,7 @@
 GCCPARAMS = -m32 -Iinclude -fno-use-cxa-atexit -nostdlib -fno-builtin -fno-rtti -fno-exceptions -fno-leading-underscore
 objects = tmp/loader.o \
           tmp/gdt.o \
+          tmp/memorymanagement.o \
           tmp/drivers/driver.o \
           tmp/hardware/port.o \
           tmp/hardware/interruptstubs.o \

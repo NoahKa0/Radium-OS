@@ -11,6 +11,8 @@ namespace sys {
         typedef unsigned int           uint32_t;
         typedef long long int           int64_t;
         typedef unsigned long long int uint64_t;
+        
+        typedef int32_t                  size_t;
     }
 }
 

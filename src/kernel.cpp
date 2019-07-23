@@ -1,5 +1,6 @@
 #include <common/types.h>
 #include <gdt.h>
+#include <memoryManager.h>
 
 #include <hardware/interrupts.h>
 #include <hardware/pci.h>
@@ -122,13 +123,13 @@ extern "C" void callConstructors() {
 
 void taskA() {
   while(true) {
-    printf("_");
+    //printf("_");
   }
 }
 
 void taskB() {
   while(true) {
-    printf("|");
+    //printf("|");
   }
 }
 
@@ -138,11 +139,21 @@ extern "C" void kernelMain(void* multiboot_structure, uint32_t magicNumber) {
             printf(" ");
     printf("\n");
     
-    printf("Hello World! --- http://noahk.ddns.net");
-    printf("\nThis is\njust a test!\n\n");
-    
     printf("Setting up GlobalDescriptorTable\n");
     GlobalDescriptorTable gdt;
+    
+    size_t heap = 10*1024*1024;
+    
+    uint32_t freeMemory = (uint32_t*) (((size_t) multiboot_structure)+8);
+    freeMemory = freeMemory * 1024 - heap - (10*1024);
+    
+    MemoryManager memoryManager(heap, freeMemory);
+    
+    printf("Detected ");
+    printHex32(freeMemory);
+    printf(" bytes of free memory. Heap starts at: ");
+    printHex32(heap);
+    printf("\n");
     
     TaskManager taskManager;
     Task task1(&gdt, taskA);
@@ -151,10 +162,8 @@ extern "C" void kernelMain(void* multiboot_structure, uint32_t magicNumber) {
     taskManager.addTask(&task1);
     taskManager.addTask(&task2);
     
-    printf("Setting up InterruptDescriptorTable\n");
-    InterruptManager interrupts(&gdt, &taskManager);
-    
     printf("Setting up Drivers\n");
+    InterruptManager interrupts(&gdt, &taskManager);
     DriverManager driverManager;
     
     PrintKeyboardHandler keyboardHandler;
