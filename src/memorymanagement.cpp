@@ -71,23 +71,23 @@ void MemoryManager::free(void* pointer) {
   }
 }
 
-void* operator new(size_t size) {
+void* operator new(unsigned size) {
   if(sys::MemoryManager::activeMemoryManager == 0) return 0;
   
   return sys::MemoryManager::activeMemoryManager->malloc(size);
 }
 
-void* operator new[](size_t size) {
+void* operator new[](unsigned size) {
   if(sys::MemoryManager::activeMemoryManager == 0) return 0;
   
   return sys::MemoryManager::activeMemoryManager->malloc(size);
 }
 
-void* operator new(size_t size, void* pointer) {
+void* operator new(unsigned size, void* pointer) {
   return pointer;
 }
 
-void* operator new[](size_t size, void* pointer) {
+void* operator new[](unsigned size, void* pointer) {
   return pointer;
 }
 
