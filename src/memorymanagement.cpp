@@ -70,3 +70,34 @@ void MemoryManager::free(void* pointer) {
     }
   }
 }
+
+void* operator new(size_t size) {
+  if(sys::MemoryManager::activeMemoryManager == 0) return 0;
+  
+  return sys::MemoryManager::activeMemoryManager->malloc(size);
+}
+
+void* operator new[](size_t size) {
+  if(sys::MemoryManager::activeMemoryManager == 0) return 0;
+  
+  return sys::MemoryManager::activeMemoryManager->malloc(size);
+}
+
+void* operator new(size_t size, void* pointer) {
+  return pointer;
+}
+
+void* operator new[](size_t size, void* pointer) {
+  return pointer;
+}
+
+void operator delete(void* pointer) {
+  if(sys::MemoryManager::activeMemoryManager != 0) {
+    sys::MemoryManager::activeMemoryManager->free(pointer);
+  }
+}
+void operator delete[](void* pointer) {
+  if(sys::MemoryManager::activeMemoryManager != 0) {
+    sys::MemoryManager::activeMemoryManager->free(pointer);
+  }
+}

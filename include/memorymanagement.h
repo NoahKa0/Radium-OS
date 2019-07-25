@@ -22,5 +22,14 @@
       void free(void* chunk);
     };
   }
+  
+  void* operator new(sys::common::size_t size);
+  void* operator new[](sys::common::size_t size);
+  
+  void* operator new(sys::common::size_t size, void* pointer);
+  void* operator new[](sys::common::size_t size, void* pointer);
+  
+  void operator delete(void* pointer);
+  void operator delete[](void* pointer);
 
 #endif
