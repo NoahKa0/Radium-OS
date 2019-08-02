@@ -179,8 +179,6 @@ extern "C" void kernelMain(void* multiboot_structure, uint32_t magicNumber) {
     
     //VideoGraphicsArray vga;
     
-    driverManager.activateAll();
-    
     /**
     printf("Trying to go to VGA mode\n");
     vga.setMode(320, 200, 8);
@@ -197,6 +195,8 @@ extern "C" void kernelMain(void* multiboot_structure, uint32_t magicNumber) {
     **/
     
     printf("Enabling interrupts...\n");
+    
+    driverManager.activateAll();
     interrupts.enableInterrupts();
     
     while(true);
