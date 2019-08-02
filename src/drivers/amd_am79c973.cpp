@@ -90,9 +90,9 @@ void amd_am79c973::activate() {
   registerDataPort.write(0x41);
   
   registerAddressPort.write(4);
-  uint32_t tmp = registerDataPort.read() | 0xC00;
+  uint32_t tmp = registerDataPort.read();
   registerAddressPort.write(4);
-  registerDataPort.write(tmp);
+  registerDataPort.write(tmp | 0xC00);
   
   registerAddressPort.write(0);
   registerDataPort.write(0x42);
