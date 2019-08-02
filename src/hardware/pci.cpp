@@ -144,6 +144,8 @@ BaseAddressRegister PeripheralComponentInterconnect::getBaseAddressRegister(uint
 }
 
 Driver* PeripheralComponentInterconnect::getDriver(PeripheralComponentDeviceDescriptor dev, InterruptManager* interruptManager) {
+  
+  Driver* driver = 0;
     
   switch(dev.vendorId) {
     case 0x1022: // AMD
@@ -152,7 +154,7 @@ Driver* PeripheralComponentInterconnect::getDriver(PeripheralComponentDeviceDesc
           printf("AMD am79c973 ");
           driver = (amd_am79c973*)MemoryManager::activeMemoryManager->malloc(sizeof(amd_am79c973));
           if(driver != 0) {
-            new (driver) amd_am79c973(&dev, interrupts);
+            new (driver) amd_am79c973(&dev, interruptManager);
           }
           return driver;
           break;

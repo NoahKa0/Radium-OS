@@ -32,26 +32,26 @@
           common::uint32_t available;
         } __attribute__((packed));
         
-        hardware::Port16 macAddress8Port;
-        hardware::Port16 macAddress4Port;
-        hardware::Port16 macAddress2Port;
+        hardware::Port16Bit macAddress0Port;
+        hardware::Port16Bit macAddress2Port;
+        hardware::Port16Bit macAddress4Port;
         
-        hardware::Port16 registerDataPort;
-        hardware::Port16 registerAddressPort;
+        hardware::Port16Bit registerDataPort;
+        hardware::Port16Bit registerAddressPort;
         
-        hardware::Port16 resetPort;
+        hardware::Port16Bit resetPort;
         
-        hardware::Port16 busControlRegisterDataPort;
+        hardware::Port16Bit busControlRegisterDataPort;
         
         InitializationBlock initBlock;
         
-        BufferDescriptor* sendBuffersDesc;
-        common::uint8_t sendBuffersDescMemory[2*1024+15];
+        BufferDescriptor* sendBufferDescr;
+        common::uint8_t sendBufferDescrMemory[2*1024+15];
         common::uint8_t sendBuffers[2*1024+15][8];
         common::uint8_t currentSendBuffer;
         
-        BufferDescriptor* reciveBuffersDesc;
-        common::uint8_t reciveBuffersDescMemory[2*1024+15];
+        BufferDescriptor* reciveBufferDescr;
+        common::uint8_t reciveBufferDescrMemory[2*1024+15];
         common::uint8_t reciveBuffers[2*1024+15][8];
         common::uint8_t currentReciveBuffer;
         
