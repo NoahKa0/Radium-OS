@@ -12,8 +12,8 @@ amd_am79c973::amd_am79c973(PeripheralComponentDeviceDescriptor* device, Interrup
 : Driver(),
 InterruptHandler(device->interrupt + 0x20, interruptManager), // hardware interrupt is asigned, so the device doesn't know that it starts at 0x20.
 macAddress0Port(device->portBase),
-macAddress4Port(device->portBase + 0x02),
-macAddress2Port(device->portBase + 0x04),
+macAddress2Port(device->portBase + 0x02),
+macAddress4Port(device->portBase + 0x04),
 registerDataPort(device->portBase + 0x10),
 registerAddressPort(device->portBase + 0x12),
 resetPort(device->portBase + 0x14),
