@@ -12,6 +12,9 @@ InterruptHandler::InterruptHandler(uint8_t interruptNumber, InterruptManager* in
     this->interruptManager = interruptManager;
     this->interruptNumber = interruptNumber;
     interruptManager->handlers[interruptNumber] = this;
+    printf("\nInterrupt handler added: ");
+    printHex8(interruptNumber);
+    printf("\n");
 }
 
 InterruptHandler::~InterruptHandler() {
