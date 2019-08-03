@@ -63,6 +63,9 @@
         virtual int reset();
         
         virtual common::uint32_t handleInterrupt(common::uint32_t esp);
+        
+        void send(common::uint8_t, int size);
+        void recive();
       };
     }
   }
