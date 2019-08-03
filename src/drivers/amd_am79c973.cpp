@@ -126,7 +126,7 @@ common::uint32_t amd_am79c973::handleInterrupt(common::uint32_t esp) {
   return esp;
 }
 
-void amd_am79c973::send(common::uint8_t, int size) {
+void amd_am79c973::send(common::uint8_t* buffer, int size) {
   int sendDescriptor = currentSendBuffer;
   currentSendBuffer = (currentSendBuffer+1) % 8;
   
