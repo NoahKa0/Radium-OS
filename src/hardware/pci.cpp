@@ -122,7 +122,7 @@ BaseAddressRegister PeripheralComponentInterconnect::getBaseAddressRegister(uint
     return result;
   }
   
-  uint32_t barValue = read(bus, device, function, 0x10 + 4*bar) & 0x7F;
+  uint32_t barValue = read(bus, device, function, 0x10 + 4*bar);
   
   result.type = (barValue & 0x1) ? inputOutput : memoryMapping;
   
