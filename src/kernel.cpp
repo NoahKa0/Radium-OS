@@ -17,6 +17,28 @@ using namespace sys::common;
 using namespace sys::drivers;
 using namespace sys::hardware;
 
+static VideoGraphicsArray* videoGraphicsArray = 0;
+static bool videoEnabled = false;
+
+VideoGraphicsArray* getVGA() {
+  if(!videoEnabled) return 0;
+  return videoGraphicsArray;
+}
+
+void enableVGA() {
+  if(!videoEnabled) {
+    videoEnabled = true;
+    printf("Trying to go to VGA mode\n");
+    vga.setMode(320, 200, 8);
+    
+    for(int x = 0; x < 320; x++) {
+      for(int y = 0; y < 200; y++) {
+        vga.putPixel(x, y, 0, 0, 42);
+      }
+    }
+  }
+}
+
 void printf(char* str) {
   static uint16_t* videoMemory = (uint16_t*)0xB8000;
   static uint8_t x = 0, y = 0;
@@ -82,11 +104,25 @@ void printHex32(uint32_t num) {
 
 class PrintKeyboardHandler:public KeyboardEventHandler {
 public:
-    void onKeyDown(char c) {
-        char* txt = " ";
-        txt[0] = c;
-        printf(txt);
+  void onKeyDown(char c) {
+    char* txt = " ";
+    txt[0] = c;
+    printf(txt);
+    
+    if(c == '-') {
+      if(!videoEnabled) enableVGA();
+      VideoGraphicsArray vga = getVGA();
+      for(int x = 0; x < 320; x++) {
+        for(int y = 0; y < 200; y++) {
+          if(x > 80 && x < 240 && y > 50 && y < 150) {
+            vga.putPixel(x, y, 42, 0, 42);
+          } else {
+            vga.putPixel(x, y, 0, 0, 42);
+          }
+        }
+      }
     }
+  }
 };
 
 class MyMouseHandler:public MouseEventHandler {
@@ -177,7 +213,9 @@ extern "C" void kernelMain(void* multiboot_structure, uint32_t magicNumber) {
     PeripheralComponentInterconnect PCIController;
     PCIController.selectDrivers(&driverManager, &interrupts);
     
-    //VideoGraphicsArray vga;
+    VideoGraphicsArray vga;
+    
+    videoGraphicsArray = &vga;
     
     /**
     printf("Trying to go to VGA mode\n");
