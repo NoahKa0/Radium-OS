@@ -26,14 +26,13 @@ VideoGraphicsArray* getVGA() {
 }
 
 void enableVGA() {
-  if(!videoEnabled) {
+  if(!videoEnabled && videoGraphicsArray != 0) {
     videoEnabled = true;
-    printf("Trying to go to VGA mode\n");
-    vga.setMode(320, 200, 8);
+    videoGraphicsArray->setMode(320, 200, 8);
     
     for(int x = 0; x < 320; x++) {
       for(int y = 0; y < 200; y++) {
-        vga.putPixel(x, y, 0, 0, 42);
+        videoGraphicsArray->putPixel(x, y, 0, 0, 42);
       }
     }
   }
@@ -111,13 +110,13 @@ public:
     
     if(c == '-') {
       if(!videoEnabled) enableVGA();
-      VideoGraphicsArray vga = getVGA();
+      VideoGraphicsArray* vga = getVGA();
       for(int x = 0; x < 320; x++) {
         for(int y = 0; y < 200; y++) {
           if(x > 80 && x < 240 && y > 50 && y < 150) {
-            vga.putPixel(x, y, 42, 0, 42);
+            vga->putPixel(x, y, 42, 0, 42);
           } else {
-            vga.putPixel(x, y, 0, 0, 42);
+            vga->putPixel(x, y, 0, 0, 42);
           }
         }
       }
