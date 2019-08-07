@@ -235,6 +235,8 @@ extern "C" void kernelMain(void* multiboot_structure, uint32_t magicNumber) {
     char* ataSendBuffer = "Hello Mind!";
     char* ataReciveBuffer = "            ";
     ataPM.write28(0, (uint8_t*) ataSendBuffer, 11);
+    ataPM.flush();
+    
     ataPM.read28(0, (uint8_t*) ataReciveBuffer, 11);
     
     printf("Recived from hard disk: ");

@@ -102,7 +102,7 @@ void AdvancedTechnologyAttachment::read28(uint32_t sector, uint8_t* data, int co
       data[i+1] = (rdata >> 8) & 0x00FF;
     }
     
-    printHex8(data & 0x00FF);
+    printHex8(rdata & 0x00FF);
     printf(", ");
   }
   for(uint16_t i = count+(count%2); i < bytesPerSector; i+=2) {
@@ -138,7 +138,7 @@ void AdvancedTechnologyAttachment::write28(uint32_t sector, uint8_t* data, int c
     
     dataPort.write(wdata);
     
-    printHex8(data & 0x00FF);
+    printHex8(wdata & 0x00FF);
     printf(", ");
   }
   for(uint16_t i = count+(count%2); i < bytesPerSector; i+=2) {
