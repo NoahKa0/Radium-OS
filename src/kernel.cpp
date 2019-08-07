@@ -232,6 +232,15 @@ extern "C" void kernelMain(void* multiboot_structure, uint32_t magicNumber) {
     ataSS.identify();
     printf("\n");
     
+    char* ataSendBuffer = "Hello Mind!";
+    char* ataReciveBuffer = "            ";
+    ataPM.write28(0, (uint8_t*) ataSendBuffer, 11);
+    ataPM.read28(0, (uint8_t*) ataReciveBuffer, 11);
+    
+    printf("Recived from hard disk: ");
+    printf(ataReciveBuffer);
+    printf("\n");
+    
     printf("Enabling interrupts...\n");
     
     driverManager.activateAll();
