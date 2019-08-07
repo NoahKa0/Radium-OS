@@ -10,6 +10,7 @@ objects = tmp/loader.o \
           tmp/drivers/keyboard.o \
           tmp/drivers/mouse.o \
           tmp/drivers/vga.o \
+          tmp/drivers/ata.o \
           tmp/drivers/amd_am79c973.o \
           tmp/multitasking.o \
           tmp/kernel.o

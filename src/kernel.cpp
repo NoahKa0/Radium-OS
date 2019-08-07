@@ -9,6 +9,7 @@
 #include <drivers/keyboard.h>
 #include <drivers/mouse.h>
 #include <drivers/vga.h>
+#include <drivers/ata.h>
 
 #include <multitasking.h>
 
@@ -213,23 +214,23 @@ extern "C" void kernelMain(void* multiboot_structure, uint32_t magicNumber) {
     PCIController.selectDrivers(&driverManager, &interrupts);
     
     VideoGraphicsArray vga;
-    
     videoGraphicsArray = &vga;
     
-    /**
-    printf("Trying to go to VGA mode\n");
-    vga.setMode(320, 200, 8);
+    printf("ATA Primary: master: ");
+    AdvancedTechnologyAttachment ataPM(0x1F0, true);
+    ataPM.identify();
+    printf(" slave: ");
+    AdvancedTechnologyAttachment ataPS(0x1F0, false);
+    ataPS.identify();
+    printf("\n");
     
-    for(int x = 0; x < 320; x++) {
-      for(int y = 0; y < 200; y++) {
-        if(x > 80 && x < 240 && y > 50 && y < 150) {
-          vga.putPixel(x, y, 42, 0, 42);
-        } else {
-          vga.putPixel(x, y, 0, 0, 42);
-        }
-      }
-    }
-    **/
+    printf("ATA Secondary: master: ");
+    AdvancedTechnologyAttachment ataSM(0x170, true);
+    ataSM.identify();
+    printf(" slave: ");
+    AdvancedTechnologyAttachment ataSS(0x170, false);
+    ataSS.identify();
+    printf("\n");
     
     printf("Enabling interrupts...\n");
     
