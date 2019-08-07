@@ -77,27 +77,27 @@ void printf(char* str) {
 }
 
 void printHex8(uint8_t num) {
-    char* txt = "0x00";
+    char* txt = "00";
     static char* hex = "0123456789ABCDEF";
     
-    txt[2] = hex[(num >> 4) & 0xF];
-    txt[3] = hex[num & 0xF];
+    txt[0] = hex[(num >> 4) & 0xF];
+    txt[1] = hex[num & 0xF];
     
     printf(txt);
 }
 
 void printHex32(uint32_t num) {
-    char* txt = "0x00000000";
+    char* txt = "00000000";
     static char* hex = "0123456789ABCDEF";
     
-    txt[2] = hex[(num >> 28) & 0xF];
-    txt[3] = hex[(num >> 24) & 0xF];
-    txt[4] = hex[(num >> 20) & 0xF];
-    txt[5] = hex[(num >> 16) & 0xF];
-    txt[6] = hex[(num >> 12) & 0xF];
-    txt[7] = hex[(num >> 8) & 0xF];
-    txt[8] = hex[(num >> 4) & 0xF];
-    txt[9] = hex[num & 0xF];
+    txt[0] = hex[(num >> 28) & 0xF];
+    txt[1] = hex[(num >> 24) & 0xF];
+    txt[2] = hex[(num >> 20) & 0xF];
+    txt[3] = hex[(num >> 16) & 0xF];
+    txt[4] = hex[(num >> 12) & 0xF];
+    txt[5] = hex[(num >> 8) & 0xF];
+    txt[6] = hex[(num >> 4) & 0xF];
+    txt[7] = hex[num & 0xF];
     
     printf(txt);
 }

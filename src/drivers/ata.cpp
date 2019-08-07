@@ -66,14 +66,97 @@ void AdvancedTechnologyAttachment::identify() {
   }
 }
 
-void AdvancedTechnologyAttachment::read28(common::uint32_t sector) {
+void AdvancedTechnologyAttachment::read28(uint32_t sector, uint8_t* data, int count) {
+  if(sector & 0xF0000000) {
+    return;
+  }
+  if(count > bytesPerSector) {
+    return;
+  }
   
+  devicePort.write((master ? 0xE0 : 0xF0) | ((sector & 0x0F000000) >> 24));
+  errorPort.write(0);
+  sectorCountPort.write(1);
+  
+  lbaLowPort.write(sector & 0x000000FF);
+  lbaMidPort.write((sector & 0x0000FF00) >> 8);
+  lbaHiPort.write((sector & 0x00FF0000) >> 16);
+  commandPort.write(0x20);
+  
+  uint8_t status = commandPort.read();
+  while(((status & 0x80) == 0x80) && ((status & 0x01) != 0x01)) {
+    status = commandPort.read();
+  }
+  if(status & 0x01) {
+    printf("ERROR!");
+    return;
+  }
+  
+  printf("Reading from disk: ");
+  
+  for(uint16_t i = 0; i < count; i+=2) {
+    uint16_t rdata = dataPort.read();
+    
+    data[i] = rdata & 0x00FF;
+    if(i+1 < count) {
+      data[i+1] = (rdata >> 8) & 0x00FF;
+    }
+    
+    printHex8(data & 0x00FF);
+    printf(", ");
+  }
+  for(uint16_t i = count+(count%2); i < bytesPerSector; i+=2) {
+    dataPort.read();
+  }
+  printf("\n");
 }
 
-void AdvancedTechnologyAttachment::write28(common::uint32_t sector, common::uint8_t* data, int count) {
+void AdvancedTechnologyAttachment::write28(uint32_t sector, uint8_t* data, int count) {
+  if(sector & 0xF0000000) {
+    return;
+  }
+  if(count > bytesPerSector) {
+    return;
+  }
   
+  devicePort.write((master ? 0xE0 : 0xF0) | ((sector & 0x0F000000) >> 24));
+  errorPort.write(0);
+  sectorCountPort.write(1);
+  
+  lbaLowPort.write(sector & 0x000000FF);
+  lbaMidPort.write((sector & 0x0000FF00) >> 8);
+  lbaHiPort.write((sector & 0x00FF0000) >> 16);
+  commandPort.write(0x30);
+  
+  printf("Writing to disk: ");
+  
+  for(uint16_t i = 0; i < count; i+=2) {
+    uint16_t wdata = data[i];
+    if(i+1 < count) {
+      wdata = wdata | (((uint16_t) data[i+1]) << 8);
+    }
+    
+    dataPort.write(wdata);
+    
+    printHex8(data & 0x00FF);
+    printf(", ");
+  }
+  for(uint16_t i = count+(count%2); i < bytesPerSector; i+=2) {
+    dataPort.write(0x0000);
+  }
+  printf("\n");
 }
 
 void AdvancedTechnologyAttachment::flush() {
+  devicePort.write(master ? 0xE0 : 0xF0);
+  commandPort.write(0xE7);
   
+  uint8_t status = commandPort.read();
+  while(((status & 0x80) == 0x80) && ((status & 0x01) != 0x01)) {
+    status = commandPort.read();
+  }
+  if(status & 0x01) {
+    printf("ERROR!");
+    return;
+  }
 }
