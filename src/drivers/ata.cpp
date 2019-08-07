@@ -62,6 +62,7 @@ void AdvancedTechnologyAttachment::identify() {
   for(uint16_t i = 0; i < 256; i++) {
     uint16_t data = dataPort.read();
     printHex8(data & 0x00FF);
+    printf(", ");
   }
 }
 
