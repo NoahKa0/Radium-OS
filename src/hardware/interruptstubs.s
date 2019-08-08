@@ -57,6 +57,8 @@ handleInterruptRequest 0x2E
 handleInterruptRequest 0x2F
 handleInterruptRequest 0x51
 
+handleInterruptRequest 0x80
+
 int_handler:
     # add all registers to the stack so they can be restored later.
     pushl %ebp;

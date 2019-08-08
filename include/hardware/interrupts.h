@@ -89,6 +89,7 @@
                 static void handleInterruptRequest0x2E();
                 static void handleInterruptRequest0x2F();
                 static void handleInterruptRequest0x51();
+                static void handleInterruptRequest0x80();
                 
                 static void handleException0x00();
                 static void handleException0x01();

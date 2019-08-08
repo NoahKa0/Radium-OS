@@ -102,6 +102,9 @@ picSlaveData(0xA1)
     setInterruptDescriptorTableEntry(0x2F, codeSegment, &handleInterruptRequest0x2F, 0, IDT_INTERRUPT_GATE);
     setInterruptDescriptorTableEntry(0x51, codeSegment, &handleInterruptRequest0x51, 0, IDT_INTERRUPT_GATE);
     
+    // System call
+    setInterruptDescriptorTableEntry(0x80, codeSegment, &handleInterruptRequest0x80, 0, IDT_INTERRUPT_GATE);
+    
     
     picMasterCommand.write(0x11);
     picSlaveCommand.write(0x11);

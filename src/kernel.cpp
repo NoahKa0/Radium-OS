@@ -166,7 +166,7 @@ void sysCall(uint32_t eax, uint32_t ebx) {
 void taskA() {
   while(true) {
     char* txt = "_";
-    sysCall(4, &txt); // 4 is printf.
+    sysCall(0x04, (uint32_t) txt); // 4 is printf.
     //printf("_");
   }
 }
@@ -174,7 +174,7 @@ void taskA() {
 void taskB() {
   while(true) {
     char* txt = "|";
-    sysCall(4, &txt); // 4 is printf.
+    sysCall(0x04, (uint32_t) txt); // 4 is printf.
     //printf("|");
   }
 }
