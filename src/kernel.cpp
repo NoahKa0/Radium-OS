@@ -13,6 +13,8 @@
 
 #include <multitasking.h>
 
+#include <systemcalls.h>
+
 using namespace sys;
 using namespace sys::common;
 using namespace sys::drivers;
