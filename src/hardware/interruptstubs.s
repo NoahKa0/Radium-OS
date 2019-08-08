@@ -1,5 +1,3 @@
-.set IRQ_BASE, 0x20
-
 .section .text
 
 .extern _ZN3sys8hardware16InterruptManager11onInterruptEhj
@@ -36,28 +34,28 @@ handleException 0x12
 .macro handleInterruptRequest num
 .global _ZN3sys8hardware16InterruptManager26handleInterruptRequest\num\()Ev
 _ZN3sys8hardware16InterruptManager26handleInterruptRequest\num\()Ev:
-    movb $\num + IRQ_BASE, (interruptnumber)
+    movb $\num, (interruptnumber)
     pushl $0
     jmp int_handler
 .endm
 
-handleInterruptRequest 0x00
-handleInterruptRequest 0x01
-handleInterruptRequest 0x02
-handleInterruptRequest 0x03
-handleInterruptRequest 0x04
-handleInterruptRequest 0x05
-handleInterruptRequest 0x06
-handleInterruptRequest 0x07
-handleInterruptRequest 0x08
-handleInterruptRequest 0x09
-handleInterruptRequest 0x0A
-handleInterruptRequest 0x0B
-handleInterruptRequest 0x0C
-handleInterruptRequest 0x0D
-handleInterruptRequest 0x0E
-handleInterruptRequest 0x0F
-handleInterruptRequest 0x31
+handleInterruptRequest 0x20
+handleInterruptRequest 0x21
+handleInterruptRequest 0x22
+handleInterruptRequest 0x23
+handleInterruptRequest 0x24
+handleInterruptRequest 0x25
+handleInterruptRequest 0x26
+handleInterruptRequest 0x27
+handleInterruptRequest 0x28
+handleInterruptRequest 0x29
+handleInterruptRequest 0x2A
+handleInterruptRequest 0x2B
+handleInterruptRequest 0x2C
+handleInterruptRequest 0x2D
+handleInterruptRequest 0x2E
+handleInterruptRequest 0x2F
+handleInterruptRequest 0x51
 
 int_handler:
     # add all registers to the stack so they can be restored later.

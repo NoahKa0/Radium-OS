@@ -72,23 +72,23 @@
                 
                 static void ignoreInterruptRequest();
                 
-                static void handleInterruptRequest0x00();
-                static void handleInterruptRequest0x01();
-                static void handleInterruptRequest0x02();
-                static void handleInterruptRequest0x03();
-                static void handleInterruptRequest0x04();
-                static void handleInterruptRequest0x05();
-                static void handleInterruptRequest0x06();
-                static void handleInterruptRequest0x07();
-                static void handleInterruptRequest0x08();
-                static void handleInterruptRequest0x09();
-                static void handleInterruptRequest0x0A();
-                static void handleInterruptRequest0x0B();
-                static void handleInterruptRequest0x0C();
-                static void handleInterruptRequest0x0D();
-                static void handleInterruptRequest0x0E();
-                static void handleInterruptRequest0x0F();
-                static void handleInterruptRequest0x31();
+                static void handleInterruptRequest0x20();
+                static void handleInterruptRequest0x21();
+                static void handleInterruptRequest0x22();
+                static void handleInterruptRequest0x23();
+                static void handleInterruptRequest0x24();
+                static void handleInterruptRequest0x25();
+                static void handleInterruptRequest0x26();
+                static void handleInterruptRequest0x27();
+                static void handleInterruptRequest0x28();
+                static void handleInterruptRequest0x29();
+                static void handleInterruptRequest0x2A();
+                static void handleInterruptRequest0x2B();
+                static void handleInterruptRequest0x2C();
+                static void handleInterruptRequest0x2D();
+                static void handleInterruptRequest0x2E();
+                static void handleInterruptRequest0x2F();
+                static void handleInterruptRequest0x51();
                 
                 static void handleException0x00();
                 static void handleException0x01();
