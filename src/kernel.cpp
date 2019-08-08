@@ -157,14 +157,22 @@ extern "C" void callConstructors() {
     }
 }
 
+void sysCall(uint32_t eax, uint32_t ebx) {
+  asm("int $0x80" : : "a" (eax), "b" (ebx));
+}
+
 void taskA() {
   while(true) {
+    char* txt = "_";
+    sysCall(4, &txt); // 4 is printf.
     //printf("_");
   }
 }
 
 void taskB() {
   while(true) {
+    char* txt = "|";
+    sysCall(4, &txt); // 4 is printf.
     //printf("|");
   }
 }
@@ -200,6 +208,8 @@ extern "C" void kernelMain(void* multiboot_structure, uint32_t magicNumber) {
     
     printf("Setting up Drivers\n");
     InterruptManager interrupts(&gdt, &taskManager);
+    SystemCallHandler systemCallHandler(&interrupts);
+    
     DriverManager driverManager;
     
     PrintKeyboardHandler keyboardHandler;
