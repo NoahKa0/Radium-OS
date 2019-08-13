@@ -22,6 +22,7 @@ using namespace sys::hardware;
 
 static VideoGraphicsArray* videoGraphicsArray = 0;
 static bool videoEnabled = false;
+static bool printSysCallEnabled = false;
 
 VideoGraphicsArray* getVGA() {
   if(!videoEnabled) return 0;
@@ -111,6 +112,10 @@ public:
     txt[0] = c;
     printf(txt);
     
+    if(c == '.') {
+      printSysCallEnabled = !printSysCallEnabled;
+    }
+    
     if(c == '-') {
       if(!videoEnabled) enableVGA();
       VideoGraphicsArray* vga = getVGA();
@@ -160,6 +165,7 @@ extern "C" void callConstructors() {
 }
 
 void sysCall(uint32_t eax, uint32_t ebx) {
+  if(!printSysCallEnabled && eax == 0x04) return;
   asm("int $0x80" : : "a" (eax), "b" (ebx));
 }
 
