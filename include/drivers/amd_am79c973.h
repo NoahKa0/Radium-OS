@@ -67,6 +67,7 @@
         
         virtual void send(common::uint8_t* buffer, int size);
         virtual void receive();
+        virtual common::uint64_t getMacAddress();
       };
     }
   }

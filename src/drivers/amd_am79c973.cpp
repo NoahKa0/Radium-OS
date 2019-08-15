@@ -8,6 +8,7 @@ using namespace sys::hardware;
 void printf(char* str);
 void printHex32(uint32_t num);
 void printHex8(uint8_t num);
+void setSelectedEthernetDriver(EthernetDriver* drv);
 
 amd_am79c973::amd_am79c973(PeripheralComponentDeviceDescriptor* device, InterruptManager* interruptManager)
 : EthernetDriver(),
@@ -82,6 +83,8 @@ busControlRegisterDataPort(device->portBase + 0x16)
   
   registerAddressPort.write(2);
   registerDataPort.write(((uint32_t) (&initBlock) >> 16) & 0xFFFF);
+  
+  setSelectedEthernetDriver(this); // Make this instance accessable in kernel.cpp
 }
 
 amd_am79c973::~amd_am79c973() {}
@@ -165,11 +168,11 @@ void amd_am79c973::receive() {
       }
       uint8_t* buffer = (uint8_t*) (reciveBufferDescr[currentReciveBuffer].address);
       
-      for(int i = 0; i < size; i++) {
-        printHex8(buffer[i]);
-        printf(" ");
+      if(etherFrameProvider != 0) {
+        if(etherFrameProvider->onRawDataRecived(buffer, size)) {
+          send(buffer, size);
+        }
       }
-      printf(".\n");
     }
     
     reciveBufferDescr[currentReciveBuffer].flags2 = 0;
@@ -177,4 +180,8 @@ void amd_am79c973::receive() {
     
     currentReciveBuffer = (currentReciveBuffer+1) % 8;
   }
+}
+
+uint64_t getMacAddress() {
+  return this->InitializationBlock.physicalAddress;
 }

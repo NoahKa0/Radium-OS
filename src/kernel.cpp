@@ -10,6 +10,9 @@
 #include <drivers/mouse.h>
 #include <drivers/vga.h>
 #include <drivers/ata.h>
+#include <drivers/ethernet_driver.h>
+
+#include <net/etherframe.h>
 
 #include <multitasking.h>
 
@@ -23,6 +26,11 @@ using namespace sys::hardware;
 static VideoGraphicsArray* videoGraphicsArray = 0;
 static bool videoEnabled = false;
 static bool printSysCallEnabled = false;
+static EthernetDriver* currentEthernetDriver = 0;
+
+void setSelectedEthernetDriver(EthernetDriver* drv) {
+  currentEthernetDriver = drv;
+}
 
 VideoGraphicsArray* getVGA() {
   if(!videoEnabled) return 0;
@@ -260,6 +268,16 @@ extern "C" void kernelMain(void* multiboot_structure, uint32_t magicNumber) {
     printf("Recived from hard disk: ");
     printf(ataReciveBuffer);
     printf("\n");
+    
+    printf("Networking...");
+    EtherFrameProvider* etherframe = 0;
+    if(currentEthernetDriver != 0) {
+      printf("DONE!\n");
+      etherframe = new EtherFrameProvider(currentEthernetDriver);
+      etherframe->send(0xFFFFFFFFFFFF, "FOO", 3);
+    } else {
+      printf("NO DRIVER REGISTERED!\n");
+    }
     
     printf("Enabling interrupts...\n");
     
