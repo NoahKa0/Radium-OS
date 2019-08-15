@@ -3,6 +3,7 @@
 
   #include <common/types.h>
   #include <drivers/driver.h>
+  #include <drivers/ethernet_driver.h>
   #include <hardware/interrupts.h>
   #include <hardware/pci.h>
   #include <hardware/port.h>
@@ -10,7 +11,7 @@
   
   namespace sys {
     namespace drivers {
-      class amd_am79c973 : public Driver, public hardware::InterruptHandler {
+      class amd_am79c973 : public EthernetDriver, public hardware::InterruptHandler {
       private:
         struct InitializationBlock {
           common::uint16_t mode;
@@ -64,8 +65,8 @@
         
         virtual common::uint32_t handleInterrupt(common::uint32_t esp);
         
-        void send(common::uint8_t* buffer, int size);
-        void recive();
+        virtual void send(common::uint8_t* buffer, int size);
+        virtual void receive();
       };
     }
   }

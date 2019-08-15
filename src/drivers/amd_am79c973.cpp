@@ -10,7 +10,7 @@ void printHex32(uint32_t num);
 void printHex8(uint8_t num);
 
 amd_am79c973::amd_am79c973(PeripheralComponentDeviceDescriptor* device, InterruptManager* interruptManager)
-: Driver(),
+: EthernetDriver(),
 InterruptHandler(device->interrupt + 0x20, interruptManager), // hardware interrupt is asigned, so the device doesn't know that it starts at 0x20.
 macAddress0Port(device->portBase),
 macAddress2Port(device->portBase + 0x02),
@@ -151,7 +151,7 @@ void amd_am79c973::send(common::uint8_t* buffer, int size) {
   registerDataPort.write(0x48);
 }
 
-void amd_am79c973::recive() {
+void amd_am79c973::receive() {
   printf("AMD am79c973 DATA RECEVED\n");
   
   

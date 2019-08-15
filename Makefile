@@ -11,6 +11,7 @@ objects = tmp/loader.o \
           tmp/drivers/mouse.o \
           tmp/drivers/vga.o \
           tmp/drivers/ata.o \
+          tmp/drivers/ethernet_driver.o \
           tmp/drivers/amd_am79c973.o \
           tmp/systemcalls.o \
           tmp/multitasking.o \
