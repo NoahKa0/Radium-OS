@@ -28,6 +28,7 @@
       };
       
       class EtherFrameProvider {
+        friend class EtherFrameHandler;
       protected:
         EtherFrameHandler* handlers[65535];
         EthernetDriver* ethernetDriver;
