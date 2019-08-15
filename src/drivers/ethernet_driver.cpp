@@ -4,13 +4,14 @@ using namespace sys;
 using namespace sys::common;
 using namespace sys::drivers;
 using namespace sys::hardware;
+using namespace sys::net;
 
 void printf(char* str);
 
 EthernetDriver::EthernetDriver()
 :Driver()
 {
-  this->handler = 0;
+  this->etherFrameProvider = 0;
   this->defaultMessage = "default EthernetDriver. This doesn't do anything!\n";
 }
 

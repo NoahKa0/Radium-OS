@@ -3,6 +3,13 @@
 
   #include <common/types.h>
   #include <drivers/ethernet_driver.h>
+  
+  namespace sys {
+    namespace drivers {
+      class EthernetDriver;
+    }
+  }
+  
   namespace sys {
     namespace net {
       struct EtherFrameHeader {
@@ -31,9 +38,9 @@
         friend class EtherFrameHandler;
       protected:
         EtherFrameHandler* handlers[65535];
-        EthernetDriver* ethernetDriver;
+        drivers::EthernetDriver* ethernetDriver;
       public:
-        EtherFrameProvider(EthernetDriver* backend);
+        EtherFrameProvider(drivers::EthernetDriver* backend);
         ~EtherFrameProvider();
         
         bool onRawDataRecived(common::uint8_t* buffer, common::uint32_t size);

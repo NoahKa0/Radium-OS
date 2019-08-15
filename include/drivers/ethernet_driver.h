@@ -7,12 +7,18 @@
   #include <net/etherframe.h>
   
   namespace sys {
+    namespace net {
+      class EtherFrameProvider;
+    }
+  }
+  
+  namespace sys {
     namespace drivers {
       class EthernetDriver : public Driver {
       private:
         char* defaultMessage;
       protected:
-        EtherFrameProvider* etherFrameProvider;
+        net::EtherFrameProvider* etherFrameProvider;
       public:
         EthernetDriver();
         ~EthernetDriver();
@@ -21,7 +27,7 @@
         virtual void receive();
         virtual common::uint64_t getMacAddress();
         
-        void setEtherFrameProvider(EtherFrameProvider* efp);
+        void setEtherFrameProvider(net::EtherFrameProvider* efp);
       };
     }
   }

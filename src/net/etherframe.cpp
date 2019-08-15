@@ -8,7 +8,7 @@ using namespace sys::drivers;
 
 EtherFrameHandler::EtherFrameHandler(EtherFrameProvider* backend, common::uint16_t etherType) {
   this->backend = backend;
-  this->etherType = ((etherType & 0x00FF) << 8) | (etherType & 0xFF00) >> 8);
+  this->etherType = ((etherType & 0x00FF) << 8) | ((etherType & 0xFF00) >> 8);
   backend->handlers[etherType] = this;
 }
 
@@ -55,12 +55,12 @@ bool EtherFrameProvider::onRawDataRecived(uint8_t* buffer, uint32_t size) {
 }
 
 void EtherFrameProvider::send(uint64_t destMacAddress, uint16_t etherType, uint8_t* buffer, uint32_t size) {
-  uint8_t* buffer2 = MemoryManager::activeMemoryManager->malloc(sizeof(EtherFrameHeader) + size);
+  uint8_t* buffer2 = (uint8_t*) MemoryManager::activeMemoryManager->malloc(sizeof(EtherFrameHeader) + size);
   EtherFrameHeader* header = (EtherFrameHeader*) buffer2;
   
   header->destMac = destMacAddress;
   header->srcMac = this->ethernetDriver->getMacAddress();
-  header->etherType = this->etherType;
+  header->etherType = etherType;
   
   uint8_t* dst = buffer2 + sizeof(EtherFrameHeader);
   for(uint32_t i = 0; i < size; i++) {

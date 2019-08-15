@@ -22,6 +22,7 @@ using namespace sys;
 using namespace sys::common;
 using namespace sys::drivers;
 using namespace sys::hardware;
+using namespace sys::net;
 
 static VideoGraphicsArray* videoGraphicsArray = 0;
 static bool videoEnabled = false;
@@ -274,7 +275,7 @@ extern "C" void kernelMain(void* multiboot_structure, uint32_t magicNumber) {
     if(currentEthernetDriver != 0) {
       printf("DONE!\n");
       etherframe = new EtherFrameProvider(currentEthernetDriver);
-      etherframe->send(0xFFFFFFFFFFFF, "FOO", 3);
+      etherframe->send(0xFFFFFFFFFFFF, 0x0608, (uint8_t*) "FOO", 3);
     } else {
       printf("NO DRIVER REGISTERED!\n");
     }

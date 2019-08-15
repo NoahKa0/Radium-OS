@@ -182,6 +182,6 @@ void amd_am79c973::receive() {
   }
 }
 
-uint64_t getMacAddress() {
-  return this->InitializationBlock.physicalAddress;
+uint64_t amd_am79c973::getMacAddress() {
+  return this->initBlock.physicalAddress;
 }
