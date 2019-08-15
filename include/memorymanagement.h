@@ -31,5 +31,8 @@
   
   void operator delete(void* pointer);
   void operator delete[](void* pointer);
+  
+  void operator delete(void* pointer, sys::common::uint32_t size);
+  void operator delete[](void* pointer, sys::common::uint32_t size);
 
 #endif

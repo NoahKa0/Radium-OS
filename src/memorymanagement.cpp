@@ -36,7 +36,7 @@ void* MemoryManager::malloc(size_t size) {
   
   result->allocated = true; // If multiple tasks are allocating memory the other task won't bother our current chunk.
   if(result->size > size+sizeof(MemoryChunk) + 1) {
-    MemoryChunk* tmp = (MemoryChunk*)(size_t) result + sizeof(MemoryChunk)+size;
+    MemoryChunk* tmp = (MemoryChunk*)(size_t) (result + sizeof(MemoryChunk)+size);
     tmp->allocated = false;
     tmp->size = result->size-sizeof(MemoryChunk)-size;
     tmp->previous = result;
@@ -51,13 +51,19 @@ void* MemoryManager::malloc(size_t size) {
   return (void*) (((size_t) result) + sizeof(MemoryChunk));
 }
 
+void printf(char* str);
+void printHex32(uint32_t num);
+
 void MemoryManager::free(void* pointer) {
-  MemoryChunk* chunk = (MemoryChunk*)(size_t) pointer - sizeof(MemoryChunk);
+  MemoryChunk* chunk = (MemoryChunk*)(size_t) (pointer - sizeof(MemoryChunk));
   
   chunk->allocated = false;
+  printf("memFree\n");
+  printHex32((uint32_t) chunk->previous);
   
   if(chunk->previous != 0 && !chunk->previous->allocated) {
     chunk = chunk->previous;
+    printf("memChunkPrev\n");
   }
   
   for(MemoryChunk* i = chunk->next; i != 0; i = i->next) {
@@ -97,6 +103,18 @@ void operator delete(void* pointer) {
   }
 }
 void operator delete[](void* pointer) {
+  if(sys::MemoryManager::activeMemoryManager != 0) {
+    sys::MemoryManager::activeMemoryManager->free(pointer);
+  }
+}
+
+void operator delete(void* pointer, uint32_t size) {
+  if(sys::MemoryManager::activeMemoryManager != 0) {
+    sys::MemoryManager::activeMemoryManager->free(pointer);
+  }
+}
+
+void operator delete[](void* pointer, uint32_t size) {
   if(sys::MemoryManager::activeMemoryManager != 0) {
     sys::MemoryManager::activeMemoryManager->free(pointer);
   }
