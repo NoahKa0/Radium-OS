@@ -14,6 +14,7 @@ objects = tmp/loader.o \
           tmp/drivers/ethernet_driver.o \
           tmp/drivers/amd_am79c973.o \
           tmp/net/etherframe.o \
+          tmp/net/arp.o \
           tmp/systemcalls.o \
           tmp/multitasking.o \
           tmp/kernel.o

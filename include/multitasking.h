@@ -27,7 +27,7 @@
     class Task {
     friend class TaskManager;
     private:
-      common::uint8_t stack[4096];
+      common::uint8_t stack[524288‬];
       CPUState* cpuState;
     public:
       Task(GlobalDescriptorTable* gdt, void entrypoint());

@@ -7,7 +7,7 @@ using namespace sys::common;
   Class: Task
 **/
 Task::Task(GlobalDescriptorTable* gdt, void entrypoint()) {
-    cpuState = (CPUState*)(stack + 4096 - sizeof(CPUState));
+    cpuState = (CPUState*)(stack + 524288 - sizeof(CPUState));
 
     cpuState->eax = 0;
     cpuState->ebx = 0;

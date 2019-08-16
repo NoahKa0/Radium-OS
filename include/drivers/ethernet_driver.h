@@ -27,6 +27,9 @@
         virtual void receive();
         virtual common::uint64_t getMacAddress();
         
+        virtual common::uint32_t getIpAddress();
+        virtual void setIpAddress(common::uint32_t ip);
+        
         void setEtherFrameProvider(net::EtherFrameProvider* efp);
       };
     }

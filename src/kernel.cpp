@@ -13,6 +13,7 @@
 #include <drivers/ethernet_driver.h>
 
 #include <net/etherframe.h>
+#include <net/arp.h>
 
 #include <multitasking.h>
 
@@ -28,6 +29,7 @@ static VideoGraphicsArray* videoGraphicsArray = 0;
 static bool videoEnabled = false;
 static bool printSysCallEnabled = false;
 static EthernetDriver* currentEthernetDriver = 0;
+static AddressResolutionProtocol* arp = 0;
 
 void setSelectedEthernetDriver(EthernetDriver* drv) {
   currentEthernetDriver = drv;
@@ -179,6 +181,20 @@ void sysCall(uint32_t eax, uint32_t ebx) {
 }
 
 void taskA() {
+  if(arp != 0) {
+    uint32_t gIp = 0x02020010;
+    uint64_t mac = arp->resolve(gIp);
+    uint32_t mac1 = mac & 0xFFFFFFFF;
+    uint32_t mac2 = (mac >> 32) & 0xFFFFFFFF;
+    printf("resolved ");
+    printHex32(gIp);
+    printf(" to ");
+    printHex32(mac1);
+    printHex32(mac2);
+    printf("\n");
+  } else {
+    printf("Arp == 0\n");
+  }
   while(true) {
     char* txt = "_";
     sysCall(0x04, (uint32_t) txt); // 4 is printf.
@@ -217,11 +233,11 @@ extern "C" void kernelMain(void* multiboot_structure, uint32_t magicNumber) {
     printf("\n");
     
     TaskManager taskManager;
-    Task task1(&gdt, taskA);
-    Task task2(&gdt, taskB);
+    Task* task1 = new Task(&gdt, taskA);
+    Task* task2 = new Task(&gdt, taskB);
     
-    taskManager.addTask(&task1);
-    taskManager.addTask(&task2);
+    taskManager.addTask(task1);
+    taskManager.addTask(task2);
     
     printf("Setting up Drivers\n");
     InterruptManager interrupts(&gdt, &taskManager);
@@ -273,9 +289,13 @@ extern "C" void kernelMain(void* multiboot_structure, uint32_t magicNumber) {
     printf("Networking...");
     EtherFrameProvider* etherframe = 0;
     if(currentEthernetDriver != 0) {
-      printf("DONE!\n");
+      uint32_t myIp = 0x0F020010;
+      currentEthernetDriver->setIpAddress(myIp);
+      printf("IPv4: ");
+      printHex32(myIp);
+      printf(" DONE\n");
       etherframe = new EtherFrameProvider(currentEthernetDriver);
-      etherframe->send(0xFFFFFFFFFFFF, 0x0608, (uint8_t*) "FOO", 3);
+      arp = new AddressResolutionProtocol(etherframe);
     } else {
       printf("NO DRIVER REGISTERED!\n");
     }

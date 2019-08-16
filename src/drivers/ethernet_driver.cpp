@@ -25,10 +25,18 @@ void EthernetDriver::receive() {
   printf(this->defaultMessage);
 }
 
-void EthernetDriver::setEtherFrameProvider(EtherFrameProvider* efp) {
-  this->etherFrameProvider = efp;
-}
-
 uint64_t EthernetDriver::getMacAddress() {
   return 0;
+}
+
+uint32_t EthernetDriver::getIpAddress() {
+  return 0;
+}
+
+void EthernetDriver::setIpAddress(uint32_t ip) {
+  printf(this->defaultMessage);
+}
+
+void EthernetDriver::setEtherFrameProvider(EtherFrameProvider* efp) {
+  this->etherFrameProvider = efp;
 }

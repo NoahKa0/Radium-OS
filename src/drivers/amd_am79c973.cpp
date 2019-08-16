@@ -185,3 +185,11 @@ void amd_am79c973::receive() {
 uint64_t amd_am79c973::getMacAddress() {
   return this->initBlock.physicalAddress;
 }
+
+uint32_t amd_am79c973::getIpAddress() {
+  return initBlock.logicalAddress;
+}
+
+void amd_am79c973::setIpAddress(uint32_t ip) {
+  initBlock.logicalAddress = ip;
+}

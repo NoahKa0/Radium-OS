@@ -68,6 +68,9 @@
         virtual void send(common::uint8_t* buffer, int size);
         virtual void receive();
         virtual common::uint64_t getMacAddress();
+        
+        virtual common::uint32_t getIpAddress();
+        virtual void setIpAddress(common::uint32_t ip);
       };
     }
   }

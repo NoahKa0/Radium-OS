@@ -44,7 +44,10 @@
         ~EtherFrameProvider();
         
         bool onRawDataRecived(common::uint8_t* buffer, common::uint32_t size);
-        void send(common::uint64_t destMacAddress, common::uint16_t etherType, common::uint8_t* buffer, common::uint32_t size);
+        void send(common::uint64_t destMacAddress_BE, common::uint16_t etherType_BE, common::uint8_t* buffer, common::uint32_t size);
+        
+        common::uint64_t getMacAddress();
+        common::uint32_t getIpAddress();
       };
     }
   }
