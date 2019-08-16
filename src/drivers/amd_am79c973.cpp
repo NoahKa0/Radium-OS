@@ -109,8 +109,6 @@ int amd_am79c973::reset() {
 }
 
 common::uint32_t amd_am79c973::handleInterrupt(common::uint32_t esp) {
-  printf("INTERRUPT FROM NETWORK CARD\n");
-  
   registerAddressPort.write(0);
   uint32_t tmp = registerDataPort.read();
   
@@ -146,6 +144,14 @@ void amd_am79c973::send(common::uint8_t* buffer, int size) {
     src--;
   }
   
+  printf("SENDING: ");
+  
+  for(uint32_t i = 0; i < size; i++) {
+    printHex8(buffer[i]);
+    printf(" ");
+  }
+  printf("\n");
+  
   sendBufferDescr[sendDescriptor].available = 0;
   sendBufferDescr[sendDescriptor].flags2 = 0;
   sendBufferDescr[sendDescriptor].flags = 0x8300F000 | ((uint16_t) ((-size) & 0xFFF));
@@ -155,10 +161,10 @@ void amd_am79c973::send(common::uint8_t* buffer, int size) {
 }
 
 void amd_am79c973::receive() {
-  printf("AMD am79c973 DATA RECEVED\n");
+  printf("AMD am79c973 DATA RECEIVED\n");
   
   
-  while(reciveBufferDescr[currentReciveBuffer].flags & 0x80000000 == 0) {
+  while((reciveBufferDescr[currentReciveBuffer].flags & 0x80000000) == 0) {
     if(!(reciveBufferDescr[currentReciveBuffer].flags & 0x40000000) // Check for error bits
     && (reciveBufferDescr[currentReciveBuffer].flags & 0x03000000) == 0x03000000) // Check for startOfPacket and EndOfPacket bits
     {
@@ -167,9 +173,8 @@ void amd_am79c973::receive() {
         size -= 4;
       }
       uint8_t* buffer = (uint8_t*) (reciveBufferDescr[currentReciveBuffer].address);
-      
-      if(etherFrameProvider != 0) {
-        if(etherFrameProvider->onRawDataRecived(buffer, size)) {
+      if(this->etherFrameProvider != 0) {
+        if(this->etherFrameProvider->onRawDataRecived(buffer, size)) {
           send(buffer, size);
         }
       }

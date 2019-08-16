@@ -182,15 +182,15 @@ void sysCall(uint32_t eax, uint32_t ebx) {
 
 void taskA() {
   if(arp != 0) {
-    uint32_t gIp = 0x02020010;
+    uint32_t gIp = 0x0202000A;
     uint64_t mac = arp->resolve(gIp);
-    uint32_t mac1 = mac & 0xFFFFFFFF;
-    uint32_t mac2 = (mac >> 32) & 0xFFFFFFFF;
+    uint32_t mac1 = (mac & 0x00000000FFFFFFFF);
+    uint32_t mac2 = ((mac >> 32) & 0x00000000FFFFFFFF);
     printf("resolved ");
     printHex32(gIp);
     printf(" to ");
-    printHex32(mac1);
     printHex32(mac2);
+    printHex32(mac1);
     printf("\n");
   } else {
     printf("Arp == 0\n");
@@ -289,7 +289,7 @@ extern "C" void kernelMain(void* multiboot_structure, uint32_t magicNumber) {
     printf("Networking...");
     EtherFrameProvider* etherframe = 0;
     if(currentEthernetDriver != 0) {
-      uint32_t myIp = 0x0F020010;
+      uint32_t myIp = 0x0F02000A;
       currentEthernetDriver->setIpAddress(myIp);
       printf("IPv4: ");
       printHex32(myIp);

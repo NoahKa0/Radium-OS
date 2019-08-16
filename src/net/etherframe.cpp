@@ -9,7 +9,7 @@ using namespace sys::drivers;
 EtherFrameHandler::EtherFrameHandler(EtherFrameProvider* backend, common::uint16_t etherType) {
   this->backend = backend;
   this->etherType = ((etherType & 0x00FF) << 8) | ((etherType & 0xFF00) >> 8);
-  backend->handlers[etherType] = this;
+  backend->handlers[this->etherType] = this;
 }
 
 EtherFrameHandler::~EtherFrameHandler() {
@@ -27,6 +27,7 @@ void EtherFrameHandler::send(uint64_t destMacAddress, uint8_t* etherFramePayload
 
 EtherFrameProvider::EtherFrameProvider(EthernetDriver* backend) {
   this->ethernetDriver = backend;
+  backend->setEtherFrameProvider(this);
   for(uint32_t i = 0; i < 65535; i++) {
     handlers[i] = 0;
   }
@@ -37,7 +38,6 @@ EtherFrameProvider::~EtherFrameProvider() {}
 bool EtherFrameProvider::onRawDataRecived(uint8_t* buffer, uint32_t size) {
   EtherFrameHeader* header = (EtherFrameHeader*) buffer;
   bool sendBack = false;
-  
   if(header->destMac == 0xFFFFFFFFFFFF || // Broadcast
     header->destMac == this->ethernetDriver->getMacAddress())
   {
@@ -67,7 +67,7 @@ void EtherFrameProvider::send(uint64_t destMacAddress_BE, uint16_t etherType_BE,
     dst[i] = buffer[i];
   }
   
-  this->ethernetDriver->send(buffer, size + sizeof(EtherFrameHeader));
+  this->ethernetDriver->send(buffer2, size + sizeof(EtherFrameHeader));
   MemoryManager::activeMemoryManager->free(buffer2);
 }
 

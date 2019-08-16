@@ -1,4 +1,4 @@
-#include <net/etherframe.h>
+#include <net/arp.h>
 #include <memorymanagement.h>
 
 using namespace sys;
@@ -12,13 +12,12 @@ AddressResolutionProtocol::AddressResolutionProtocol(EtherFrameProvider* backend
   this->currentCache = 0;
 }
 
-AddressResolutionProtocol::~AddressResolutionProtocol();
+AddressResolutionProtocol::~AddressResolutionProtocol() {}
 
 bool AddressResolutionProtocol::onEtherFrameReceived(uint8_t* etherFramePayload, uint32_t size) {
   if(size < sizeof(AddressResolutionProtocolMessage)) return false;
   
   AddressResolutionProtocolMessage* arp = (AddressResolutionProtocolMessage*) etherFramePayload;
-  
   if(arp->hardwareType == 0x0100) {
     if(arp->protocol == 0x0008
     && arp->hardwareAddressLength == 6
@@ -58,7 +57,7 @@ void AddressResolutionProtocol::requestMacAddress(uint32_t ip_BE) {
   arp.destMacAddress = 0xFFFFFFFFFFFF;
   arp.destIpAddress = ip_BE;
   
-  this->send(arp.destMacAddress, &arp, sizeof(AddressResolutionProtocolMessage));
+  this->send(arp.destMacAddress, (uint8_t*) &arp, sizeof(AddressResolutionProtocolMessage));
 }
 
 uint64_t AddressResolutionProtocol::getMacFromCache(uint32_t ip_BE) {
@@ -70,7 +69,7 @@ uint64_t AddressResolutionProtocol::getMacFromCache(uint32_t ip_BE) {
   return 0xFFFFFFFFFFFF;
 }
 
-uint64_t resolve(uint32_t ip_BE) {
+uint64_t AddressResolutionProtocol::resolve(uint32_t ip_BE) {
   uint64_t result = getMacFromCache(ip_BE);
   uint32_t timeout = 0;
   
@@ -78,12 +77,10 @@ uint64_t resolve(uint32_t ip_BE) {
     requestMacAddress(ip_BE);
   }
   
-  while(result == 0xFFFFFFFFFFFF && timeout < 799) {
+  while(result == 0xFFFFFFFFFFFF && timeout < 200) {
     asm("hlt");
     timeout++;
     result = getMacFromCache(ip_BE);
-    if(timeout%200 == 0 && result == 0xFFFFFFFFFFFF) {
-      requestMacAddress(ip_BE);
-    }
   }
+  return result;
 }

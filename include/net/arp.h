@@ -29,7 +29,7 @@
         AddressResolutionProtocol(EtherFrameProvider* backend);
         ~AddressResolutionProtocol();
         
-        bool onEtherFrameReceived(common::uint8_t* etherFramePayload, common::uint32_t size);
+        virtual bool onEtherFrameReceived(common::uint8_t* etherFramePayload, common::uint32_t size);
         
         void requestMacAddress(common::uint32_t ip_BE);
         common::uint64_t getMacFromCache(common::uint32_t ip_BE);

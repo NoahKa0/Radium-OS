@@ -30,7 +30,7 @@
         EtherFrameHandler(EtherFrameProvider* backend, common::uint16_t etherType);
         ~EtherFrameHandler();
         
-        bool onEtherFrameReceived(common::uint8_t* etherFramePayload, common::uint32_t size);
+        virtual bool onEtherFrameReceived(common::uint8_t* etherFramePayload, common::uint32_t size);
         void send(common::uint64_t destMacAddress, common::uint8_t* etherFramePayload, common::uint32_t size);
       };
       
