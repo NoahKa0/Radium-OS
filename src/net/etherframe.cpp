@@ -13,7 +13,9 @@ EtherFrameHandler::EtherFrameHandler(EtherFrameProvider* backend, common::uint16
 }
 
 EtherFrameHandler::~EtherFrameHandler() {
-  backend->handlers[etherType] = 0;
+  if(backend->handlers[this->etherType] == this) {
+    backend->handlers[etherType] = 0;
+  }
 }
 
 bool EtherFrameHandler::onEtherFrameReceived(uint8_t* etherFramePayload, uint32_t size) {
@@ -36,6 +38,8 @@ EtherFrameProvider::EtherFrameProvider(EthernetDriver* backend) {
 EtherFrameProvider::~EtherFrameProvider() {}
 
 bool EtherFrameProvider::onRawDataRecived(uint8_t* buffer, uint32_t size) {
+  if(size < sizeof(EtherFrameHeader)) return false;
+  
   EtherFrameHeader* header = (EtherFrameHeader*) buffer;
   bool sendBack = false;
   if(header->destMac == 0xFFFFFFFFFFFF || // Broadcast

@@ -14,6 +14,7 @@
 
 #include <net/etherframe.h>
 #include <net/arp.h>
+#include <net/ipv4.h>
 
 #include <multitasking.h>
 
@@ -30,6 +31,7 @@ static bool videoEnabled = false;
 static bool printSysCallEnabled = false;
 static EthernetDriver* currentEthernetDriver = 0;
 static AddressResolutionProtocol* arp = 0;
+static InternetProtocolV4Provider* ipv4 = 0;
 
 void setSelectedEthernetDriver(EthernetDriver* drv) {
   currentEthernetDriver = drv;
@@ -181,19 +183,13 @@ void sysCall(uint32_t eax, uint32_t ebx) {
 }
 
 void taskA() {
-  if(arp != 0) {
+  if(ipv4 != 0) {
     uint32_t gIp = 0x0202000A;
-    uint64_t mac = arp->resolve(gIp);
-    uint32_t mac1 = (mac & 0x00000000FFFFFFFF);
-    uint32_t mac2 = ((mac >> 32) & 0x00000000FFFFFFFF);
-    printf("resolved ");
-    printHex32(gIp);
-    printf(" to ");
-    printHex32(mac2);
-    printHex32(mac1);
+    printf("IPv4 sending: ");
+    ipv4->send(gIp, 0x0008, "Hello World!", 12);
     printf("\n");
   } else {
-    printf("Arp == 0\n");
+    printf("ipv4 == 0\n");
   }
   while(true) {
     char* txt = "_";
@@ -290,12 +286,14 @@ extern "C" void kernelMain(void* multiboot_structure, uint32_t magicNumber) {
     EtherFrameProvider* etherframe = 0;
     if(currentEthernetDriver != 0) {
       uint32_t myIp = 0x0F02000A;
+      uint32_t gIp = 0x0202000A; // gateway
       currentEthernetDriver->setIpAddress(myIp);
       printf("IPv4: ");
       printHex32(myIp);
       printf(" DONE\n");
       etherframe = new EtherFrameProvider(currentEthernetDriver);
       arp = new AddressResolutionProtocol(etherframe);
+      ipv4 = new InternetProtocolV4Provider(etherframe, arp, gIp, 0x00FFFFFF); // 0x00FFFFFF = 255.255.255.0 (subnet mask)
     } else {
       printf("NO DRIVER REGISTERED!\n");
     }
