@@ -35,6 +35,8 @@
         common::uint64_t getMacFromCache(common::uint32_t ip_BE);
         
         common::uint64_t resolve(common::uint32_t ip_BE);
+        
+        void broadcastMacAddress(common::uint32_t ip_BE);
       };
     }
   }

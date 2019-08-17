@@ -16,6 +16,7 @@ objects = tmp/loader.o \
           tmp/net/etherframe.o \
           tmp/net/arp.o \
           tmp/net/ipv4.o \
+          tmp/net/icmp.o \
           tmp/systemcalls.o \
           tmp/multitasking.o \
           tmp/kernel.o

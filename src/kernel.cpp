@@ -15,6 +15,7 @@
 #include <net/etherframe.h>
 #include <net/arp.h>
 #include <net/ipv4.h>
+#include <net/icmp.h>
 
 #include <multitasking.h>
 
@@ -29,9 +30,12 @@ using namespace sys::net;
 static VideoGraphicsArray* videoGraphicsArray = 0;
 static bool videoEnabled = false;
 static bool printSysCallEnabled = false;
+
+// Network
 static EthernetDriver* currentEthernetDriver = 0;
 static AddressResolutionProtocol* arp = 0;
 static InternetProtocolV4Provider* ipv4 = 0;
+static InternetControlMessageProtocol* icmp = 0;
 
 void setSelectedEthernetDriver(EthernetDriver* drv) {
   currentEthernetDriver = drv;
@@ -183,13 +187,12 @@ void sysCall(uint32_t eax, uint32_t ebx) {
 }
 
 void taskA() {
-  if(ipv4 != 0) {
+  if(icmp != 0) {
     uint32_t gIp = 0x0202000A;
-    printf("IPv4 sending: ");
-    ipv4->send(gIp, 0x01, (uint8_t*) "Hello World!", 12);
-    printf("\n");
+    printf("Tying to ping\n");
+    icmp->ping(gIp);
   } else {
-    printf("ipv4 == 0\n");
+    printf("ICMP == 0\n");
   }
   while(true) {
     char* txt = "_";
@@ -293,7 +296,9 @@ extern "C" void kernelMain(void* multiboot_structure, uint32_t magicNumber) {
       printf(" DONE\n");
       etherframe = new EtherFrameProvider(currentEthernetDriver);
       arp = new AddressResolutionProtocol(etherframe);
+      arp->broadcastMacAddress(gIp);
       ipv4 = new InternetProtocolV4Provider(etherframe, arp, gIp, 0x00FFFFFF); // 0x00FFFFFF = 255.255.255.0 (subnet mask)
+      icmp = new InternetControlMessageProtocol(ipv4);
     } else {
       printf("NO DRIVER REGISTERED!\n");
     }

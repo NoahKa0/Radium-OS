@@ -84,3 +84,18 @@ uint64_t AddressResolutionProtocol::resolve(uint32_t ip_BE) {
   }
   return result;
 }
+
+void AddressResolutionProtocol::broadcastMacAddress(uint32_t ip_BE) {
+  AddressResolutionProtocolMessage arp;
+  arp.hardwareType = 0x0100; // BE 1.
+  arp.protocol = 0x0008; // BE 800. 800 = IPv4.
+  arp.hardwareAddressLength = 6; // MAC Address = 6 bytes.
+  arp.protocolAddressLength = 4; // IPv4 address = 4 bytes.
+  arp.command = 0x0200; // BE 2. 2 = response.
+  arp.senderMacAddress = backend->getMacAddress();
+  arp.senderIpAddress = backend->getIpAddress();
+  arp.destMacAddress = this->resolve(ip_BE);
+  arp.destIpAddress = ip_BE;
+  
+  this->send(arp.destMacAddress, (uint8_t*) &arp, sizeof(AddressResolutionProtocolMessage));
+}

@@ -36,8 +36,8 @@
         InternetProtocolV4Handler(InternetProtocolV4Provider* backend, common::uint8_t ipProtocol);
         ~InternetProtocolV4Handler();
         
-        bool onInternetProtocolReceived(common::uint32_t srcIp_BE, common::uint32_t destIp_BE, common::uint8_t* payload, common::uint32_t size);
-        void send(common::uint32_t destIp_BE, common::uint8_t* payload, common::uint32_t size);
+        virtual bool onInternetProtocolReceived(common::uint32_t srcIp_BE, common::uint32_t destIp_BE, common::uint8_t* payload, common::uint32_t size);
+        virtual void send(common::uint32_t destIp_BE, common::uint8_t* payload, common::uint32_t size);
       };
       
       class InternetProtocolV4Provider : public EtherFrameHandler {
