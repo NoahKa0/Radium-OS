@@ -36,7 +36,7 @@ void* MemoryManager::malloc(size_t size) {
   
   result->allocated = true; // If multiple tasks are allocating memory the other task won't bother our current chunk.
   if(result->size > size+sizeof(MemoryChunk) + 1) {
-    MemoryChunk* tmp = (MemoryChunk*)(size_t) (result + sizeof(MemoryChunk)+size);
+    MemoryChunk* tmp = (MemoryChunk*) ((size_t) result + sizeof(MemoryChunk)+size);
     tmp->allocated = false;
     tmp->size = result->size-sizeof(MemoryChunk)-size;
     tmp->previous = result;
@@ -52,7 +52,7 @@ void* MemoryManager::malloc(size_t size) {
 }
 
 void MemoryManager::free(void* pointer) {
-  MemoryChunk* chunk = (MemoryChunk*)(size_t) (pointer - sizeof(MemoryChunk));
+  MemoryChunk* chunk = (MemoryChunk*) ((size_t) pointer - sizeof(MemoryChunk));
   
   chunk->allocated = false;
   
