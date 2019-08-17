@@ -65,7 +65,7 @@ bool InternetProtocolV4Provider::onEtherFrameReceived(uint8_t* etherFramePayload
     
     ipMessage->timeToLive = 0x40;
     
-    message->checksum = 0; // Checksum should be 0 before checking
+    ipMessage->checksum = 0; // Checksum should be 0 before checking
     ipMessage->checksum = checksum((uint16_t*) ipMessage, 4*ipMessage->headerLength);
   }
   
