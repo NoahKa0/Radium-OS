@@ -58,6 +58,8 @@ bool EtherFrameProvider::onRawDataRecived(uint8_t* buffer, uint32_t size) {
   return sendBack;
 }
 
+void printf(char* txt);
+
 void EtherFrameProvider::send(uint64_t destMacAddress_BE, uint16_t etherType_BE, uint8_t* buffer, uint32_t size) {
   uint8_t* buffer2 = (uint8_t*) MemoryManager::activeMemoryManager->malloc(sizeof(EtherFrameHeader) + size);
   EtherFrameHeader* header = (EtherFrameHeader*) buffer2;
@@ -71,8 +73,11 @@ void EtherFrameProvider::send(uint64_t destMacAddress_BE, uint16_t etherType_BE,
     dst[i] = buffer[i];
   }
   
+  printf("SENDING");
   this->ethernetDriver->send(buffer2, size + sizeof(EtherFrameHeader));
+  printf("__");
   MemoryManager::activeMemoryManager->free(buffer2);
+  printf("|\n");
 }
 
 uint64_t EtherFrameProvider::getMacAddress() {

@@ -157,7 +157,7 @@ void amd_am79c973::send(common::uint8_t* buffer, int size) {
   
   registerAddressPort.write(0);
   registerDataPort.write(0x48);
-  printf(".\n");
+  printf("SEND DONE\n");
 }
 
 void amd_am79c973::receive() {
