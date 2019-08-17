@@ -60,14 +60,10 @@ void MemoryManager::free(void* pointer) {
     chunk = chunk->previous;
   }
   
-  for(MemoryChunk* i = chunk->next; i != 0; i = i->next) {
-    if(!i->allocated) {
-      chunk->size += i->size + sizeof(MemoryChunk);
-    } else {
-      i->previous = chunk;
-      chunk->next = i;
-      i = 0;
-    }
+  for(MemoryChunk* i = chunk->next; i != 0 && !i->allocated; i = i->next) {
+    chunk->size += i->size + sizeof(MemoryChunk);
+    i->previous = chunk;
+    chunk->next = i;
   }
 }
 
