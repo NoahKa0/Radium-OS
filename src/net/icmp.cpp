@@ -1,4 +1,4 @@
-#include <net/arp.h>
+#include <net/icmp.h>
 
 using namespace sys;
 using namespace sys::common;
@@ -31,13 +31,13 @@ bool InternetControlMessageProtocol::onInternetProtocolReceived(uint32_t srcIp_B
   
   switch(msg->type) {
     case 0:
-      printf(" RESPONSE")
+      printf(" RESPONSE");
       break;
     case 8:
       printf(" REQUEST\n");
       msg->type = 0;
       msg->checksum = 0;
-      msg-checksum = InternetProtocolV4Provider::checksum((uint16_t*) &msg, sizeof(InternetControlMessageProtocolHeader));
+      msg->checksum = InternetProtocolV4Provider::checksum((uint16_t*) &msg, sizeof(InternetControlMessageProtocolHeader));
       return true;
     default:
       break;
@@ -49,11 +49,11 @@ bool InternetControlMessageProtocol::onInternetProtocolReceived(uint32_t srcIp_B
 
 void InternetControlMessageProtocol::ping(uint32_t ip_be) {
   InternetControlMessageProtocolHeader icmp;
-  icmp->type = 8; // 8 = ping.
-  icmp->code = 0;
-  icmp->data = 3713; // BE 1337 = "LEET"
-  icmp->checksum = 0;
-  icmp->checksum = InternetProtocolV4Provider::checksum((uint16_t*) &icmp, sizeof(InternetControlMessageProtocolHeader));
+  icmp.type = 8; // 8 = ping.
+  icmp.code = 0;
+  icmp.data = 3713; // BE 1337 = "LEET"
+  icmp.checksum = 0;
+  icmp.checksum = InternetProtocolV4Provider::checksum((uint16_t*) &icmp, sizeof(InternetControlMessageProtocolHeader));
   
-  this->send(ip, &icmp, sizeof(&icmp));
+  this->send(ip_be, (uint8_t*) &icmp, sizeof(&icmp));
 }

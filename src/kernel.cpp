@@ -189,6 +189,7 @@ void sysCall(uint32_t eax, uint32_t ebx) {
 void taskA() {
   if(icmp != 0) {
     uint32_t gIp = 0x0202000A;
+    arp->broadcastMacAddress(gIp);
     printf("Tying to ping\n");
     icmp->ping(gIp);
   } else {
@@ -296,7 +297,6 @@ extern "C" void kernelMain(void* multiboot_structure, uint32_t magicNumber) {
       printf(" DONE\n");
       etherframe = new EtherFrameProvider(currentEthernetDriver);
       arp = new AddressResolutionProtocol(etherframe);
-      arp->broadcastMacAddress(gIp);
       ipv4 = new InternetProtocolV4Provider(etherframe, arp, gIp, 0x00FFFFFF); // 0x00FFFFFF = 255.255.255.0 (subnet mask)
       icmp = new InternetControlMessageProtocol(ipv4);
     } else {
