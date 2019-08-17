@@ -50,8 +50,8 @@ bool InternetProtocolV4Provider::onEtherFrameReceived(uint8_t* etherFramePayload
     if(messageLength > size) { // Size of message can't be larger than size of EtherFrame.
       messageLength = size;
     }
-    if(handlers[header->protocol] != 0) {
-      sendBack = handlers[header->protocol]->onInternetProtocolReceived(
+    if(handlers[ipMessage->protocol] != 0) {
+      sendBack = handlers[ipMessage->protocol]->onInternetProtocolReceived(
               ipMessage->srcAddress,
               ipMessage->destAddress,
               etherFramePayload + (ipMessage->headerLength*4),
@@ -64,6 +64,8 @@ bool InternetProtocolV4Provider::onEtherFrameReceived(uint8_t* etherFramePayload
     ipMessage->srcAddress = backend->getIpAddress();
     
     ipMessage->timeToLive = 0x40;
+    
+    message->checksum = 0; // Checksum should be 0 before checking
     ipMessage->checksum = checksum((uint16_t*) ipMessage, 4*ipMessage->headerLength);
   }
   
@@ -71,7 +73,7 @@ bool InternetProtocolV4Provider::onEtherFrameReceived(uint8_t* etherFramePayload
 }
 
 void InternetProtocolV4Provider::send(uint32_t destIpAddress, uint8_t protocol, uint8_t* etherFramePayload, uint32_t size) {
-  uint8_t* buffer = MemoryManager::activeMemoryManager->malloc(sizeof(InternetProtocolV4Message) + size);
+  uint8_t* buffer = (uint8_t*) MemoryManager::activeMemoryManager->malloc(sizeof(InternetProtocolV4Message) + size);
   InternetProtocolV4Message* message = (InternetProtocolV4Message*) buffer;
   
   message->version = 4;

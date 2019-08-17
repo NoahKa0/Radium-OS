@@ -186,7 +186,7 @@ void taskA() {
   if(ipv4 != 0) {
     uint32_t gIp = 0x0202000A;
     printf("IPv4 sending: ");
-    ipv4->send(gIp, 0x0008, "Hello World!", 12);
+    ipv4->send(gIp, 0x01, (uint8_t*) "Hello World!", 12);
     printf("\n");
   } else {
     printf("ipv4 == 0\n");

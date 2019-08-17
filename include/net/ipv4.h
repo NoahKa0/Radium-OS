@@ -21,7 +21,7 @@
         common::uint8_t protocol;
         common::uint16_t checksum;
         
-        common::uint32_t senderAddress;
+        common::uint32_t srcAddress;
         common::uint32_t destAddress;
         
       } __attribute__((packed));
