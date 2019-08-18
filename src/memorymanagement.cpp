@@ -60,11 +60,13 @@ void MemoryManager::free(void* pointer) {
     chunk = chunk->previous;
   }
   
-  for(MemoryChunk* i = chunk->next; i != 0 && !i->allocated; i = i->next) {
+  MemoryChunk* i = chunk->next;
+  while(i != 0 && !i->allocated) {
     chunk->size += i->size + sizeof(MemoryChunk);
-    i->previous = chunk;
-    chunk->next = i;
+    i = i->next;
   }
+  i->previous = chunk;
+  chunk->next = i;
 }
 
 void* operator new(unsigned size) {

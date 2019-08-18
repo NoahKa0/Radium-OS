@@ -85,7 +85,6 @@ uint64_t AddressResolutionProtocol::resolve(uint32_t ip_BE) {
   return result;
 }
 
-void printf(char* txt);
 void AddressResolutionProtocol::broadcastMacAddress(uint32_t ip_BE) {
   AddressResolutionProtocolMessage arp;
   arp.hardwareType = 0x0100; // BE 1.
@@ -97,7 +96,5 @@ void AddressResolutionProtocol::broadcastMacAddress(uint32_t ip_BE) {
   arp.senderIpAddress = backend->getIpAddress();
   arp.destMacAddress = this->resolve(ip_BE);
   arp.destIpAddress = ip_BE;
-  printf("Broadcasting mac\n");
   this->send(arp.destMacAddress, (uint8_t*) &arp, sizeof(AddressResolutionProtocolMessage));
-  printf("Done mac\n");
 }
