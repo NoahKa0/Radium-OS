@@ -117,12 +117,12 @@ common::uint32_t amd_am79c973::handleInterrupt(common::uint32_t esp) {
   if((tmp & 0x1000) == 0x1000) printf("AMD am79c973 MISSED FRAME\n");
   if((tmp & 0x0800) == 0x0800) printf("AMD am79c973 MEMORY ERROR\n");
   if((tmp & 0x0400) == 0x0400) receive();
-  if((tmp & 0x0200) == 0x0200) printf("AMD am79c973 DATA SENT\n");
+  //if((tmp & 0x0200) == 0x0200) printf("AMD am79c973 DATA SENT\n");
   
   registerAddressPort.write(0);
   registerDataPort.write(tmp);
 
-  if((tmp & 0x0100) == 0x0100) printf("AMD DONE\n");
+  //if((tmp & 0x0100) == 0x0100) printf("AMD DONE\n");
   
   return esp;
 }
@@ -144,11 +144,6 @@ void amd_am79c973::send(common::uint8_t* buffer, int size) {
     src--;
   }
   
-  for(uint32_t i = 0; i < size; i++) {
-    printHex8(buffer[i]);
-    printf(" ");
-  }
-  
   sendBufferDescr[sendDescriptor].available = 0;
   sendBufferDescr[sendDescriptor].flags2 = 0;
   sendBufferDescr[sendDescriptor].flags = 0x8300F000 | ((uint16_t) ((-size) & 0xFFF));
@@ -158,9 +153,6 @@ void amd_am79c973::send(common::uint8_t* buffer, int size) {
 }
 
 void amd_am79c973::receive() {
-  printf("AMD am79c973 DATA RECEIVED\n");
-  
-  
   while((reciveBufferDescr[currentReciveBuffer].flags & 0x80000000) == 0) {
     if(!(reciveBufferDescr[currentReciveBuffer].flags & 0x40000000) // Check for error bits
     && (reciveBufferDescr[currentReciveBuffer].flags & 0x03000000) == 0x03000000) // Check for startOfPacket and EndOfPacket bits

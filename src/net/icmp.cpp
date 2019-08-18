@@ -55,5 +55,5 @@ void InternetControlMessageProtocol::ping(uint32_t ip_be) {
   icmp.checksum = 0;
   icmp.checksum = InternetProtocolV4Provider::checksum((uint16_t*) &icmp, sizeof(InternetControlMessageProtocolHeader));
   
-  this->send(ip_be, (uint8_t*) &icmp, sizeof(&icmp));
+  this->send(ip_be, (uint8_t*) &icmp, sizeof(InternetControlMessageProtocolHeader));
 }

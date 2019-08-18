@@ -96,5 +96,6 @@ void AddressResolutionProtocol::broadcastMacAddress(uint32_t ip_BE) {
   arp.senderIpAddress = backend->getIpAddress();
   arp.destMacAddress = this->resolve(ip_BE);
   arp.destIpAddress = ip_BE;
+  
   this->send(arp.destMacAddress, (uint8_t*) &arp, sizeof(AddressResolutionProtocolMessage));
 }

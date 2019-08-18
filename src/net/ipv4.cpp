@@ -85,12 +85,8 @@ void InternetProtocolV4Provider::send(uint32_t destIpAddress, uint8_t protocol, 
   
   message->identification = 0x0100;
   
-  // first bit is reserved. Second bit is don't fragment. Third bit is more fragments.
-  // 0x02 = 0d010, so Don't fragment is set.
-  // I'm not sure whether More Fragments = 0d100 or 0d001, but we don't need it anyway.
-  message->flags = 0x02;
+  message->flagsAndFragmentOffset = 0x0040;
   
-  message->fragmentOffset = 0x0000;
   message->timeToLive = 0x40;
   message->protocol = protocol;
   message->destAddress = destIpAddress;

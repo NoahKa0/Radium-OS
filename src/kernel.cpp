@@ -189,8 +189,10 @@ void sysCall(uint32_t eax, uint32_t ebx) {
 void taskA() {
   if(icmp != 0) {
     uint32_t gIp = 0x0202000A;
+    uint32_t myIp = 0x0F02000A;
+    printf("Announcing that i am 10.0.2.15\n");
     arp->broadcastMacAddress(gIp);
-    printf("Tying to ping\n");
+    printf("Tying to ping 10.0.2.2 (gateway)\n");
     icmp->ping(gIp);
   } else {
     printf("ICMP == 0\n");

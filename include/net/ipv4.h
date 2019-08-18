@@ -14,8 +14,7 @@
         common::uint16_t length;
         
         common::uint16_t identification;
-        common::uint8_t flags : 3;
-        common::uint16_t fragmentOffset : 13;
+        common::uint16_t flagsAndFragmentOffset;
         
         common::uint8_t timeToLive;
         common::uint8_t protocol;
