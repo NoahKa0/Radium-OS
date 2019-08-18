@@ -81,7 +81,7 @@ void InternetProtocolV4Provider::send(uint32_t destIpAddress, uint8_t protocol, 
   message->tos = 0;
   
   message->length = size + sizeof(InternetProtocolV4Message);
-  message->length = ((message->length >> 8) & 0x00FF) | ((message->length << 8) & 0xFF00); // to BE.
+  message->length = ((message->length & 0x00FF) << 8) | ((message->length & 0xFF00) >> 8); // to BE.
   
   message->identification = 0x0100;
   
@@ -118,15 +118,15 @@ uint16_t InternetProtocolV4Provider::checksum(uint16_t* data, uint32_t size) {
   uint32_t tmp = 0;
   uint32_t loop = size/2;
   for(uint32_t i = 0; i < loop; i++) {
-    tmp += (((data[i] & 0xFF00) >> 8) | ((data[i] & 0x00FF) << 8));
+    tmp += ((data[i] & 0xFF00) >> 8) | ((data[i] & 0x00FF) << 8);
   }
-  if(size % 2 == 1) {
-    tmp += (uint16_t) (((uint8_t*) data)[size-1]) << 8;
+  if(size % 2) {
+    tmp += ((uint16_t) ((char*) data)[size-1]) << 8;
   }
   
   while(tmp & 0xFFFF0000) {
     tmp = (tmp & 0xFFFF) + (tmp >> 16);
   }
   
-  return (uint16_t)(((~tmp & 0xFF00) >> 8) | ((~tmp & 0x00FF) << 8));
+  return ((~tmp & 0xFF00) >> 8) | ((~tmp & 0x00FF) << 8);
 }

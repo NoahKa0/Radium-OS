@@ -144,8 +144,6 @@ void amd_am79c973::send(common::uint8_t* buffer, int size) {
     src--;
   }
   
-  printf("SENDING: ");
-  
   for(uint32_t i = 0; i < size; i++) {
     printHex8(buffer[i]);
     printf(" ");
@@ -157,7 +155,6 @@ void amd_am79c973::send(common::uint8_t* buffer, int size) {
   
   registerAddressPort.write(0);
   registerDataPort.write(0x48);
-  printf("SEND DONE\n");
 }
 
 void amd_am79c973::receive() {
