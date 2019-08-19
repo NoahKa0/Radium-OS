@@ -172,10 +172,9 @@ Driver* PeripheralComponentInterconnect::getDriver(PeripheralComponentDeviceDesc
           break;
       }
       break;
-    case 0x1050:
-      setNicName("NE200 Maybe?");
-      case 0x0000:
-        setNicName("NE200 for sure");
+    case 0x14E4:
+      case 0x1677:
+        setNicName("NetXtreme BCM5751");
         break;
       break;
   }

@@ -42,6 +42,9 @@ void setNicName(char* name) {
   nicName = name;
 }
 
+class Program;
+Program* myProgram;
+
 void setSelectedEthernetDriver(EthernetDriver* drv) {
   currentEthernetDriver = drv;
 }
@@ -133,23 +136,8 @@ public:
     char* txt = " ";
     txt[0] = c;
     printf(txt);
-    
-    if(c == '.') {
-      printSysCallEnabled = !printSysCallEnabled;
-    }
-    
-    if(c == '-') {
-      if(!videoEnabled) enableVGA();
-      VideoGraphicsArray* vga = getVGA();
-      for(int x = 0; x < 320; x++) {
-        for(int y = 0; y < 200; y++) {
-          if(x > 80 && x < 240 && y > 50 && y < 150) {
-            vga->putPixel(x, y, 42, 0, 42);
-          } else {
-            vga->putPixel(x, y, 0, 0, 42);
-          }
-        }
-      }
+    if(myProgram != 0) {
+      myProgram->onKeyDown((uint8_t) c);
     }
   }
 };
@@ -199,6 +187,9 @@ void taskA() {
     arp->broadcastMacAddress(gIp);
     printf("Tying to ping 10.0.2.2 (gateway)\n");
     icmp->ping(gIp);
+    printf("Connecting to gateway via UDP\n");
+    UserDatagramProtocolProvider* udpProvider = new UserDatagramProtocolProvider(ipv4);
+    myProgram = new Program(udpProvider);
   } else {
     printf("ICMP == 0\n");
   }
@@ -214,6 +205,37 @@ void taskB() {
     char* txt = "|";
     sysCall(0x04, (uint32_t) txt); // 4 is printf.
     //printf("|");
+  }
+}
+
+class Program: public UserDatagramProtocolHandler {
+private:
+  UserDatagramProtocolSocket* mySocket;
+  uint8_t* chars;
+  uint32_t current;
+public:
+  Program(UserDatagramProtocolProvider* backend):UserDatagramProtocolHandler() {
+    mySocket = new UserDatagramProtocolSocket(backend, this);
+    chars = MemoryManager::activeMemoryManager->malloc(1024);
+  }
+  ~Program() {
+    mySocket->disconnect(); // Disconnect automaticly frees assosiated memory.
+    mySocket = 0; // Remove pointer.
+    myProgram = 0;
+  }
+  virtual void handleUserDatagramProtocolMessage(UserDatagramProtocolSocket* socket, uint8_t* data, uint32_t length) {
+    if(length == 0) return;
+    data[length-1] = 0; // To make it terminate.
+    printf("RECEIVED: ");
+    printf(data);
+    printf("\n\n");
+  }
+  void onKeyDown(uint8_t key) {
+    if(socket == 0) return;
+    chars[current] = key;
+    if(current >= 1024 || key == '\n') {
+      mySocket->send(chars, current);
+    }
   }
 }
 
