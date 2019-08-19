@@ -180,7 +180,13 @@ Driver* PeripheralComponentInterconnect::getDriver(PeripheralComponentDeviceDesc
       broadcom[10] = hex[(num >> 8) & 0xF];
       broadcom[11] = hex[(num >> 4) & 0xF];
       broadcom[12] = hex[num & 0xF];
-      setNicName(broadcom);
+      //setNicName(broadcom);
+      break;
+    case 0x1050:
+      setNicName("NE200 Maybe?");
+      case 0x0000:
+        setNicName("NE200 for sure");
+        break;
       break;
   }
 
