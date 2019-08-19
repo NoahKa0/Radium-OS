@@ -16,6 +16,7 @@
 #include <net/arp.h>
 #include <net/ipv4.h>
 #include <net/icmp.h>
+#include <net/udp.h>
 
 #include <multitasking.h>
 
@@ -41,9 +42,6 @@ static char* nicName = 0; // This is almost wordplay XD (nic = network interface
 void setNicName(char* name) {
   nicName = name;
 }
-
-class Program;
-Program* myProgram;
 
 void setSelectedEthernetDriver(EthernetDriver* drv) {
   currentEthernetDriver = drv;
@@ -103,6 +101,40 @@ void printf(char* str) {
     }
   }
 }
+
+class Program: public UserDatagramProtocolHandler {
+private:
+  UserDatagramProtocolSocket* mySocket;
+  uint8_t* chars;
+  uint32_t current;
+public:
+  Program(UserDatagramProtocolProvider* backend, uint32_t ip, uint16_t port):UserDatagramProtocolHandler() {
+    mySocket = backend->connect(ip, port);
+    mySocket->setHandler((UserDatagramProtocolHandler*) this);
+    chars = (uint8_t*) MemoryManager::activeMemoryManager->malloc(1024);
+  }
+  ~Program() {
+    mySocket->disconnect(); // Disconnect automaticly frees assosiated memory.
+    mySocket = 0; // Remove pointer.
+  }
+  virtual void handleUserDatagramProtocolMessage(UserDatagramProtocolSocket* socket, uint8_t* data, uint32_t length) {
+    if(length == 0) return;
+    data[length-1] = 0; // To make it terminate.
+    printf("RECEIVED: ");
+    printf((char*) data);
+    printf("\n\n");
+  }
+  void onKeyDown(uint8_t key) {
+    if(mySocket == 0) return;
+    chars[current] = key;
+    if(current >= 1024 || key == '\n') {
+      mySocket->send(chars, current);
+      printf("SENDING DATA\n");
+    }
+  }
+};
+
+Program* myProgram;
 
 void printHex8(uint8_t num) {
     char* txt = "00";
@@ -189,7 +221,7 @@ void taskA() {
     icmp->ping(gIp);
     printf("Connecting to gateway via UDP\n");
     UserDatagramProtocolProvider* udpProvider = new UserDatagramProtocolProvider(ipv4);
-    myProgram = new Program(udpProvider);
+    myProgram = new Program(udpProvider, gIp, 1234);
   } else {
     printf("ICMP == 0\n");
   }
@@ -205,37 +237,6 @@ void taskB() {
     char* txt = "|";
     sysCall(0x04, (uint32_t) txt); // 4 is printf.
     //printf("|");
-  }
-}
-
-class Program: public UserDatagramProtocolHandler {
-private:
-  UserDatagramProtocolSocket* mySocket;
-  uint8_t* chars;
-  uint32_t current;
-public:
-  Program(UserDatagramProtocolProvider* backend):UserDatagramProtocolHandler() {
-    mySocket = new UserDatagramProtocolSocket(backend, this);
-    chars = MemoryManager::activeMemoryManager->malloc(1024);
-  }
-  ~Program() {
-    mySocket->disconnect(); // Disconnect automaticly frees assosiated memory.
-    mySocket = 0; // Remove pointer.
-    myProgram = 0;
-  }
-  virtual void handleUserDatagramProtocolMessage(UserDatagramProtocolSocket* socket, uint8_t* data, uint32_t length) {
-    if(length == 0) return;
-    data[length-1] = 0; // To make it terminate.
-    printf("RECEIVED: ");
-    printf(data);
-    printf("\n\n");
-  }
-  void onKeyDown(uint8_t key) {
-    if(socket == 0) return;
-    chars[current] = key;
-    if(current >= 1024 || key == '\n') {
-      mySocket->send(chars, current);
-    }
   }
 }
 

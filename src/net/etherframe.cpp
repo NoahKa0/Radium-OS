@@ -26,6 +26,9 @@ void EtherFrameHandler::send(uint64_t destMacAddress, uint8_t* etherFramePayload
   backend->send(destMacAddress, etherType, etherFramePayload, size);
 }
 
+uint32_t EtherFrameHandler::getIpAddress() {
+  return backend->getIpAddress();
+}
 
 EtherFrameProvider::EtherFrameProvider(EthernetDriver* backend) {
   this->ethernetDriver = backend;

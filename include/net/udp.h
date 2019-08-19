@@ -3,7 +3,6 @@
 
   #include <common/types.h>
   #include <net/ipv4.h>
-  #include <memorymanagement.h>
   
   namespace sys {
     namespace net {
@@ -36,11 +35,12 @@
         UserDatagramProtocolProvider* backend;
         UserDatagramProtocolHandler* handler;
       public:
-        UserDatagramProtocolSocket(UserDatagramProtocolProvider* backend, UserDatagramProtocolHandler* handler);
+        UserDatagramProtocolSocket(UserDatagramProtocolProvider* backend);
         ~UserDatagramProtocolSocket();
         
         virtual void handleUserDatagramProtocolMessage(common::uint8_t* data, common::uint32_t length);
         virtual void send(common::uint8_t* data, common::uint16_t length);
+        void setHandler(UserDatagramProtocolHandler* handler);
         void disconnect();
       };
       
