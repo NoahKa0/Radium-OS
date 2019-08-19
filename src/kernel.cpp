@@ -36,6 +36,11 @@ static EthernetDriver* currentEthernetDriver = 0;
 static AddressResolutionProtocol* arp = 0;
 static InternetProtocolV4Provider* ipv4 = 0;
 static InternetControlMessageProtocol* icmp = 0;
+static char* nicName = 0; // This is almost wordplay XD (nic = network interface card).
+
+void setNicName(char* name) {
+  nicName = name;
+}
 
 void setSelectedEthernetDriver(EthernetDriver* drv) {
   currentEthernetDriver = drv;
@@ -302,7 +307,13 @@ extern "C" void kernelMain(void* multiboot_structure, uint32_t magicNumber) {
       ipv4 = new InternetProtocolV4Provider(etherframe, arp, gIp, 0x00FFFFFF); // 0x00FFFFFF = 255.255.255.0 (subnet mask)
       icmp = new InternetControlMessageProtocol(ipv4);
     } else {
-      printf("NO DRIVER REGISTERED!\n");
+      if(nicName != 0) {
+        printf("NO SOPPURT: ");
+        printf(nicName);
+      } else {
+        printf("NO DRIVER REGISTERED!");
+      }
+      printf("\n");
     }
     
     printf("Enabling interrupts...\n");
