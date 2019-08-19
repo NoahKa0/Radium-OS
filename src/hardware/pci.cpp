@@ -143,11 +143,22 @@ BaseAddressRegister PeripheralComponentInterconnect::getBaseAddressRegister(uint
   return result;
 }
 
+void setNicName(char* name);
+
 Driver* PeripheralComponentInterconnect::getDriver(PeripheralComponentDeviceDescriptor dev, InterruptManager* interruptManager) {
   
   Driver* driver = 0;
     
   switch(dev.vendorId) {
+    case 0x8086: // Intel
+      switch(dev.deviceId) {
+        case 0x100E:
+          setNicName("Intel 0x100E");
+          break;
+        case 0x1017:
+          setNicName("Intel 0x1017");
+          break;
+      }
     case 0x1022: // AMD
       switch(dev.deviceId) {
         case 0x2000: // am79c973
