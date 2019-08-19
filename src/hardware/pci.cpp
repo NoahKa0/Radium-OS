@@ -146,7 +146,6 @@ BaseAddressRegister PeripheralComponentInterconnect::getBaseAddressRegister(uint
 void setNicName(char* name);
 
 Driver* PeripheralComponentInterconnect::getDriver(PeripheralComponentDeviceDescriptor dev, InterruptManager* interruptManager) {
-  static char* hex = "0123456789ABCDEF";
   
   Driver* driver = 0;
     
@@ -172,15 +171,6 @@ Driver* PeripheralComponentInterconnect::getDriver(PeripheralComponentDeviceDesc
           return driver;
           break;
       }
-      break;
-    case 0x14E4:
-      char* broadcom = "BROADCOM 0000";
-      uint32_t num = dev.deviceId;
-      broadcom[9] = hex[(num >> 12) & 0xF];
-      broadcom[10] = hex[(num >> 8) & 0xF];
-      broadcom[11] = hex[(num >> 4) & 0xF];
-      broadcom[12] = hex[num & 0xF];
-      //setNicName(broadcom);
       break;
     case 0x1050:
       setNicName("NE200 Maybe?");
