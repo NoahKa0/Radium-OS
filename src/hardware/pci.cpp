@@ -159,6 +159,7 @@ Driver* PeripheralComponentInterconnect::getDriver(PeripheralComponentDeviceDesc
           setNicName("Intel 0x1017");
           break;
       }
+      break;
     case 0x1022: // AMD
       switch(dev.deviceId) {
         case 0x2000: // am79c973
@@ -170,9 +171,6 @@ Driver* PeripheralComponentInterconnect::getDriver(PeripheralComponentDeviceDesc
           return driver;
           break;
       }
-      break;
-
-    case 0x8086: // Intel
       break;
   }
 
