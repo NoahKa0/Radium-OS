@@ -66,7 +66,7 @@ uint32_t KeyboardDriver::handleInterrupt(uint32_t esp) {
             case 0x12: handler->onKeyDown('e'); break;
             case 0x13: handler->onKeyDown('r'); break;
             case 0x14: handler->onKeyDown('t'); break;
-            case 0x15: handler->onKeyDown('z'); break;
+            case 0x15: handler->onKeyDown('y'); break;
             case 0x16: handler->onKeyDown('u'); break;
             case 0x17: handler->onKeyDown('i'); break;
             case 0x18: handler->onKeyDown('o'); break;
@@ -82,7 +82,7 @@ uint32_t KeyboardDriver::handleInterrupt(uint32_t esp) {
             case 0x25: handler->onKeyDown('k'); break;
             case 0x26: handler->onKeyDown('l'); break;
 
-            case 0x2C: handler->onKeyDown('y'); break;
+            case 0x2C: handler->onKeyDown('z'); break;
             case 0x2D: handler->onKeyDown('x'); break;
             case 0x2E: handler->onKeyDown('c'); break;
             case 0x2F: handler->onKeyDown('v'); break;
