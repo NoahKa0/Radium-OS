@@ -65,6 +65,14 @@ void enableVGA() {
   }
 }
 
+uint32_t decToInt(char* num) {
+  uint32_t ret = 0;
+  for(int i = 0; i < 10 & num[i] != 0; i++) {
+    ret = ret*10+(num[i]-'0');
+  }
+  return ret;
+}
+
 void printf(char* str) {
   static uint16_t* videoMemory = (uint16_t*)0xB8000;
   static uint8_t x = 0, y = 0;
@@ -105,33 +113,64 @@ void printf(char* str) {
 class Program: public UserDatagramProtocolHandler {
 private:
   UserDatagramProtocolSocket* mySocket;
+  UserDatagramProtocolProvider* myUdpProvider;
   uint8_t* chars;
   uint32_t current;
 public:
-  Program(UserDatagramProtocolProvider* backend, uint32_t ip, uint16_t port):UserDatagramProtocolHandler() {
-    mySocket = backend->connect(ip, port);
-    mySocket->setHandler((UserDatagramProtocolHandler*) this);
+  Program(UserDatagramProtocolProvider* backend):UserDatagramProtocolHandler() {
+    this->myUdpProvider = backend;
+    mySocket = 0;
     chars = (uint8_t*) MemoryManager::activeMemoryManager->malloc(1024);
     this->current = 0;
+    printf("IP:");
   }
   ~Program() {
-    mySocket->disconnect(); // Disconnect automaticly frees assosiated memory.
-    mySocket = 0; // Remove pointer.
+    if(mySocket != 0) {
+      mySocket->disconnect(); // Disconnect automaticly frees assosiated memory.
+      mySocket = 0; // Remove pointer.
+    }
+    MemoryManager::activeMemoryManager->free(chars);
   }
   virtual void handleUserDatagramProtocolMessage(UserDatagramProtocolSocket* socket, uint8_t* data, uint32_t length) {
     if(length == 0) return;
     data[length-1] = 0; // To make it terminate.
-    printf("RECEIVED: ");
-    printf((char*) data);
-    printf("\n\n");
+    if(data[0] == '.') {
+      mySocket->send(".Hi", 3); // If we get hidden info send hidden hi back (so the program knows we are alive).
+    } else {
+      printf("RECEIVED: ");
+      printf((char*) data);
+      printf("\n\n");
+    }
   }
   void onKeyDown(uint8_t key) {
-    if(mySocket == 0) return;
-    chars[current] = key;
-    current++;
-    if(current >= 1024 || key == '\n') {
-      mySocket->send(chars, current);
-      printf("SENDING DATA\n");
+    if(mySocket == 0) {
+      if(key == '\n') {
+        chars[current] = 0;
+        uint32_t ip = decToInt(chars);
+        ip = ((ip & 0xFF000000) >> 24) | ((ip & 0x00FF0000) >> 16) | ((ip & 0x0000FF00) << 16) | ((ip & 0x000000FF) << 24);
+        mySocket = backend->connect(ip, 1234);
+        mySocket->setHandler((UserDatagramProtocolHandler*) this);
+        printf("Listening for ");
+        printf((char*)chars);
+        printf(" on port 1234\n");
+        current = 0;
+        mySocket->send(".Hi", 3); // This is so the UDP server knows we exists
+      } else {
+        chars[current] = key;
+        current++;
+        if(current > 9 || key == 'r') {
+          current = 0;
+          printf("resetting\nIP:");
+        }
+      }
+    } else {
+      chars[current] = key;
+      current++;
+      if(current >= 1024 || key == '\n') {
+        mySocket->send(chars, current);
+        current = 0;
+        printf("SENDING DATA\n");
+      }
     }
   }
 };
@@ -223,7 +262,7 @@ void taskA() {
     icmp->ping(gIp);
     printf("Connecting to gateway via UDP\n");
     UserDatagramProtocolProvider* udpProvider = new UserDatagramProtocolProvider(ipv4);
-    myProgram = new Program(udpProvider, gIp, 1234);
+    myProgram = new Program(udpProvider);
   } else {
     printf("ICMP == 0\n");
   }
