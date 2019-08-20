@@ -67,7 +67,7 @@ void enableVGA() {
 
 uint32_t decToInt(char* num) {
   uint32_t ret = 0;
-  for(int i = 0; i < 10 & num[i] != 0; i++) {
+  for(int i = 0; i < 11 & num[i] != 0; i++) {
     ret = ret*10+(num[i]-'0');
   }
   return ret;
@@ -158,7 +158,7 @@ public:
       } else {
         chars[current] = key;
         current++;
-        if(current > 9 || key == 'r') {
+        if(current > 10 || key == 'r') {
           current = 0;
           printf("resetting\nIP:");
         }
