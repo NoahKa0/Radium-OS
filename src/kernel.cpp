@@ -135,7 +135,7 @@ public:
     if(length == 0) return;
     data[length-1] = 0; // To make it terminate.
     if(data[0] == '.') {
-      mySocket->send(".Hi", 3); // If we get hidden info send hidden hi back (so the program knows we are alive).
+      mySocket->send((uint8_t*)".Hi", 3); // If we get hidden info send hidden hi back (so the program knows we are alive).
     } else {
       printf("RECEIVED: ");
       printf((char*) data);
@@ -146,15 +146,15 @@ public:
     if(mySocket == 0) {
       if(key == '\n') {
         chars[current] = 0;
-        uint32_t ip = decToInt(chars);
+        uint32_t ip = decToInt((char*)chars);
         ip = ((ip & 0xFF000000) >> 24) | ((ip & 0x00FF0000) >> 16) | ((ip & 0x0000FF00) << 16) | ((ip & 0x000000FF) << 24);
-        mySocket = backend->connect(ip, 1234);
+        mySocket = myUdpProvider->connect(ip, 1234);
         mySocket->setHandler((UserDatagramProtocolHandler*) this);
         printf("Listening for ");
         printf((char*)chars);
         printf(" on port 1234\n");
         current = 0;
-        mySocket->send(".Hi", 3); // This is so the UDP server knows we exists
+        mySocket->send((uint8_t*)".Hi", 3); // This is so the UDP server knows we exists
       } else {
         chars[current] = key;
         current++;
