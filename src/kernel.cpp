@@ -112,6 +112,7 @@ public:
     mySocket = backend->connect(ip, port);
     mySocket->setHandler((UserDatagramProtocolHandler*) this);
     chars = (uint8_t*) MemoryManager::activeMemoryManager->malloc(1024);
+    this->current = 0;
   }
   ~Program() {
     mySocket->disconnect(); // Disconnect automaticly frees assosiated memory.
@@ -127,6 +128,7 @@ public:
   void onKeyDown(uint8_t key) {
     if(mySocket == 0) return;
     chars[current] = key;
+    current++;
     if(current >= 1024 || key == '\n') {
       mySocket->send(chars, current);
       printf("SENDING DATA\n");
