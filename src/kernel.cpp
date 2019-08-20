@@ -68,7 +68,7 @@ void enableVGA() {
 uint32_t decToInt(char* num) {
   uint32_t ret = 0;
   for(int i = 0; i < 11 & num[i] != 0; i++) {
-    ret = ret*10+(num[i]-'0');
+    ret = ret*10+(num[i]-('0'));
   }
   return ret;
 }
@@ -110,6 +110,32 @@ void printf(char* str) {
   }
 }
 
+void printHex8(uint8_t num) {
+    char* txt = "00";
+    static char* hex = "0123456789ABCDEF";
+    
+    txt[0] = hex[(num >> 4) & 0xF];
+    txt[1] = hex[num & 0xF];
+    
+    printf(txt);
+}
+
+void printHex32(uint32_t num) {
+    char* txt = "00000000";
+    static char* hex = "0123456789ABCDEF";
+    
+    txt[0] = hex[(num >> 28) & 0xF];
+    txt[1] = hex[(num >> 24) & 0xF];
+    txt[2] = hex[(num >> 20) & 0xF];
+    txt[3] = hex[(num >> 16) & 0xF];
+    txt[4] = hex[(num >> 12) & 0xF];
+    txt[5] = hex[(num >> 8) & 0xF];
+    txt[6] = hex[(num >> 4) & 0xF];
+    txt[7] = hex[num & 0xF];
+    
+    printf(txt);
+}
+
 class Program: public UserDatagramProtocolHandler {
 private:
   UserDatagramProtocolSocket* mySocket;
@@ -147,11 +173,11 @@ public:
       if(key == '\n') {
         chars[current] = 0;
         uint32_t ip = decToInt((char*)chars);
-        ip = ((ip & 0xFF000000) >> 24) | ((ip & 0x00FF0000) >> 16) | ((ip & 0x0000FF00) << 16) | ((ip & 0x000000FF) << 24);
+        ip = ((ip & 0xFF000000) >> 24) | ((ip & 0x00FF0000) >> 8) | ((ip & 0x0000FF00) << 8) | ((ip & 0x000000FF) << 24);
         mySocket = myUdpProvider->connect(ip, 1234);
         mySocket->setHandler((UserDatagramProtocolHandler*) this);
         printf("Listening for ");
-        printf((char*)chars);
+        printHex32(ip);
         printf(" on port 1234\n");
         current = 0;
         mySocket->send((uint8_t*)".Hi", 3); // This is so the UDP server knows we exists
@@ -176,32 +202,6 @@ public:
 };
 
 Program* myProgram;
-
-void printHex8(uint8_t num) {
-    char* txt = "00";
-    static char* hex = "0123456789ABCDEF";
-    
-    txt[0] = hex[(num >> 4) & 0xF];
-    txt[1] = hex[num & 0xF];
-    
-    printf(txt);
-}
-
-void printHex32(uint32_t num) {
-    char* txt = "00000000";
-    static char* hex = "0123456789ABCDEF";
-    
-    txt[0] = hex[(num >> 28) & 0xF];
-    txt[1] = hex[(num >> 24) & 0xF];
-    txt[2] = hex[(num >> 20) & 0xF];
-    txt[3] = hex[(num >> 16) & 0xF];
-    txt[4] = hex[(num >> 12) & 0xF];
-    txt[5] = hex[(num >> 8) & 0xF];
-    txt[6] = hex[(num >> 4) & 0xF];
-    txt[7] = hex[num & 0xF];
-    
-    printf(txt);
-}
 
 class PrintKeyboardHandler:public KeyboardEventHandler {
 public:
