@@ -34,6 +34,7 @@
         virtual void send(common::uint64_t destMacAddress, common::uint8_t* etherFramePayload, common::uint32_t size);
         
         common::uint32_t getIpAddress();
+        void setIpAddress(common::uint32_t ip);
       };
       
       class EtherFrameProvider {
@@ -50,6 +51,7 @@
         
         common::uint64_t getMacAddress();
         common::uint32_t getIpAddress();
+        void setIpAddress(common::uint32_t ip);
       };
     }
   }

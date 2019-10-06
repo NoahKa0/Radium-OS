@@ -1,5 +1,4 @@
 #include <net/udp.h>
-#include <memorymanagement.h>
 
 using namespace sys;
 using namespace sys::common;
@@ -34,6 +33,18 @@ void UserDatagramProtocolSocket::disconnect() {
   backend->disconnect(this);
 }
 
+void UserDatagramProtocolSocket::enableBroadcasts() {
+  this->forwardBroadcasts = true;
+}
+
+void UserDatagramProtocolSocket::enableForwardAll() {
+  this->forwardAll = true;
+}
+
+void UserDatagramProtocolSocket::setDestinationIp(uint32_t ip) {
+  this->remoteIp = ip;
+}
+
 
 UserDatagramProtocolProvider::UserDatagramProtocolProvider(InternetProtocolV4Provider* backend)
 : InternetProtocolV4Handler(backend, 0x11)
@@ -57,9 +68,11 @@ bool UserDatagramProtocolProvider::onInternetProtocolReceived(uint32_t srcIp_BE,
   UserDatagramProtocolSocket* socket = 0;
   for(uint16_t i = 0; i < numSockets && socket == 0; i++) {
     if(sockets[i]->localPort == message->destPort
-    && sockets[i]->localIp == destIp_BE
+    && sockets[i]->remoteIp == srcIp_BE
     && sockets[i]->remotePort == message->srcPort
-    && sockets[i]->remoteIp == srcIp_BE)
+    && (sockets[i]->localIp == destIp_BE
+    || (destIp_BE == 0xFFFFFFFF && sockets[i]->forwardBroadcasts)
+    || sockets[i]->forwardAll))
     {
       socket = sockets[i];
     } else {
@@ -96,12 +109,23 @@ void UserDatagramProtocolProvider::sendUDP(UserDatagramProtocolSocket* socket, u
 }
 
 UserDatagramProtocolSocket* UserDatagramProtocolProvider::connect(uint32_t ip, uint16_t port) {
+  return this->connect(ip, port, 0);
+}
+
+UserDatagramProtocolSocket* UserDatagramProtocolProvider::connect(uint32_t ip, uint16_t port, uint16_t localPort) {
   UserDatagramProtocolSocket* socket = new UserDatagramProtocolSocket(this);
   
   socket->remotePort = port;
   socket->remoteIp = ip;
-  socket->localPort = freePort;
-  if(freePort == 65530) freePort = 1024;
+  
+  socket->localPort = localPort;
+  if(localPort == 0) {
+    socket->localPort = freePort++;
+    if(freePort == 65530) freePort = 1024;
+  }
+  
+  this->forwardBroadcasts = false;
+  this->forwardAll = false;
   socket->localIp = backend->getIpAddress();
   
   socket->remotePort = ((socket->remotePort & 0xFF00) >> 8) | ((socket->remotePort & 0x00FF) << 8);
@@ -118,7 +142,6 @@ void UserDatagramProtocolProvider::disconnect(UserDatagramProtocolSocket* socket
   for(uint16_t i = 0; i < numSockets; i++) {
     if(sockets[i] == socket) {
       move = true;
-      MemoryManager::activeMemoryManager->free(socket);
     }
     if(move) {
       this->sockets[i] = this->sockets[i+1];
@@ -127,4 +150,5 @@ void UserDatagramProtocolProvider::disconnect(UserDatagramProtocolSocket* socket
   if(move) {
     this->numSockets--;
   }
+  MemoryManager::activeMemoryManager->free(socket);
 }

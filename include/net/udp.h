@@ -3,6 +3,7 @@
 
   #include <common/types.h>
   #include <net/ipv4.h>
+  #include <memorymanagement.h>
   
   namespace sys {
     namespace net {
@@ -32,6 +33,10 @@
         common::uint32_t localIp;
         common::uint16_t remotePort;
         common::uint32_t remoteIp;
+        
+        bool forwardBroadcasts;
+        bool forwardAll;
+        
         UserDatagramProtocolProvider* backend;
         UserDatagramProtocolHandler* handler;
       public:
@@ -42,6 +47,10 @@
         virtual void send(common::uint8_t* data, common::uint16_t length);
         void setHandler(UserDatagramProtocolHandler* handler);
         void disconnect();
+        
+        void enableForwardAll();
+        void enableBroadcasts();
+        void setDestinationIp();
       };
       
       class UserDatagramProtocolProvider : public InternetProtocolV4Handler {
@@ -57,6 +66,7 @@
         virtual void sendUDP(UserDatagramProtocolSocket* socket, common::uint8_t* data, common::uint16_t length);
         
         UserDatagramProtocolSocket* connect(common::uint32_t ip, common::uint16_t port);
+        UserDatagramProtocolSocket* connect(common::uint32_t ip, common::uint16_t port, common::uint16_t localPort);
         void disconnect(UserDatagramProtocolSocket* socket);
       };
     }

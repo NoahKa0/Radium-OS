@@ -30,6 +30,11 @@ uint32_t EtherFrameHandler::getIpAddress() {
   return backend->getIpAddress();
 }
 
+void EtherFrameHandler::setIpAddress(uint32_t ip) {
+  backend->setIpAddress(ip);
+}
+
+
 EtherFrameProvider::EtherFrameProvider(EthernetDriver* backend) {
   this->ethernetDriver = backend;
   backend->setEtherFrameProvider(this);
@@ -84,4 +89,8 @@ uint64_t EtherFrameProvider::getMacAddress() {
 
 uint32_t EtherFrameProvider::getIpAddress() {
   return this->ethernetDriver->getIpAddress();
+}
+
+void EtherFrameProvider::setIpAddress(uint32_t ip) {
+  this->ethernetDriver->setIpAddress(ip);
 }

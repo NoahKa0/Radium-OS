@@ -70,6 +70,7 @@ uint64_t AddressResolutionProtocol::getMacFromCache(uint32_t ip_BE) {
 }
 
 uint64_t AddressResolutionProtocol::resolve(uint32_t ip_BE) {
+  if(ip_BE == 0xFFFFFFFF || this->getIpAddress() == 0) return 0xFFFFFFFFFFFF;
   uint64_t result = getMacFromCache(ip_BE);
   uint32_t timeout = 0;
   

@@ -26,16 +26,15 @@ void InternetProtocolV4Handler::send(uint32_t destIp_BE, uint8_t* payload, uint3
 }
 
 
-InternetProtocolV4Provider::InternetProtocolV4Provider(EtherFrameProvider* backend, AddressResolutionProtocol* arp,
-  uint32_t gateway, uint32_t subnetMask)
+InternetProtocolV4Provider::InternetProtocolV4Provider(EtherFrameProvider* backend, AddressResolutionProtocol* arp)
   : EtherFrameHandler(backend, 0x800)
 {
   for(int i = 0; i < 255; i++) {
     handlers[i] = 0;
   }
   this->arp = arp;
-  this->gateway = gateway;
-  this->subnetMask = subnetMask;
+  this->gateway = 0;
+  this->subnetMask = 0;
 }
   
 InternetProtocolV4Provider::~InternetProtocolV4Provider() {}
@@ -45,7 +44,9 @@ bool InternetProtocolV4Provider::onEtherFrameReceived(uint8_t* etherFramePayload
   
   InternetProtocolV4Message* ipMessage = (InternetProtocolV4Message*) etherFramePayload;
   bool sendBack = false;
-  if(ipMessage->destAddress == backend->getIpAddress()) { // Only handle messages directed to us.
+  
+  // Only handle messages directed to us, or we don't have an IP address yet (because DHCP).
+  if(ipMessage->destAddress == backend->getIpAddress() || backend->getIpAddress() == 0) {
     uint32_t messageLength = ipMessage->length;
     if(messageLength > size) { // Size of message can't be larger than size of EtherFrame.
       messageLength = size;
@@ -110,6 +111,10 @@ void InternetProtocolV4Provider::send(uint32_t destIpAddress, uint8_t protocol, 
   MemoryManager::activeMemoryManager->free(buffer);
 }
 
+AddressResolutionProtocol* InternetProtocolV4Provider::getArp() {
+  return this->arp;
+}
+
 uint16_t InternetProtocolV4Provider::checksum(uint16_t* data, uint32_t size) {
   uint32_t tmp = 0;
   uint32_t loop = size/2;
@@ -125,4 +130,12 @@ uint16_t InternetProtocolV4Provider::checksum(uint16_t* data, uint32_t size) {
   }
   
   return ((~tmp & 0xFF00) >> 8) | ((~tmp & 0x00FF) << 8);
+}
+
+void InternetProtocolV4Provider::setSubnetmask(uint32_t subnetmask) {
+  this->subnetMask = subnetmask;
+}
+
+void InternetProtocolV4Provider::setGateway(uint32_t gateway) {
+  this->gateway = gateway;
 }

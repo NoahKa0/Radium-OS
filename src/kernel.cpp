@@ -17,6 +17,7 @@
 #include <net/ipv4.h>
 #include <net/icmp.h>
 #include <net/udp.h>
+#include <net/dhcp.h>
 
 #include <multitasking.h>
 
@@ -37,6 +38,8 @@ static EthernetDriver* currentEthernetDriver = 0;
 static AddressResolutionProtocol* arp = 0;
 static InternetProtocolV4Provider* ipv4 = 0;
 static InternetControlMessageProtocol* icmp = 0;
+static UserDatagramProtocolProvider* udp = 0;
+static DynamicHostConfigurationProtocol* dhcp = 0;
 static char* nicName = 0; // This is almost wordplay XD (nic = network interface card).
 
 void setNicName(char* name) {
@@ -253,16 +256,12 @@ void sysCall(uint32_t eax, uint32_t ebx) {
 }
 
 void taskA() {
-  if(icmp != 0) {
-    uint32_t gIp = 0x0202000A;
-    uint32_t myIp = 0x0F02000A;
-    printf("Announcing that i am 10.0.2.15\n");
-    arp->broadcastMacAddress(gIp);
-    printf("Tying to ping 10.0.2.2 (gateway)\n");
-    icmp->ping(gIp);
-    printf("Connecting to gateway via UDP\n");
-    UserDatagramProtocolProvider* udpProvider = new UserDatagramProtocolProvider(ipv4);
-    myProgram = new Program(udpProvider);
+  if(udp != 0) {
+    while(ipv4->getIpAddress() == 0) {
+      asm('hlt');
+      printf('.');
+    }
+    myProgram = new Program(udp);
   } else {
     printf("ICMP == 0\n");
   }
@@ -360,16 +359,13 @@ extern "C" void kernelMain(void* multiboot_structure, uint32_t magicNumber) {
     printf("Networking...");
     EtherFrameProvider* etherframe = 0;
     if(currentEthernetDriver != 0) {
-      uint32_t myIp = 0x0F02000A;
-      uint32_t gIp = 0x0202000A; // gateway
-      currentEthernetDriver->setIpAddress(myIp);
-      printf("IPv4: ");
-      printHex32(myIp);
-      printf(" DONE\n");
       etherframe = new EtherFrameProvider(currentEthernetDriver);
       arp = new AddressResolutionProtocol(etherframe);
-      ipv4 = new InternetProtocolV4Provider(etherframe, arp, gIp, 0x00FFFFFF); // 0x00FFFFFF = 255.255.255.0 (subnet mask)
+      ipv4 = new InternetProtocolV4Provider(etherframe, arp); // 0x00FFFFFF = 255.255.255.0 (subnet mask)
       icmp = new InternetControlMessageProtocol(ipv4);
+      udp = new UserDatagramProtocolProvider(ipv4);
+      dhcp = new DynamicHostConfigurationProtocol(udp, ipv4);
+      dhcp->sendDiscover();
     } else {
       if(nicName != 0) {
         printf("NO SOPPURT: ");
