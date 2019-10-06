@@ -16,6 +16,9 @@
         
         common::uint32_t identifier;
         
+        common::uint16_t secs;
+        common::uint16_t flags;
+        
         common::uint32_t clientAddress;
         common::uint32_t myAddress;
         common::uint32_t serverAddress;
@@ -41,7 +44,7 @@
       
       class DynamicHostConfigurationProtocol : public UserDatagramProtocolHandler {
       private:
-        UserDatagramProtocolSocket socket;
+        UserDatagramProtocolSocket* socket;
         InternetProtocolV4Provider* ipv4;
         
         common::uint32_t magicCookie;

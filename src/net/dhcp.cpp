@@ -11,7 +11,7 @@ DynamicHostConfigurationProtocol::DynamicHostConfigurationProtocol(UserDatagramP
 :UserDatagramProtocolHandler()
 {
   this->ipv4 = ipv4;
-  this->magicCookie = 0x63825363‬; // Magic Cookie
+  this->magicCookie = 0x63538263; // Magic Cookie
   this->identifier = 302342478; // This number should be randomly generated.
   
   this->subnetmask = 0;
@@ -19,10 +19,10 @@ DynamicHostConfigurationProtocol::DynamicHostConfigurationProtocol(UserDatagramP
   this->ip = 0;
   this->lease = 0;
   this->ip_firstOffer = 0;
-  this->currentMessageType = 0; // Option handler will place the type of the received message in this field.
   
   this->socket = udp->connect(0xFFFFFFFF, 67, 68); // UDP connect to broadcast address on port 67, receive on port 68.
   this->socket->enableForwardAll(); // Enable forwarding off all UDP packets, even if their destination is not our IP (because we don't have one yet).
+  this->socket->setHandler(this); // Forward packets to us.
 }
 
 DynamicHostConfigurationProtocol::~DynamicHostConfigurationProtocol() {
@@ -35,11 +35,11 @@ void DynamicHostConfigurationProtocol::handleUserDatagramProtocolMessage(UserDat
   printf("DHCP Received\n");
   DynamicHostConfigurationProtocolHeader* message = (DynamicHostConfigurationProtocolHeader*) data;
   
-  if(message->magicCookie == this->magicCookie
+  if(message->optionsMagicCookie == this->magicCookie
     && message->identifier == this->identifier
     && message->operationCode == 2)
   {
-    DynamicHostConfigurationOptionsInfo* info = getOptionsInfo(message, 308); // Size should not be hard coded, but i don't think we will rereive that many options.
+    DynamicHostConfigurationOptionsInfo* info = this->getOptionsInfo((uint8_t*) message->options, 308); // Size should not be hard coded, but i don't think we will rereive that many options.
     
     switch(info->messageType) {
       case 2: // Offer
@@ -64,7 +64,7 @@ void DynamicHostConfigurationProtocol::sendDiscover() {
   this->ip_firstOffer = 0;
   
   // Allocate memory for message
-  uint8_t* data = MemoryManager::activeMemoryManager->malloc(sizeof(DynamicHostConfigurationProtocolHeader));
+  uint8_t* data = (uint8_t*) MemoryManager::activeMemoryManager->malloc(sizeof(DynamicHostConfigurationProtocolHeader));
   for(uint32_t i = 0; i < sizeof(DynamicHostConfigurationProtocolHeader); i++) {
     data[i] = 0;
   }
@@ -77,12 +77,15 @@ void DynamicHostConfigurationProtocol::sendDiscover() {
   message->hops = 0; // I don't know why, but the documentation says it should be 0.
   message->identifier = this->identifier; // Identifier, so i know wich messages are from me.
   
+  message->secs = 0;
+  message->flags = 0;
+  
   message->clientAddress = this->ipv4->getIpAddress(); // This should be 0 unless we have an ip address (getIpAddress returns null when not assigned).
   message->myAddress = 0; // The server fills in this field, clients should not use it.
   message->serverAddress = 0; // We don't know this at this point.
   message->gatewayAddress = 0; // We don't know this at this point.
   
-  message->clientHardwareAddress1 = backend->getMacAddress(); // MAC address.
+  message->clientHardwareAddress1 = this->ipv4->getMacAddress(); // MAC address.
   message->clientHardwareAddress2 = 0;
   
   message->optionsMagicCookie = this->magicCookie; // Magic Cookie.
@@ -98,15 +101,12 @@ void DynamicHostConfigurationProtocol::sendDiscover() {
   
   message->options[8] = 255; // End options.
   
-  this->socket->send(message, sizeof(DynamicHostConfigurationProtocolHeader)); // Send data.
+  this->socket->send(data, sizeof(DynamicHostConfigurationProtocolHeader)); // Send data.
   MemoryManager::activeMemoryManager->free(data); // Mark memory used by message as free.
 }
 
 void DynamicHostConfigurationProtocol::handleOffer(DynamicHostConfigurationProtocolHeader* message, DynamicHostConfigurationOptionsInfo* info) {
   if(message->serverAddress == 0 || message->myAddress == 0 || this->ip_firstOffer != 0) return;
-  
-  // Use server address as destination for all messages after this.
-  this->socket->setDestinationIp(message->serverAddress);
   
   // Save data.
   this->ip_firstOffer = message->serverAddress;
@@ -120,13 +120,13 @@ void DynamicHostConfigurationProtocol::handleOffer(DynamicHostConfigurationProto
   printf("\n");
   
   // Send a request for this ip.
-  this->sendRequest();
+  this->sendRequest(message);
 }
 
 void DynamicHostConfigurationProtocol::sendRequest(DynamicHostConfigurationProtocolHeader* offer) {
   printf("DHCP Sending request\n");
   // Allocate memory for message
-  uint8_t* data = MemoryManager::activeMemoryManager->malloc(sizeof(DynamicHostConfigurationProtocolHeader));
+  uint8_t* data = (uint8_t*) MemoryManager::activeMemoryManager->malloc(sizeof(DynamicHostConfigurationProtocolHeader));
   for(uint32_t i = 0; i < sizeof(DynamicHostConfigurationProtocolHeader); i++) {
     data[i] = 0;
   }
@@ -138,12 +138,15 @@ void DynamicHostConfigurationProtocol::sendRequest(DynamicHostConfigurationProto
   message->hops = 0; // I don't know why, but the documentation says it should be 0.
   message->identifier = this->identifier; // Identifier, so i know wich messages are from me.
   
+  message->secs = 0;
+  message->flags = 0;
+  
   message->clientAddress = this->ipv4->getIpAddress(); // This should be 0 unless we have an ip address (getIpAddress returns null when not assigned).
   message->myAddress = 0; // The server fills in this field, clients should not use it.
   message->serverAddress = offer->serverAddress;
   message->gatewayAddress = 0; // We don't know this at this point.
   
-  message->clientHardwareAddress1 = backend->getMacAddress(); // MAC address.
+  message->clientHardwareAddress1 = this->ipv4->getMacAddress(); // MAC address.
   message->clientHardwareAddress2 = 0;
   
   message->optionsMagicCookie = this->magicCookie; // Magic Cookie.
@@ -153,19 +156,19 @@ void DynamicHostConfigurationProtocol::sendRequest(DynamicHostConfigurationProto
   message->options[2] = 3; // Discover.
   message->options[3] = 0; // Pad
   
-  message->options[4] = 54; // Option value (requested ip address).
+  message->options[4] = 50; // Option value (requested ip address).
   message->options[5] = 4; // Option length.
-  message->options[6] = (offer->myAddress >> 24) & 0xFF;
-  message->options[7] = (offer->myAddress >> 16) & 0xFF;
-  message->options[8] = (offer->myAddress >> 8) & 0xFF;
-  message->options[9] = (offer->myAddress) & 0xFF;
+  message->options[6] = (offer->myAddress) & 0xFF;
+  message->options[7] = (offer->myAddress >> 8) & 0xFF;
+  message->options[8] = (offer->myAddress >> 16) & 0xFF;
+  message->options[9] = (offer->myAddress >> 24) & 0xFF;
   
   message->options[10] = 0; // Pad
   message->options[11] = 0; // Pad
   
-  message->options[8] = 255; // End options.
+  message->options[12] = 255; // End options.
   
-  this->socket->send(message, sizeof(DynamicHostConfigurationProtocolHeader)); // Send data.
+  this->socket->send(data, sizeof(DynamicHostConfigurationProtocolHeader)); // Send data.
   
   MemoryManager::activeMemoryManager->free(data); // Mark memory used by message as free.
 }
@@ -177,7 +180,9 @@ void DynamicHostConfigurationProtocol::handleAck(DynamicHostConfigurationProtoco
     return;
   }
   
-  printf("DHCP complete!\n");
+  printf("DHCP complete: ");
+  printHex32(this->ip);
+  printf("\n");
   
   this->ipv4->setSubnetmask(this->subnetmask);
   this->ipv4->setGateway(this->defaultGateway);
@@ -187,7 +192,7 @@ void DynamicHostConfigurationProtocol::handleAck(DynamicHostConfigurationProtoco
 }
 
 DynamicHostConfigurationOptionsInfo* DynamicHostConfigurationProtocol::getOptionsInfo(uint8_t* options, uint32_t size) {
-  uint8_t* data = MemoryManager::activeMemoryManager->malloc(sizeof(DynamicHostConfigurationOptionsInfo));
+  uint8_t* data = (uint8_t*) MemoryManager::activeMemoryManager->malloc(sizeof(DynamicHostConfigurationOptionsInfo));
   for(uint32_t i = 0; i < sizeof(DynamicHostConfigurationOptionsInfo); i++) {
     data[i] = 0;
   }
@@ -202,7 +207,7 @@ DynamicHostConfigurationOptionsInfo* DynamicHostConfigurationProtocol::getOption
     } else if(code == 255) { // END
       i = size;
     } else {
-      this->handleOption(options+i+2, code, length);
+      this->handleOption(info, options+i+2, code, length);
       i += length+2;
     }
   }
@@ -218,7 +223,7 @@ void DynamicHostConfigurationProtocol::handleOption(DynamicHostConfigurationOpti
       break;
     case 3: // Subnet mask
       if(size < 4) break;
-      info->router = (option[3] << 24) | (option[2] << 16) | (option[1] << 8) | (option[0]);
+      info->defaultGateway = (option[3] << 24) | (option[2] << 16) | (option[1] << 8) | (option[0]);
       break;
     case 51: // Subnet mask
       if(size < 4) break;

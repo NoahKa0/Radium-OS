@@ -35,6 +35,7 @@
         
         common::uint32_t getIpAddress();
         void setIpAddress(common::uint32_t ip);
+        common::uint64_t getMacAddress();
       };
       
       class EtherFrameProvider {

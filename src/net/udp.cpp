@@ -68,7 +68,7 @@ bool UserDatagramProtocolProvider::onInternetProtocolReceived(uint32_t srcIp_BE,
   UserDatagramProtocolSocket* socket = 0;
   for(uint16_t i = 0; i < numSockets && socket == 0; i++) {
     if(sockets[i]->localPort == message->destPort
-    && sockets[i]->remoteIp == srcIp_BE
+    && (sockets[i]->remoteIp == srcIp_BE || sockets[i]->remoteIp == 0xFFFFFFFF)
     && sockets[i]->remotePort == message->srcPort
     && (sockets[i]->localIp == destIp_BE
     || (destIp_BE == 0xFFFFFFFF && sockets[i]->forwardBroadcasts)
@@ -124,8 +124,8 @@ UserDatagramProtocolSocket* UserDatagramProtocolProvider::connect(uint32_t ip, u
     if(freePort == 65530) freePort = 1024;
   }
   
-  this->forwardBroadcasts = false;
-  this->forwardAll = false;
+  socket->forwardBroadcasts = false;
+  socket->forwardAll = false;
   socket->localIp = backend->getIpAddress();
   
   socket->remotePort = ((socket->remotePort & 0xFF00) >> 8) | ((socket->remotePort & 0x00FF) << 8);

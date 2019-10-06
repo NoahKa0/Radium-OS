@@ -50,7 +50,7 @@
         
         void enableForwardAll();
         void enableBroadcasts();
-        void setDestinationIp();
+        void setDestinationIp(common::uint32_t ip);
       };
       
       class UserDatagramProtocolProvider : public InternetProtocolV4Handler {
