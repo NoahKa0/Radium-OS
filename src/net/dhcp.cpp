@@ -32,7 +32,6 @@ DynamicHostConfigurationProtocol::~DynamicHostConfigurationProtocol() {
 
 void DynamicHostConfigurationProtocol::handleUserDatagramProtocolMessage(UserDatagramProtocolSocket* socket, uint8_t* data, uint32_t length) {
   if(length < sizeof(DynamicHostConfigurationProtocolHeader)) return; // Our header size is the minimum required size, this message is invalid.
-  printf("DHCP Received\n");
   DynamicHostConfigurationProtocolHeader* message = (DynamicHostConfigurationProtocolHeader*) data;
   
   if(message->optionsMagicCookie == this->magicCookie
@@ -186,9 +185,10 @@ void DynamicHostConfigurationProtocol::handleAck(DynamicHostConfigurationProtoco
   
   this->ipv4->setSubnetmask(this->subnetmask);
   this->ipv4->setGateway(this->defaultGateway);
-  this->ipv4->setIpAddress(this->defaultGateway);
+  this->ipv4->setIpAddress(this->ip);
   
   this->ipv4->getArp()->broadcastMacAddress(0xFFFFFFFF);
+  this->ipv4->getArp()->requestMacAddress(this->defaultGateway);
 }
 
 DynamicHostConfigurationOptionsInfo* DynamicHostConfigurationProtocol::getOptionsInfo(uint8_t* options, uint32_t size) {

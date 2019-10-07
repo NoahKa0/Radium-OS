@@ -257,10 +257,7 @@ void sysCall(uint32_t eax, uint32_t ebx) {
 
 void taskA() {
   if(udp != 0) {
-    while(ipv4->getIpAddress() == 0) {
-      asm("hlt");
-      printf(".");
-    }
+    while(ipv4->getIpAddress() == 0) {}
     myProgram = new Program(udp);
   } else {
     printf("ICMP == 0\n");
