@@ -6,9 +6,6 @@ using namespace sys::common;
 using namespace sys::net;
 using namespace sys::drivers;
 
-void printf(char*);
-void printHex32(uint32_t);
-
 AddressResolutionProtocol::AddressResolutionProtocol(EtherFrameProvider* backend)
 : EtherFrameHandler(backend, 0x806)
 {
@@ -80,8 +77,7 @@ uint64_t AddressResolutionProtocol::resolve(uint32_t ip_BE) {
   if(result == 0xFFFFFFFFFFFF) {
     requestMacAddress(ip_BE);
   }
-  printHex32(ip_BE);
-  printf("\n");
+  
   asm("sti"); // We need to enable interrupts again, in case we are in an interrupt.
   while(result == 0xFFFFFFFFFFFF && timeout < 200) {
     asm("hlt");
