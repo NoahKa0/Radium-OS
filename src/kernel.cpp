@@ -263,7 +263,7 @@ void taskA() {
     
     // TCP TEST
     
-    tcp->connect(ipv4, 0x0202000A);
+    tcp->connect(0x0202000A, 1234);
     
     // -------
     

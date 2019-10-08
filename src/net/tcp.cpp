@@ -11,12 +11,17 @@ uint32_t bigEndian32(uint32_t n) {
        | ((n & 0x000000FF) << 24);
 }
 
+TransmissionControlProtocolHandler::TransmissionControlProtocolHandler() {}
+TransmissionControlProtocolHandler::~TransmissionControlProtocolHandler() {}
+
+void TransmissionControlProtocolHandler::handleTransmissionControlProtocolMessage(TransmissionControlProtocolSocket* socket, uint8_t* data, uint32_t length) {}
+
 TransmissionControlProtocolSocket::TransmissionControlProtocolSocket(TransmissionControlProtocolProvider* backend) {
   this->state = CLOSED;
   this->backend = backend;
   this->handler = 0;
 }
-TransmissionControlProtocolSocket::~TransmissionControlProtocolSocket();
+TransmissionControlProtocolSocket::~TransmissionControlProtocolSocket() {}
 
 void TransmissionControlProtocolSocket::handleUserDatagramProtocolMessage(uint8_t* data, uint32_t length) {}
 
@@ -43,6 +48,8 @@ TransmissionControlProtocolProvider::TransmissionControlProtocolProvider(Interne
 }
 
 TransmissionControlProtocolProvider::~TransmissionControlProtocolProvider() {}
+
+bool TransmissionControlProtocolProvider::onInternetProtocolReceived(uint32_t srcIp_BE, uint32_t destIp_BE, uint8_t* payload, uint32_t size) {}
 
 void TransmissionControlProtocolProvider::sendTCP(TransmissionControlProtocolSocket* socket, uint8_t* data, uint16_t length, uint16_t flags) {
   uint16_t packetLength = length + sizeof(TransmissionControlProtocolHeader); // Needed for pseudoHeader.
@@ -80,7 +87,7 @@ void TransmissionControlProtocolProvider::sendTCP(TransmissionControlProtocolSoc
   pseudoHeader->totalLength = ((packetLength & 0x00FF) << 8) | ((packetLength & 0xFF00) >> 8);
   
   header->checksum = 0;
-  header->checksum = InternetProtocolV4Provider::checksum(buffer, totalLength);
+  header->checksum = InternetProtocolV4Provider::checksum((uint16_t*) buffer, totalLength);
   
   this->send(socket->remoteIp, (uint8_t*) header, packetLength);
   
@@ -102,8 +109,6 @@ TransmissionControlProtocolSocket* TransmissionControlProtocolProvider::connect(
     if(freePort == 65530) freePort = 1024;
   }
   
-  socket->forwardBroadcasts = false;
-  socket->forwardAll = false;
   socket->localIp = backend->getIpAddress();
   
   socket->remotePort = ((socket->remotePort & 0xFF00) >> 8) | ((socket->remotePort & 0x00FF) << 8);
@@ -118,9 +123,9 @@ TransmissionControlProtocolSocket* TransmissionControlProtocolProvider::connect(
 }
 
 TransmissionControlProtocolSocket* TransmissionControlProtocolProvider::listen(common::uint16_t port) {
-  UserDatagramProtocolSocket* socket = new UserDatagramProtocolSocket(this);
+  TransmissionControlProtocolSocket* socket = new TransmissionControlProtocolSocket(this);
   
-  socket->state = LISTENING;
+  socket->state = LISTEN;
   socket->localIp = backend->getIpAddress();
   socket->remotePort = ((port & 0xFF00) >> 8) | ((port & 0x00FF) << 8);
   

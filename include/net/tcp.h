@@ -40,9 +40,9 @@
         common::uint32_t sequenceNumber;
         common::uint32_t acknowledgementNumber;
         
+        common::uint8_t reserved : 4;
         common::uint8_t headerSize32 : 4;
-        common::uint8_t reserved : 3;
-        common::uint16_t flags : 9;
+        common::uint8_t flags;
         
         common::uint16_t windowSize;
         common::uint16_t checksum;
@@ -65,9 +65,9 @@
       
       class TransmissionControlProtocolHandler {
       public:
-        UserDatagramProtocolHandler();
-        ~UserDatagramProtocolHandler();
-        virtual void handleTransmissionControlProtocolMessage(UserDatagramProtocolSocket* socket, common::uint8_t* data, common::uint32_t length);
+        TransmissionControlProtocolHandler();
+        ~TransmissionControlProtocolHandler();
+        virtual void handleTransmissionControlProtocolMessage(TransmissionControlProtocolSocket* socket, common::uint8_t* data, common::uint32_t length);
       };
       
       class TransmissionControlProtocolSocket {
@@ -105,7 +105,7 @@
         ~TransmissionControlProtocolProvider();
         
         virtual bool onInternetProtocolReceived(common::uint32_t srcIp_BE, common::uint32_t destIp_BE, common::uint8_t* payload, common::uint32_t size);
-        virtual void sendTCP(TransmissionControlProtocolSocket* socket, common::uint8_t* data, common::uint16_t length, common::uint16_t flags);
+        virtual void sendTCP(TransmissionControlProtocolSocket* socket, common::uint8_t* data, common::uint16_t length, common::uint16_t flags = 0);
         
         TransmissionControlProtocolSocket* listen(common::uint16_t port);
         TransmissionControlProtocolSocket* connect(common::uint32_t ip, common::uint16_t port, common::uint16_t localPort = 0);
