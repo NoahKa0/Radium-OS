@@ -18,6 +18,7 @@ objects = tmp/loader.o \
           tmp/net/ipv4.o \
           tmp/net/icmp.o \
           tmp/net/udp.o \
+          tmp/net/tcp.o \
           tmp/net/dhcp.o \
           tmp/systemcalls.o \
           tmp/multitasking.o \

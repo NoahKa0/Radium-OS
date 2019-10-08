@@ -11,6 +11,27 @@ uint32_t bigEndian32(uint32_t n) {
        | ((n & 0x000000FF) << 24);
 }
 
+TransmissionControlProtocolSocket::TransmissionControlProtocolSocket(TransmissionControlProtocolProvider* backend) {
+  this->state = CLOSED;
+  this->backend = backend;
+  this->handler = 0;
+}
+TransmissionControlProtocolSocket::~TransmissionControlProtocolSocket();
+
+void TransmissionControlProtocolSocket::handleUserDatagramProtocolMessage(uint8_t* data, uint32_t length) {}
+
+void TransmissionControlProtocolSocket::send(uint8_t* data, uint16_t length) {
+  this->backend->sendTCP(this, data, length);
+}
+
+void TransmissionControlProtocolSocket::setHandler(TransmissionControlProtocolHandler* handler) {
+  this->handler = handler;
+}
+
+void TransmissionControlProtocolSocket::disconnect() {
+  backend->disconnect(this);
+}
+
 TransmissionControlProtocolProvider::TransmissionControlProtocolProvider(InternetProtocolV4Provider* backend)
 : InternetProtocolV4Handler(backend, 0x06)
 {
@@ -24,8 +45,9 @@ TransmissionControlProtocolProvider::TransmissionControlProtocolProvider(Interne
 TransmissionControlProtocolProvider::~TransmissionControlProtocolProvider() {}
 
 void TransmissionControlProtocolProvider::sendTCP(TransmissionControlProtocolSocket* socket, uint8_t* data, uint16_t length, uint16_t flags) {
-  uint16_t packetLength = length + sizeof(TransmissionControlProtocolHeader);
-  uint16_t totalLength = packetLength + sizeof(TransmissionControlProtocolPseudoHeader);
+  uint16_t packetLength = length + sizeof(TransmissionControlProtocolHeader); // Needed for pseudoHeader.
+  
+  uint16_t totalLength = length + sizeof(TransmissionControlProtocolHeader) + sizeof(TransmissionControlProtocolPseudoHeader);
   uint8_t* buffer = (uint8_t*) MemoryManager::activeMemoryManager->malloc(totalLength);
   
   TransmissionControlProtocolPseudoHeader* pseudoHeader = (TransmissionControlProtocolPseudoHeader*) buffer;
@@ -52,13 +74,15 @@ void TransmissionControlProtocolProvider::sendTCP(TransmissionControlProtocolSoc
     payload[i] = data[i];
   }
   
-  header->checksum = 0;
-  
   pseudoHeader->srcIP = socket->localIp;
   pseudoHeader->destIP = socket->remoteIp;
   pseudoHeader->protocol = 0x0600; // BE 6.
+  pseudoHeader->totalLength = ((packetLength & 0x00FF) << 8) | ((packetLength & 0xFF00) >> 8);
   
+  header->checksum = 0;
+  header->checksum = InternetProtocolV4Provider::checksum(buffer, totalLength);
   
+  this->send(socket->remoteIp, (uint8_t*) header, packetLength);
   
   MemoryManager::activeMemoryManager->free(buffer);
 }
