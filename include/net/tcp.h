@@ -47,6 +47,16 @@
         common::uint16_t windowSize;
         common::uint16_t checksum;
         common::uint16_t urgent;
+        
+        common::uint32_t options;
+      } __attribute__((packed));
+      
+      struct TransmissionControlProtocolPseudoHeader {
+        common::uint32_t srcIP;
+        common::uint32_t destIP;
+        
+        common::uint16_t protocol;
+        common::uint16_t totalLength;
       } __attribute__((packed));
       
       class TransmissionControlProtocolProvider;
@@ -69,6 +79,7 @@
         common::uint32_t remoteIp;
         
         common::uint32_t sequenceNumber;
+        common::uint32_t acknowledgementNumber;
         
         TransmissionControlProtocolProvider* backend;
         TransmissionControlProtocolHandler* handler;
@@ -97,8 +108,7 @@
         virtual void sendTCP(TransmissionControlProtocolSocket* socket, common::uint8_t* data, common::uint16_t length, common::uint16_t flags);
         
         TransmissionControlProtocolSocket* listen(common::uint16_t port);
-        TransmissionControlProtocolSocket* connect(common::uint32_t ip, common::uint16_t port);
-        TransmissionControlProtocolSocket* connect(common::uint32_t ip, common::uint16_t port, common::uint16_t localPort);
+        TransmissionControlProtocolSocket* connect(common::uint32_t ip, common::uint16_t port, common::uint16_t localPort = 0);
         void disconnect(TransmissionControlProtocolSocket* socket);
       };
     }
