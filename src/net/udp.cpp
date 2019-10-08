@@ -58,8 +58,6 @@ UserDatagramProtocolProvider::UserDatagramProtocolProvider(InternetProtocolV4Pro
 
 UserDatagramProtocolProvider::~UserDatagramProtocolProvider() {}
 
-void printf(char* txt);
-
 bool UserDatagramProtocolProvider::onInternetProtocolReceived(uint32_t srcIp_BE, uint32_t destIp_BE, uint8_t* payload, uint32_t size) {
   if(size < sizeof(UserDatagramProtocolHeader)) return false;
   
@@ -75,8 +73,6 @@ bool UserDatagramProtocolProvider::onInternetProtocolReceived(uint32_t srcIp_BE,
     || sockets[i]->forwardAll))
     {
       socket = sockets[i];
-    } else {
-      printf("Received unexpected UDP packet.\n");
     }
   }
   
