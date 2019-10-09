@@ -14,19 +14,27 @@ uint32_t bigEndian32(uint32_t n) {
 TransmissionControlProtocolHandler::TransmissionControlProtocolHandler() {}
 TransmissionControlProtocolHandler::~TransmissionControlProtocolHandler() {}
 
-void TransmissionControlProtocolHandler::handleTransmissionControlProtocolMessage(TransmissionControlProtocolSocket* socket, uint8_t* data, uint32_t length) {}
+bool TransmissionControlProtocolHandler::handleTransmissionControlProtocolMessage(TransmissionControlProtocolSocket* socket, uint8_t* data, uint32_t length) {
+  return true;
+}
 
 TransmissionControlProtocolSocket::TransmissionControlProtocolSocket(TransmissionControlProtocolProvider* backend) {
   this->state = CLOSED;
   this->backend = backend;
   this->handler = 0;
 }
-TransmissionControlProtocolSocket::~TransmissionControlProtocolSocket() {}
+TransmissionControlProtocolSocket::~TransmissionControlProtocolSocket() {
+  // TODO clear buffers.
+}
 
-void TransmissionControlProtocolSocket::handleUserDatagramProtocolMessage(uint8_t* data, uint32_t length) {}
+bool TransmissionControlProtocolSocket::handleTransmissionControlProtocolMessage(uint8_t* data, uint32_t length) {}
 
 void TransmissionControlProtocolSocket::send(uint8_t* data, uint16_t length) {
-  this->backend->sendTCP(this, data, length);
+  // TODO store data in buffer.
+  // Actually, do this in sendTCP (because the header also needs to be stored), i just think that i will look here.
+  // The buffer should also store the time when the header got created.
+  // Also make a function that retransmits the packets when they didn't get acknowledged.
+  this->backend->sendTCP(this, data, length, PSH);
 }
 
 void TransmissionControlProtocolSocket::setHandler(TransmissionControlProtocolHandler* handler) {
@@ -34,7 +42,13 @@ void TransmissionControlProtocolSocket::setHandler(TransmissionControlProtocolHa
 }
 
 void TransmissionControlProtocolSocket::disconnect() {
+  // TODO store time of disconnect, so the socket can get closed after waiting for FIN | ACK for too long.
   backend->disconnect(this);
+}
+
+bool TransmissionControlProtocolSocket::isClosed() {
+  // TODO When time of disconnect is done, maybe this function should check that time.
+  return this->state == CLOSED:
 }
 
 TransmissionControlProtocolProvider::TransmissionControlProtocolProvider(InternetProtocolV4Provider* backend)
@@ -49,7 +63,125 @@ TransmissionControlProtocolProvider::TransmissionControlProtocolProvider(Interne
 
 TransmissionControlProtocolProvider::~TransmissionControlProtocolProvider() {}
 
-bool TransmissionControlProtocolProvider::onInternetProtocolReceived(uint32_t srcIp_BE, uint32_t destIp_BE, uint8_t* payload, uint32_t size) {}
+bool TransmissionControlProtocolProvider::onInternetProtocolReceived(uint32_t srcIp_BE, uint32_t destIp_BE, uint8_t* payload, uint32_t size) {
+  if(size < 20) return false;
+  
+  TransmissionControlProtocolHeader* header = (TransmissionControlProtocolHeader*) payload;
+  TransmissionControlProtocolSocket* socket = 0;
+  
+  for(uint16_t i = 0; i < numSockets && socket == 0; i++) {
+    if(sockets[i]->localPort == header->destPort && sockets[i]->localIp == destIp_BE) {
+      if(sockets[i]->state == LISTEN && (header->flags & (ACK | SYN | FIN)) == SYN) {
+        socket = sockets[i];
+      } else if(sockets[i]->remotePort == header->srcPort && sockets[i]->remoteIp == srcIp_BE) {
+        socket = sockets[i];
+      }
+    }
+  }
+  
+  if(socket != 0 && header->flags & RST) {
+    socket->state = CLOSED;
+  }
+  
+  if(socket != 0 && socket->state != CLOSED) {
+    bool reset = false;
+    bool remove = false;
+    switch(header->flags & (ACK | SYN | FIN)) {
+      case SYN:
+        if(socket->state == LISTEN) {
+          socket->remoteIp == srcIp_BE;
+          socket->remotePort = header->srcPort;
+          socket->state = SYN_RECEIVED;
+          socket->acknowledgementNumber = bigEndian32(header->sequenceNumber) + 1;
+          socket->sequenceNumber = this->generateSequenceNumber();
+          this->sendTCP(socket, 0,0, SYN|ACK);
+          socket->sequenceNumber++;
+          return false; // Don't continue handling after acknowledgement is send.
+        } else {
+          reset = true;
+        }
+        break;
+      case SYN | ACK:
+        if(socket->state == SYN_SENT) {
+          socket->state = ESTABLISHED;
+          socket->acknowledgementNumber = bigEndian32(header->sequenceNumber) + 1;
+          socket->sequenceNumber++;
+          this->sendTCP(socket, 0,0, ACK);
+        } else {
+          reset = true;
+        }
+        break;
+      case SYN | FIN:
+      case SYN | FIN | ACK:
+        reset = true;
+        break;
+      case FIN:
+      case FIN | ACK:
+        if(socket->state == ESTABLISHED) {
+          socket->state = CLOSE_WAIT;
+          socket->acknowledgementNumber++;
+          this->sendTCP(socket, 0,0, ACK);
+          this->sendTCP(socket, 0,0, FIN | ACK);
+        } else if(socket->state == CLOSE_WAIT) {
+          socket->state = CLOSED;
+        } else if(socket->state == FIN_WAIT1 || socket->state == FIN_WAIT2) {
+          socket->state = CLOSED;
+          socket->acknowledgementNumber++;
+          this->sendTCP(socket, 0,0, ACK);
+        } else {
+          reset = true;
+        }
+        break;
+      case ACK:
+        if(socket->state == SYN_RECEIVED) {
+          socket->state = ESTABLISHED;
+          break;
+        } else if(socket->state == FIN_WAIT1) {
+          socket->state = FIN_WAIT2;
+          break;
+        } else if(socket->state == CLOSE_WAIT) {
+          socket->state = CLOSED;
+          break;
+        }
+        // When connection is ESTABLISHED, an ACK might contain data.
+        // NO BREAK.
+      default:
+        if(bigEndian32(header->sequenceNumber) == socket->acknowledgementNumber) {
+          reset = !socket->handleTransmissionControlProtocolMessage(payload + (header->headerSize32*4), size - (header->headerSize32*4));
+          if(!reset) {
+            socket->acknowledgementNumber += size - (header->headerSize32*4);
+            this->sendTCP(socket, 0,0, ACK);
+          }
+        } else {
+          // Packets have arrived in different order...
+          // It might be better to signal this to the sender... but the sender will eventually resend it, if it doesn't get the ACK.
+          return false;
+        }
+        break;
+    }
+    if(reset) {
+      // Can't handle resets for now, i don't think that would be a big problem though.
+      return false;
+    }
+  }
+  
+  if(socket != 0 && socket->state == CLOSED) {
+    bool move = false;
+    for(uint16_t i = 0; i < numSockets; i++) {
+      if(sockets[i] == socket) {
+        move = true;
+      }
+      if(move) {
+        this->sockets[i] = this->sockets[i+1];
+      }
+    }
+    if(move) {
+      this->numSockets--;
+    }
+  }
+  
+  return false;
+}
 
 void TransmissionControlProtocolProvider::sendTCP(TransmissionControlProtocolSocket* socket, uint8_t* data, uint16_t length, uint16_t flags) {
   uint16_t packetLength = length + sizeof(TransmissionControlProtocolHeader); // Needed for pseudoHeader.
@@ -81,8 +213,8 @@ void TransmissionControlProtocolProvider::sendTCP(TransmissionControlProtocolSoc
     payload[i] = data[i];
   }
   
-  pseudoHeader->srcIP = socket->localIp;
-  pseudoHeader->destIP = socket->remoteIp;
+  pseudoHeader->srcIp = socket->localIp;
+  pseudoHeader->destIp = socket->remoteIp;
   pseudoHeader->protocol = 0x0600; // BE 6.
   pseudoHeader->totalLength = ((packetLength & 0x00FF) << 8) | ((packetLength & 0xFF00) >> 8);
   
@@ -98,7 +230,7 @@ TransmissionControlProtocolSocket* TransmissionControlProtocolProvider::connect(
   TransmissionControlProtocolSocket* socket = new TransmissionControlProtocolSocket(this);
   
   socket->state = SYN_SENT;
-  socket->sequenceNumber = 302342478; // This number should be randomly generated.
+  socket->sequenceNumber = this->generateSequenceNumber();
   
   socket->remotePort = port;
   socket->remoteIp = ip;
@@ -141,4 +273,8 @@ void TransmissionControlProtocolProvider::disconnect(TransmissionControlProtocol
   this->sendTCP(socket, 0, 0, FIN + ACK);
   
   socket->sequenceNumber++;
+}
+
+uint32_t TransmissionControlProtocolProvider::generateSequenceNumber() {
+  return 302342478; // This number should be randomly generated.
 }

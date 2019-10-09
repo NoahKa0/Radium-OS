@@ -18,7 +18,6 @@
         CLOSING,
         TIME_WAIT,
         CLOSE_WAIT,
-        LAST_ACK,
       };
       
       enum TransmissionControlProtocolFlag {
@@ -52,8 +51,8 @@
       } __attribute__((packed));
       
       struct TransmissionControlProtocolPseudoHeader {
-        common::uint32_t srcIP;
-        common::uint32_t destIP;
+        common::uint32_t srcIp;
+        common::uint32_t destIp;
         
         common::uint16_t protocol;
         common::uint16_t totalLength;
@@ -67,7 +66,7 @@
       public:
         TransmissionControlProtocolHandler();
         ~TransmissionControlProtocolHandler();
-        virtual void handleTransmissionControlProtocolMessage(TransmissionControlProtocolSocket* socket, common::uint8_t* data, common::uint32_t length);
+        virtual bool handleTransmissionControlProtocolMessage(TransmissionControlProtocolSocket* socket, common::uint8_t* data, common::uint32_t length);
       };
       
       class TransmissionControlProtocolSocket {
@@ -89,10 +88,11 @@
         TransmissionControlProtocolSocket(TransmissionControlProtocolProvider* backend);
         ~TransmissionControlProtocolSocket();
         
-        virtual void handleUserDatagramProtocolMessage(common::uint8_t* data, common::uint32_t length);
+        virtual bool handleTransmissionControlProtocolMessage(common::uint8_t* data, common::uint32_t length);
         virtual void send(common::uint8_t* data, common::uint16_t length);
         void setHandler(TransmissionControlProtocolHandler* handler);
         void disconnect();
+        bool isClosed();
       };
       
       class TransmissionControlProtocolProvider : public InternetProtocolV4Handler {
@@ -100,6 +100,8 @@
         TransmissionControlProtocolSocket* sockets[65535];
         common::uint16_t numSockets;
         common::uint16_t freePort;
+        
+        common::uint32_t generateSequenceNumber();
       public:
         TransmissionControlProtocolProvider(InternetProtocolV4Provider* backend);
         ~TransmissionControlProtocolProvider();
