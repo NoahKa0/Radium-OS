@@ -27,7 +27,8 @@ DynamicHostConfigurationProtocol::DynamicHostConfigurationProtocol(UserDatagramP
 
 DynamicHostConfigurationProtocol::~DynamicHostConfigurationProtocol() {
   this->socket->disconnect();
-  this->socket = 0; // Sockets get automaticly deleted from memory when they disconnect.
+  MemoryManager::activeMemoryManager->free(this->socket);
+  this->socket = 0;
 }
 
 void DynamicHostConfigurationProtocol::handleUserDatagramProtocolMessage(UserDatagramProtocolSocket* socket, uint8_t* data, uint32_t length) {

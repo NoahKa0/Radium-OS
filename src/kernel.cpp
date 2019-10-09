@@ -157,7 +157,8 @@ public:
   }
   ~Program() {
     if(mySocket != 0) {
-      mySocket->disconnect(); // Disconnect automaticly frees assosiated memory.
+      mySocket->disconnect();
+      MemoryManager::activeMemoryManager->free(mySocket);
       mySocket = 0; // Remove pointer.
     }
     MemoryManager::activeMemoryManager->free(chars);
