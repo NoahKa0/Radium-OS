@@ -123,7 +123,6 @@ common::uint32_t amd_am79c973::handleInterrupt(common::uint32_t esp) {
   registerDataPort.write(tmp);
 
   //if((tmp & 0x0100) == 0x0100) printf("AMD DONE\n");
-  
   return esp;
 }
 
@@ -131,8 +130,8 @@ void amd_am79c973::send(common::uint8_t* buffer, int size) {
   int sendDescriptor = currentSendBuffer;
   currentSendBuffer = (currentSendBuffer+1) % 8;
   
-  if(size > 1580) {
-    size = 1580;
+  if(size > 1518) {
+    size = 1518;
   }
   
   uint8_t* src = buffer + size -1;

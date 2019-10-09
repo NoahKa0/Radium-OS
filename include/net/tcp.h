@@ -92,6 +92,7 @@
         virtual void send(common::uint8_t* data, common::uint16_t length);
         void setHandler(TransmissionControlProtocolHandler* handler);
         void disconnect();
+        bool isConnected();
         bool isClosed();
       };
       

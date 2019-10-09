@@ -46,9 +46,14 @@ void TransmissionControlProtocolSocket::disconnect() {
   backend->disconnect(this);
 }
 
+bool TransmissionControlProtocolSocket::isConnected() {
+  // TODO Same check as with isClosed
+  return this->state == ESTABLISHED;
+}
+
 bool TransmissionControlProtocolSocket::isClosed() {
   // TODO When time of disconnect is done, maybe this function should check that time.
-  return this->state == CLOSED:
+  return this->state == CLOSED;
 }
 
 TransmissionControlProtocolProvider::TransmissionControlProtocolProvider(InternetProtocolV4Provider* backend)
@@ -63,7 +68,11 @@ TransmissionControlProtocolProvider::TransmissionControlProtocolProvider(Interne
 
 TransmissionControlProtocolProvider::~TransmissionControlProtocolProvider() {}
 
+void printf(char*);
+void printHex32(uint32_t);
+
 bool TransmissionControlProtocolProvider::onInternetProtocolReceived(uint32_t srcIp_BE, uint32_t destIp_BE, uint8_t* payload, uint32_t size) {
+  printf("TCP Received\n");
   if(size < 20) return false;
   
   TransmissionControlProtocolHeader* header = (TransmissionControlProtocolHeader*) payload;
@@ -79,7 +88,7 @@ bool TransmissionControlProtocolProvider::onInternetProtocolReceived(uint32_t sr
     }
   }
   
-  if(socket != 0 && header->flags & RST) {
+  if(socket != 0 && (header->flags & RST) == RST) {
     socket->state = CLOSED;
   }
   
@@ -149,7 +158,8 @@ bool TransmissionControlProtocolProvider::onInternetProtocolReceived(uint32_t sr
         if(bigEndian32(header->sequenceNumber) == socket->acknowledgementNumber) {
           reset = !socket->handleTransmissionControlProtocolMessage(payload + (header->headerSize32*4), size - (header->headerSize32*4));
           if(!reset) {
-            socket->acknowledgementNumber += size - (header->headerSize32*4);
+            printHex32(size);
+            socket->acknowledgementNumber += size - (header->headerSize32*4) + 1;
             this->sendTCP(socket, 0,0, ACK);
           }
         } else {
@@ -198,7 +208,11 @@ void TransmissionControlProtocolProvider::sendTCP(TransmissionControlProtocolSoc
   header->destPort = socket->remotePort;
   
   header->sequenceNumber = bigEndian32(socket->sequenceNumber);
-  header->acknowledgementNumber = bigEndian32(socket->acknowledgementNumber);
+  if((flags & ACK) == ACK) {
+    header->acknowledgementNumber = bigEndian32(socket->acknowledgementNumber);
+  } else {
+    header->acknowledgementNumber = 0;
+  }
   
   header->reserved = 0;
   header->flags = flags;

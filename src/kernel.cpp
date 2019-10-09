@@ -141,15 +141,15 @@ void printHex32(uint32_t num) {
     printf(txt);
 }
 
-class Program: public UserDatagramProtocolHandler {
+class Program: public TransmissionControlProtocolHandler {
 private:
-  UserDatagramProtocolSocket* mySocket;
-  UserDatagramProtocolProvider* myUdpProvider;
+  TransmissionControlProtocolSocket* mySocket;
+  TransmissionControlProtocolProvider* myTcpProvider;
   uint8_t* chars;
   uint32_t current;
 public:
-  Program(UserDatagramProtocolProvider* backend):UserDatagramProtocolHandler() {
-    this->myUdpProvider = backend;
+  Program(TransmissionControlProtocolProvider* backend):TransmissionControlProtocolHandler() {
+    this->myTcpProvider = backend;
     mySocket = 0;
     chars = (uint8_t*) MemoryManager::activeMemoryManager->malloc(1024);
     this->current = 0;
@@ -163,7 +163,7 @@ public:
     }
     MemoryManager::activeMemoryManager->free(chars);
   }
-  virtual void handleUserDatagramProtocolMessage(UserDatagramProtocolSocket* socket, uint8_t* data, uint32_t length) {
+  virtual void handleTransmissionControlProtocolMessage(UserDatagramProtocolSocket* socket, uint8_t* data, uint32_t length) {
     if(length == 0) return;
     data[length-1] = 0; // To make it terminate.
     if(data[0] == '.') {
@@ -180,13 +180,17 @@ public:
         chars[current] = 0;
         uint32_t ip = decToInt((char*)chars);
         ip = ((ip & 0xFF000000) >> 24) | ((ip & 0x00FF0000) >> 8) | ((ip & 0x0000FF00) << 8) | ((ip & 0x000000FF) << 24);
-        mySocket = myUdpProvider->connect(ip, 1234);
-        mySocket->setHandler((UserDatagramProtocolHandler*) this);
-        printf("Listening for ");
+        
+        printf("I'm at: ");
+        printHex32(ipv4->getIpAddress());
+        printf("\n");
+        
+        mySocket = myTcpProvider->connect(ip, 1234);
+        mySocket->setHandler((TransmissionControlProtocolHandler*) this);
+        printf("Connecting to ");
         printHex32(ip);
         printf(" on port 1234\n");
         current = 0;
-        mySocket->send((uint8_t*)".Hi", 3); // This is so the UDP server knows we exists
       } else {
         chars[current] = key;
         current++;
@@ -262,13 +266,7 @@ void taskA() {
   if(udp != 0) {
     while(ipv4->getIpAddress() == 0) {}
     
-    // TCP TEST
-    
-    tcp->connect(0x0202000A, 1234);
-    
-    // -------
-    
-    myProgram = new Program(udp);
+    myProgram = new Program(tcp);
   } else {
     printf("ICMP == 0\n");
   }
