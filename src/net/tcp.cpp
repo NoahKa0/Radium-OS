@@ -34,7 +34,7 @@ void TransmissionControlProtocolSocket::send(uint8_t* data, uint16_t length) {
   // Actually, do this in sendTCP (because the header also needs to be stored), i just think that i will look here.
   // The buffer should also store the time when the header got created.
   // Also make a function that retransmits the packets when they didn't get acknowledged.
-  this->backend->sendTCP(this, data, length, PSH);
+  this->backend->sendTCP(this, data, length, PSH | ACK);
 }
 
 void TransmissionControlProtocolSocket::setHandler(TransmissionControlProtocolHandler* handler) {
@@ -159,7 +159,7 @@ bool TransmissionControlProtocolProvider::onInternetProtocolReceived(uint32_t sr
           reset = !socket->handleTransmissionControlProtocolMessage(payload + (header->headerSize32*4), size - (header->headerSize32*4));
           if(!reset) {
             printHex32(size);
-            socket->acknowledgementNumber += size - (header->headerSize32*4) + 1;
+            socket->acknowledgementNumber += size - (header->headerSize32*4);
             this->sendTCP(socket, 0,0, ACK);
           }
         } else {
