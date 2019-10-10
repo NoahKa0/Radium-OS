@@ -27,7 +27,12 @@ TransmissionControlProtocolSocket::~TransmissionControlProtocolSocket() {
   // TODO clear buffers.
 }
 
-bool TransmissionControlProtocolSocket::handleTransmissionControlProtocolMessage(uint8_t* data, uint32_t length) {}
+bool TransmissionControlProtocolSocket::handleTransmissionControlProtocolMessage(uint8_t* data, uint32_t length) {
+  if(this->handler != 0) {
+    return this->handler->handleTransmissionControlProtocolMessage(this, data, length);
+  }
+  return true;
+}
 
 void TransmissionControlProtocolSocket::send(uint8_t* data, uint16_t length) {
   // TODO store data in buffer.
@@ -68,11 +73,8 @@ TransmissionControlProtocolProvider::TransmissionControlProtocolProvider(Interne
 
 TransmissionControlProtocolProvider::~TransmissionControlProtocolProvider() {}
 
-void printf(char*);
-void printHex32(uint32_t);
 
 bool TransmissionControlProtocolProvider::onInternetProtocolReceived(uint32_t srcIp_BE, uint32_t destIp_BE, uint8_t* payload, uint32_t size) {
-  printf("TCP Received\n");
   if(size < 20) return false;
   
   TransmissionControlProtocolHeader* header = (TransmissionControlProtocolHeader*) payload;
@@ -158,7 +160,6 @@ bool TransmissionControlProtocolProvider::onInternetProtocolReceived(uint32_t sr
         if(bigEndian32(header->sequenceNumber) == socket->acknowledgementNumber) {
           reset = !socket->handleTransmissionControlProtocolMessage(payload + (header->headerSize32*4), size - (header->headerSize32*4));
           if(!reset) {
-            printHex32(size);
             socket->acknowledgementNumber += size - (header->headerSize32*4);
             this->sendTCP(socket, 0,0, ACK);
           }

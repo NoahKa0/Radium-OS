@@ -163,8 +163,8 @@ public:
     }
     MemoryManager::activeMemoryManager->free(chars);
   }
-  virtual void handleTransmissionControlProtocolMessage(UserDatagramProtocolSocket* socket, uint8_t* data, uint32_t length) {
-    if(length == 0) return;
+  virtual bool handleTransmissionControlProtocolMessage(TransmissionControlProtocolSocket* socket, uint8_t* data, uint32_t length) {
+    if(length == 0) return true;
     data[length-1] = 0; // To make it terminate.
     if(data[0] == '.') {
       mySocket->send((uint8_t*)".Hi", 3); // If we get hidden info send hidden hi back (so the program knows we are alive).
@@ -173,6 +173,7 @@ public:
       printf((char*) data);
       printf("\n\n");
     }
+    return true;
   }
   void onKeyDown(uint8_t key) {
     if(mySocket == 0) {
