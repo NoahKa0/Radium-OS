@@ -167,6 +167,9 @@ uint32_t InterruptManager::handleInterrupt(uint8_t interruptNumber, uint32_t esp
     }
     
     if(interruptNumber == 0x20) {
+      if(SystemTimer::activeTimer != 0) {
+        SystemTimer::activeTimer->onTimerInterrupt();
+      }
       esp = (uint32_t) taskManager->schedule((CPUState*) esp);
     }
     

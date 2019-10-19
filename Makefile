@@ -22,6 +22,7 @@ objects = tmp/loader.o \
           tmp/net/dhcp.o \
           tmp/systemcalls.o \
           tmp/multitasking.o \
+          tmp/timer.o \
           tmp/kernel.o
 
 tmp/%.o: src/%.cpp

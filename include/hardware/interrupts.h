@@ -5,6 +5,7 @@
     #include <hardware/port.h>
     #include <gdt.h>
     #include <multitasking.h>
+    #include <timer.h>
     
     namespace sys {
         namespace hardware {

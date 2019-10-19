@@ -24,6 +24,8 @@
 
 #include <systemcalls.h>
 
+#include <timer.h>
+
 using namespace sys;
 using namespace sys::common;
 using namespace sys::drivers;
@@ -32,7 +34,6 @@ using namespace sys::net;
 
 static VideoGraphicsArray* videoGraphicsArray = 0;
 static bool videoEnabled = false;
-static bool printSysCallEnabled = false;
 
 // Network
 static EthernetDriver* currentEthernetDriver = 0;
@@ -259,11 +260,21 @@ extern "C" void callConstructors() {
 }
 
 void sysCall(uint32_t eax, uint32_t ebx) {
-  if(!printSysCallEnabled && eax == 0x04) return;
   asm("int $0x80" : : "a" (eax), "b" (ebx));
 }
 
 void taskA() {
+  uint64_t lastTime = 0;
+  while(lastTime < 3*60*18) { // Let timer run for 3 minutes.
+    if(lastTime+18 < SystemTimer::getTimeInInterrupts()) {
+      lastTime = SystemTimer::getTimeInInterrupts();
+      printf("PIT: ");
+      printHex32(lastTime);
+      printf("   in seconds: ");
+      printHex32(lastTime/18);
+      printf("\n");
+    }
+  }
   if(udp != 0) {
     while(ipv4->getIpAddress() == 0) {}
     
@@ -280,9 +291,9 @@ void taskA() {
 
 void taskB() {
   while(true) {
-    char* txt = "|";
-    sysCall(0x04, (uint32_t) txt); // 4 is printf.
-    //printf("|");
+    //char* txt = "|";
+    //sysCall(0x04, (uint32_t) txt); // 4 is printf.
+    asm("hlt");
   }
 }
 
@@ -351,16 +362,8 @@ extern "C" void kernelMain(void* multiboot_structure, uint32_t magicNumber) {
     ataSS.identify();
     printf("\n");
     
-    char* ataSendBuffer = "Hello Mind!";
-    char* ataReciveBuffer = "            ";
-    ataPM.write28(0, (uint8_t*) ataSendBuffer, 11);
-    ataPM.flush();
-    
-    ataPM.read28(0, (uint8_t*) ataReciveBuffer, 11);
-    
-    printf("Recived from hard disk: ");
-    printf(ataReciveBuffer);
-    printf("\n");
+    printf("Initialising SystemTimer\n");
+    new SystemTimer();
     
     printf("Networking...");
     EtherFrameProvider* etherframe = 0;
