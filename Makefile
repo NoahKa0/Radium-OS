@@ -2,6 +2,7 @@ GCCPARAMS = -m32 -Iinclude -fno-use-cxa-atexit -nostdlib -fno-builtin -fno-rtti 
 objects = tmp/loader.o \
           tmp/gdt.o \
           tmp/memorymanagement.o \
+          tmp/timer.o \
           tmp/drivers/driver.o \
           tmp/hardware/port.o \
           tmp/hardware/interruptstubs.o \
@@ -22,7 +23,6 @@ objects = tmp/loader.o \
           tmp/net/dhcp.o \
           tmp/systemcalls.o \
           tmp/multitasking.o \
-          tmp/timer.o \
           tmp/kernel.o
 
 tmp/%.o: src/%.cpp

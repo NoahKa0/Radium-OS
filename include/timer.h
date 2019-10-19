@@ -12,7 +12,7 @@
       SystemTimer();
       ~SystemTimer();
       
-      static common::uint64_t getTimeInInterrupts();
+      common::uint64_t getTimeInInterrupts();
       
       void onTimerInterrupt();
     };

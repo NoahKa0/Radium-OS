@@ -263,15 +263,24 @@ void sysCall(uint32_t eax, uint32_t ebx) {
   asm("int $0x80" : : "a" (eax), "b" (ebx));
 }
 
+uint64_t getTime() {
+  if(SystemTimer::activeTimer != 0) {
+    return SystemTimer::activeTimer->getTimeInInterrupts();
+  }
+  return 0;
+}
+
 void taskA() {
-  uint64_t lastTime = 0;
-  while(lastTime < 3*60*18) { // Let timer run for 3 minutes.
-    if(lastTime+18 < SystemTimer::getTimeInInterrupts()) {
-      lastTime = SystemTimer::getTimeInInterrupts();
+  uint64_t lastTime = getTime();
+  uint64_t lastSec = 0;
+  while(true) { // Let timer run for 3 minutes.
+    if(lastTime+18 < getTime()) {
+      lastTime += 18;
+      lastSec++;
       printf("PIT: ");
       printHex32(lastTime);
       printf("   in seconds: ");
-      printHex32(lastTime/18);
+      printHex32(lastSec);
       printf("\n");
     }
   }
