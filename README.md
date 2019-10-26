@@ -16,4 +16,6 @@ To build execute the following command:
 
 sudo apt-get install g++ binutils libc6-dev-i386
 
+sudo apt-get install grub-pc-bin
+
 sudo apt-get install xorriso
