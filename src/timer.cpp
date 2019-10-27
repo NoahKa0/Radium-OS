@@ -24,7 +24,10 @@ SystemTimer::~SystemTimer() {
 }
 
 uint64_t SystemTimer::getTimeInInterrupts() {
-  return this->time;
+  if(SystemTimer::activeTimer != 0) {
+    return SystemTimer::activeTimer->time;
+  }
+  return 0;
 }
 
 void SystemTimer::onTimerInterrupt() {

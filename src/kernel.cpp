@@ -264,10 +264,7 @@ void sysCall(uint32_t eax, uint32_t ebx) {
 }
 
 uint64_t getTime() {
-  if(SystemTimer::activeTimer != 0) {
-    return SystemTimer::activeTimer->getTimeInInterrupts();
-  }
-  return 0;
+  return SystemTimer::getTimeInInterrupts();
 }
 
 void taskA() {
