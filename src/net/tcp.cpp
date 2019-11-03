@@ -336,8 +336,6 @@ void TransmissionControlProtocolProvider::sendTCP(TransmissionControlProtocolSoc
   }
 }
 
-void printf(char* str);
-
 void TransmissionControlProtocolProvider::sendExpiredPackets(TransmissionControlProtocolSocket* socket) {
   for(uint32_t i = 0; i < socket->sendBufferSize; i++) {
     TransmissionControlProtocolPacket* packet = socket->getPacket(i);
@@ -347,7 +345,6 @@ void TransmissionControlProtocolProvider::sendExpiredPackets(TransmissionControl
       
       this->send(socket->remoteIp, headerPtr, packet->length);
       packet->lastTransmit = SystemTimer::getTimeInInterrupts();
-      printf(".");
     }
   }
 }
