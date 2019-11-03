@@ -4,6 +4,7 @@
   #include <common/types.h>
   #include <net/ipv4.h>
   #include <memorymanagement.h>
+  #include <timer.h>
   
   namespace sys {
     namespace net {
@@ -58,6 +59,14 @@
         common::uint16_t totalLength;
       } __attribute__((packed));
       
+      struct TransmissionControlProtocolPacket {
+        common::uint8_t* data;
+        common::uint32_t length;
+        common::uint32_t sequenceNumber;
+        
+        common::uint64_t lastTransmit;
+      } __attribute__((packed));
+      
       class TransmissionControlProtocolProvider;
       class TransmissionControlProtocolSocket;
       
@@ -84,12 +93,27 @@
         TransmissionControlProtocolHandler* handler;
         
         TransmissionControlProtocolSocketState state;
+        
+        common::uint8_t* sendBufferPtr;
+        common::uint16_t sendBufferSize;
+        common::uint16_t currentBufferPosition;
+        
+        common::uint64_t lastRecivedTime;
+        
+        common::uint16_t packetSize;
+        
+        void removeOldPackets(common::uint32_t acknum);
+        TransmissionControlProtocolPacket* getPacket(common::uint16_t n);
+        void deletePacket(common::uint16_t n);
+        bool addPacket(TransmissionControlProtocolPacket* packet);
+        
       public:
         TransmissionControlProtocolSocket(TransmissionControlProtocolProvider* backend);
         ~TransmissionControlProtocolSocket();
         
         virtual bool handleTransmissionControlProtocolMessage(common::uint8_t* data, common::uint32_t length);
-        virtual void send(common::uint8_t* data, common::uint16_t length);
+        virtual void send(common::uint8_t* data, common::uint32_t length);
+        
         void setHandler(TransmissionControlProtocolHandler* handler);
         void disconnect();
         bool isConnected();
@@ -110,9 +134,13 @@
         virtual bool onInternetProtocolReceived(common::uint32_t srcIp_BE, common::uint32_t destIp_BE, common::uint8_t* payload, common::uint32_t size);
         virtual void sendTCP(TransmissionControlProtocolSocket* socket, common::uint8_t* data, common::uint16_t length, common::uint16_t flags = 0);
         
+        void sendExpiredPackets(TransmissionControlProtocolSocket* socket);
+        
         TransmissionControlProtocolSocket* listen(common::uint16_t port);
         TransmissionControlProtocolSocket* connect(common::uint32_t ip, common::uint16_t port, common::uint16_t localPort = 0);
         void disconnect(TransmissionControlProtocolSocket* socket);
+        
+        void removeSocket(TransmissionControlProtocolSocket* socket);
       };
     }
   }

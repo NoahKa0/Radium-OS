@@ -270,7 +270,7 @@ uint64_t getTime() {
 void taskA() {
   uint64_t lastTime = getTime();
   uint64_t lastSec = 0;
-  while(true) { // Let timer run for 3 minutes.
+  while(lastSec < 10) { // Let timer run for 10 secondss.
     if(lastTime+18 < getTime()) {
       lastTime += 18;
       lastSec++;
@@ -289,8 +289,8 @@ void taskA() {
     printf("ICMP == 0\n");
   }
   while(true) {
-    char* txt = "_";
-    sysCall(0x04, (uint32_t) txt); // 4 is printf.
+    //char* txt = "_";
+    //sysCall(0x04, (uint32_t) txt); // 4 is printf.
     //printf("_");
   }
 }
