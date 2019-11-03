@@ -33,22 +33,22 @@ tmp/%.o: src/%.s
 	mkdir -p $(@D)
 	as --32 -o $@ $<
 
-export/mykernel.bin: linker.ld $(objects)
+export/radium.bin: linker.ld $(objects)
 	ld -melf_i386 -T $< -o $@ $(objects)
 
-export/mykernel.iso: export/mykernel.bin
+export/radium.iso: export/radium.bin
 	mkdir iso
 	mkdir iso/boot
 	mkdir iso/boot/grub
-	cp export/mykernel.bin iso/boot/mykernel.bin
+	cp export/radium.bin iso/boot/radium.bin
 	echo 'set timeout=0'                      > iso/boot/grub/grub.cfg
 	echo 'set default=0'                     >> iso/boot/grub/grub.cfg
 	echo ''                                  >> iso/boot/grub/grub.cfg
-	echo 'menuentry "My Operating System" {' >> iso/boot/grub/grub.cfg
-	echo '  multiboot /boot/mykernel.bin'    >> iso/boot/grub/grub.cfg
+	echo 'menuentry "Radium OS" {'           >> iso/boot/grub/grub.cfg
+	echo '  multiboot /boot/radium.bin'      >> iso/boot/grub/grub.cfg
 	echo '  boot'                            >> iso/boot/grub/grub.cfg
 	echo '}'                                 >> iso/boot/grub/grub.cfg
-	grub-mkrescue --output=export/mykernel.iso iso
+	grub-mkrescue --output=export/radium.iso iso
 	rm -rf iso
 	
 .PHONY: clean
