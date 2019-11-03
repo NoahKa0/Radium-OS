@@ -270,7 +270,7 @@ uint64_t getTime() {
 void taskA() {
   uint64_t lastTime = getTime();
   uint64_t lastSec = 0;
-  while(lastSec < 10) { // Let timer run for 10 secondss.
+  while(lastSec < 1) { // Let timer run for 10 secondss.
     if(lastTime+18 < getTime()) {
       lastTime += 18;
       lastSec++;

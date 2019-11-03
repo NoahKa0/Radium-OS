@@ -25,6 +25,10 @@ TransmissionControlProtocolSocket::TransmissionControlProtocolSocket(Transmissio
   this->sendBufferPtr = (uint8_t*)sendBuffer;
   this->currentBufferPosition = 0;
   
+  for(uint32_t i = 0; i < this->sendBufferSize; i++) {
+    sendBuffer[i] = 0;
+  }
+  
   this->lastRecivedTime = SystemTimer::getTimeInInterrupts();
   
   this->state = CLOSED;
@@ -180,7 +184,7 @@ bool TransmissionControlProtocolProvider::onInternetProtocolReceived(uint32_t sr
           socket->state = SYN_RECEIVED;
           socket->acknowledgementNumber = bigEndian32(header->sequenceNumber) + 1;
           socket->sequenceNumber = this->generateSequenceNumber();
-          this->sendTCP(socket, 0,0, SYN|ACK);
+          this->sendTCP(socket, 0,0, SYN|ACK, true);
           socket->sequenceNumber++;
           return false; // Don't continue handling after acknowledgement is send.
         } else {
@@ -192,7 +196,8 @@ bool TransmissionControlProtocolProvider::onInternetProtocolReceived(uint32_t sr
           socket->state = ESTABLISHED;
           socket->acknowledgementNumber = bigEndian32(header->sequenceNumber) + 1;
           socket->sequenceNumber++;
-          this->sendTCP(socket, 0,0, ACK);
+          this->sendTCP(socket, 0,0, ACK, true);
+          socket->removeOldPackets(header->acknowledgementNumber);
         } else {
           reset = true;
         }
@@ -206,14 +211,14 @@ bool TransmissionControlProtocolProvider::onInternetProtocolReceived(uint32_t sr
         if(socket->state == ESTABLISHED) {
           socket->state = CLOSE_WAIT;
           socket->acknowledgementNumber++;
-          this->sendTCP(socket, 0,0, ACK);
-          this->sendTCP(socket, 0,0, FIN | ACK);
+          this->sendTCP(socket, 0,0, ACK, true);
+          this->sendTCP(socket, 0,0, FIN | ACK, true);
         } else if(socket->state == CLOSE_WAIT) {
           socket->state = CLOSED;
         } else if(socket->state == FIN_WAIT1 || socket->state == FIN_WAIT2) {
           socket->state = CLOSED;
           socket->acknowledgementNumber++;
-          this->sendTCP(socket, 0,0, ACK);
+          this->sendTCP(socket, 0,0, ACK, true);
         } else {
           reset = true;
         }
@@ -235,9 +240,10 @@ bool TransmissionControlProtocolProvider::onInternetProtocolReceived(uint32_t sr
       default:
         if(bigEndian32(header->sequenceNumber) == socket->acknowledgementNumber) {
           reset = !socket->handleTransmissionControlProtocolMessage(payload + (header->headerSize32*4), size - (header->headerSize32*4));
-          if(!reset) {
+          
+          if(!reset && bigEndian32(header->sequenceNumber) <= socket->acknowledgementNumber) {
             socket->acknowledgementNumber += size - (header->headerSize32*4);
-            this->sendTCP(socket, 0,0, ACK);
+            this->sendTCP(socket, 0,0, ACK, true);
           }
         } else {
           // Packets have arrived in different order...
@@ -259,7 +265,7 @@ bool TransmissionControlProtocolProvider::onInternetProtocolReceived(uint32_t sr
   return false;
 }
 
-void TransmissionControlProtocolProvider::sendTCP(TransmissionControlProtocolSocket* socket, uint8_t* data, uint16_t length, uint16_t flags) {
+void TransmissionControlProtocolProvider::sendTCP(TransmissionControlProtocolSocket* socket, uint8_t* data, uint16_t length, uint16_t flags, bool noRetransmit) {
   // Length without pseudoHeader.
   uint16_t packetLength = length + sizeof(TransmissionControlProtocolHeader);
   
@@ -310,19 +316,27 @@ void TransmissionControlProtocolProvider::sendTCP(TransmissionControlProtocolSoc
   uint8_t* packetPtr = (uint8_t*) MemoryManager::activeMemoryManager->malloc(sizeof(TransmissionControlProtocolPacket));
   TransmissionControlProtocolPacket* packet = (TransmissionControlProtocolPacket*) packetPtr;
   
-  // Last transmission time, used for retransmission when no ack arrives.
-  packet->lastTransmit = 0;
-  packet->length = packetLength;
-  packet->sequenceNumber = socket->sequenceNumber;
-  // buffer will get freed when packet gets deleted from socket.
-  packet->data = buffer;
-  
-  // Que packet.
-  while(!socket->addPacket(packet)) {
+  if(noRetransmit) {
+    // Just transmit without storing, this should only happen for acks.
+    this->send(socket->remoteIp, (uint8_t*) header, packetLength);
+    delete buffer;
+  } else {
+    // Last transmission time, used for retransmission when no ack arrives.
+    packet->lastTransmit = 0;
+    packet->length = packetLength;
+    packet->sequenceNumber = socket->sequenceNumber;
+    // buffer will get freed when packet gets deleted from socket.
+    packet->data = buffer;
+    
+    // Que packet.
+    while(!socket->addPacket(packet)) {
+      this->sendExpiredPackets(socket);
+    }
     this->sendExpiredPackets(socket);
   }
-  this->sendExpiredPackets(socket);
 }
+
+void printf(char* str);
 
 void TransmissionControlProtocolProvider::sendExpiredPackets(TransmissionControlProtocolSocket* socket) {
   for(uint32_t i = 0; i < socket->sendBufferSize; i++) {
@@ -333,6 +347,7 @@ void TransmissionControlProtocolProvider::sendExpiredPackets(TransmissionControl
       
       this->send(socket->remoteIp, headerPtr, packet->length);
       packet->lastTransmit = SystemTimer::getTimeInInterrupts();
+      printf(".");
     }
   }
 }

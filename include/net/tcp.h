@@ -132,7 +132,7 @@
         ~TransmissionControlProtocolProvider();
         
         virtual bool onInternetProtocolReceived(common::uint32_t srcIp_BE, common::uint32_t destIp_BE, common::uint8_t* payload, common::uint32_t size);
-        virtual void sendTCP(TransmissionControlProtocolSocket* socket, common::uint8_t* data, common::uint16_t length, common::uint16_t flags = 0);
+        virtual void sendTCP(TransmissionControlProtocolSocket* socket, common::uint8_t* data, common::uint16_t length, common::uint16_t flags = 0, bool noRetransmit = false);
         
         void sendExpiredPackets(TransmissionControlProtocolSocket* socket);
         
