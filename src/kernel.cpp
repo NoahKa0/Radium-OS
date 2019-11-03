@@ -17,11 +17,14 @@
 #include <net/ipv4.h>
 #include <net/icmp.h>
 #include <net/udp.h>
+#include <net/tcp.h>
 #include <net/dhcp.h>
 
 #include <multitasking.h>
 
 #include <systemcalls.h>
+
+#include <timer.h>
 
 using namespace sys;
 using namespace sys::common;
@@ -31,7 +34,6 @@ using namespace sys::net;
 
 static VideoGraphicsArray* videoGraphicsArray = 0;
 static bool videoEnabled = false;
-static bool printSysCallEnabled = false;
 
 // Network
 static EthernetDriver* currentEthernetDriver = 0;
@@ -40,6 +42,7 @@ static InternetProtocolV4Provider* ipv4 = 0;
 static InternetControlMessageProtocol* icmp = 0;
 static UserDatagramProtocolProvider* udp = 0;
 static DynamicHostConfigurationProtocol* dhcp = 0;
+static TransmissionControlProtocolProvider* tcp = 0;
 static char* nicName = 0; // This is almost wordplay XD (nic = network interface card).
 
 void setNicName(char* name) {
@@ -139,15 +142,15 @@ void printHex32(uint32_t num) {
     printf(txt);
 }
 
-class Program: public UserDatagramProtocolHandler {
+class Program: public TransmissionControlProtocolHandler {
 private:
-  UserDatagramProtocolSocket* mySocket;
-  UserDatagramProtocolProvider* myUdpProvider;
+  TransmissionControlProtocolSocket* mySocket;
+  TransmissionControlProtocolProvider* myTcpProvider;
   uint8_t* chars;
   uint32_t current;
 public:
-  Program(UserDatagramProtocolProvider* backend):UserDatagramProtocolHandler() {
-    this->myUdpProvider = backend;
+  Program(TransmissionControlProtocolProvider* backend):TransmissionControlProtocolHandler() {
+    this->myTcpProvider = backend;
     mySocket = 0;
     chars = (uint8_t*) MemoryManager::activeMemoryManager->malloc(1024);
     this->current = 0;
@@ -155,13 +158,14 @@ public:
   }
   ~Program() {
     if(mySocket != 0) {
-      mySocket->disconnect(); // Disconnect automaticly frees assosiated memory.
+      mySocket->disconnect();
+      MemoryManager::activeMemoryManager->free(mySocket);
       mySocket = 0; // Remove pointer.
     }
     MemoryManager::activeMemoryManager->free(chars);
   }
-  virtual void handleUserDatagramProtocolMessage(UserDatagramProtocolSocket* socket, uint8_t* data, uint32_t length) {
-    if(length == 0) return;
+  virtual bool handleTransmissionControlProtocolMessage(TransmissionControlProtocolSocket* socket, uint8_t* data, uint32_t length) {
+    if(length == 0) return true;
     data[length-1] = 0; // To make it terminate.
     if(data[0] == '.') {
       mySocket->send((uint8_t*)".Hi", 3); // If we get hidden info send hidden hi back (so the program knows we are alive).
@@ -170,6 +174,7 @@ public:
       printf((char*) data);
       printf("\n\n");
     }
+    return true;
   }
   void onKeyDown(uint8_t key) {
     if(mySocket == 0) {
@@ -177,13 +182,17 @@ public:
         chars[current] = 0;
         uint32_t ip = decToInt((char*)chars);
         ip = ((ip & 0xFF000000) >> 24) | ((ip & 0x00FF0000) >> 8) | ((ip & 0x0000FF00) << 8) | ((ip & 0x000000FF) << 24);
-        mySocket = myUdpProvider->connect(ip, 1234);
-        mySocket->setHandler((UserDatagramProtocolHandler*) this);
-        printf("Listening for ");
+        
+        printf("I'm at: ");
+        printHex32(ipv4->getIpAddress());
+        printf("\n");
+        
+        mySocket = myTcpProvider->connect(ip, 1234);
+        mySocket->setHandler((TransmissionControlProtocolHandler*) this);
+        printf("Connecting to ");
         printHex32(ip);
         printf(" on port 1234\n");
         current = 0;
-        mySocket->send((uint8_t*)".Hi", 3); // This is so the UDP server knows we exists
       } else {
         chars[current] = key;
         current++;
@@ -251,29 +260,46 @@ extern "C" void callConstructors() {
 }
 
 void sysCall(uint32_t eax, uint32_t ebx) {
-  if(!printSysCallEnabled && eax == 0x04) return;
   asm("int $0x80" : : "a" (eax), "b" (ebx));
 }
 
+uint64_t getTime() {
+  return SystemTimer::getTimeInInterrupts();
+}
+
 void taskA() {
+  uint64_t lastTime = getTime();
+  uint64_t lastSec = 0;
+  while(lastSec < 1) { // Let timer run for 10 secondss.
+    if(lastTime+18 < getTime()) {
+      lastTime += 18;
+      lastSec++;
+      printf("PIT: ");
+      printHex32(lastTime);
+      printf("   in seconds: ");
+      printHex32(lastSec);
+      printf("\n");
+    }
+  }
   if(udp != 0) {
     while(ipv4->getIpAddress() == 0) {}
-    myProgram = new Program(udp);
+    
+    myProgram = new Program(tcp);
   } else {
     printf("ICMP == 0\n");
   }
   while(true) {
-    char* txt = "_";
-    sysCall(0x04, (uint32_t) txt); // 4 is printf.
+    //char* txt = "_";
+    //sysCall(0x04, (uint32_t) txt); // 4 is printf.
     //printf("_");
   }
 }
 
 void taskB() {
   while(true) {
-    char* txt = "|";
-    sysCall(0x04, (uint32_t) txt); // 4 is printf.
-    //printf("|");
+    //char* txt = "|";
+    //sysCall(0x04, (uint32_t) txt); // 4 is printf.
+    asm("hlt");
   }
 }
 
@@ -342,16 +368,8 @@ extern "C" void kernelMain(void* multiboot_structure, uint32_t magicNumber) {
     ataSS.identify();
     printf("\n");
     
-    char* ataSendBuffer = "Hello Mind!";
-    char* ataReciveBuffer = "            ";
-    ataPM.write28(0, (uint8_t*) ataSendBuffer, 11);
-    ataPM.flush();
-    
-    ataPM.read28(0, (uint8_t*) ataReciveBuffer, 11);
-    
-    printf("Recived from hard disk: ");
-    printf(ataReciveBuffer);
-    printf("\n");
+    printf("Initialising SystemTimer\n");
+    new SystemTimer();
     
     printf("Networking...");
     EtherFrameProvider* etherframe = 0;
@@ -361,6 +379,7 @@ extern "C" void kernelMain(void* multiboot_structure, uint32_t magicNumber) {
       ipv4 = new InternetProtocolV4Provider(etherframe, arp); // 0x00FFFFFF = 255.255.255.0 (subnet mask)
       icmp = new InternetControlMessageProtocol(ipv4);
       udp = new UserDatagramProtocolProvider(ipv4);
+      tcp = new TransmissionControlProtocolProvider(ipv4);
       dhcp = new DynamicHostConfigurationProtocol(udp, ipv4);
       dhcp->sendDiscover();
     } else {

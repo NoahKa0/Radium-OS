@@ -72,15 +72,14 @@ uint64_t AddressResolutionProtocol::getMacFromCache(uint32_t ip_BE) {
 uint64_t AddressResolutionProtocol::resolve(uint32_t ip_BE) {
   if(ip_BE == 0xFFFFFFFF || this->getIpAddress() == 0) return 0xFFFFFFFFFFFF;
   uint64_t result = getMacFromCache(ip_BE);
-  uint32_t timeout = 0;
+  uint64_t timeout = 0;
   
   if(result == 0xFFFFFFFFFFFF) {
     requestMacAddress(ip_BE);
   }
   
-  asm("sti"); // We need to enable interrupts again, in case we are in an interrupt.
-  while(result == 0xFFFFFFFFFFFF && timeout < 200) {
-    asm("hlt");
+  // TODO implement time.
+  while(result == 0xFFFFFFFFFFFF && timeout < 20000) {
     timeout++;
     result = getMacFromCache(ip_BE);
   }

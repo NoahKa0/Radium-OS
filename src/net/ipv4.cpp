@@ -48,6 +48,7 @@ bool InternetProtocolV4Provider::onEtherFrameReceived(uint8_t* etherFramePayload
   // Only handle messages directed to us, or we don't have an IP address yet (because DHCP).
   if(ipMessage->destAddress == backend->getIpAddress() || backend->getIpAddress() == 0) {
     uint32_t messageLength = ipMessage->length;
+    messageLength = ((messageLength & 0x0000FF00) >> 8) | ((messageLength & 0x000000FF) << 8);
     if(messageLength > size) { // Size of message can't be larger than size of EtherFrame.
       messageLength = size;
     }

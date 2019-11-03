@@ -146,5 +146,4 @@ void UserDatagramProtocolProvider::disconnect(UserDatagramProtocolSocket* socket
   if(move) {
     this->numSockets--;
   }
-  MemoryManager::activeMemoryManager->free(socket);
 }
