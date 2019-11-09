@@ -238,17 +238,15 @@ bool TransmissionControlProtocolProvider::onInternetProtocolReceived(uint32_t sr
         // When connection is ESTABLISHED, an ACK might contain data.
         // NO BREAK.
       default:
-        if(bigEndian32(header->sequenceNumber) == socket->acknowledgementNumber) {
-          reset = !socket->handleTransmissionControlProtocolMessage(payload + (header->headerSize32*4), size - (header->headerSize32*4));
-          
-          if(!reset && bigEndian32(header->sequenceNumber) <= socket->acknowledgementNumber) {
+        if(bigEndian32(header->sequenceNumber) <= socket->acknowledgementNumber && size - (header->headerSize32*4) > 0) {
+          if(bigEndian32(header->sequenceNumber) == socket->acknowledgementNumber) {
+            reset = !socket->handleTransmissionControlProtocolMessage(payload + (header->headerSize32*4), size - (header->headerSize32*4));
+            
             socket->acknowledgementNumber += size - (header->headerSize32*4);
+          }
+          if(!reset) {
             this->sendTCP(socket, 0,0, ACK, true);
           }
-        } else {
-          // Packets have arrived in different order...
-          // It might be better to signal this to the sender... but the sender will eventually resend it, if it doesn't get the ACK.
-          return false;
         }
         break;
     }
