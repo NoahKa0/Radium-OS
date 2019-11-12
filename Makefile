@@ -1,29 +1,5 @@
 GCCPARAMS = -m32 -Iinclude -fno-use-cxa-atexit -nostdlib -fno-builtin -fno-rtti -fno-exceptions -fno-leading-underscore
-objects = tmp/loader.o \
-          tmp/gdt.o \
-          tmp/memorymanagement.o \
-          tmp/timer.o \
-          tmp/drivers/driver.o \
-          tmp/hardware/port.o \
-          tmp/hardware/interruptstubs.o \
-          tmp/hardware/interrupts.o \
-          tmp/hardware/pci.o \
-          tmp/drivers/keyboard.o \
-          tmp/drivers/mouse.o \
-          tmp/drivers/vga.o \
-          tmp/drivers/ata.o \
-          tmp/drivers/ethernet_driver.o \
-          tmp/drivers/amd_am79c973.o \
-          tmp/net/etherframe.o \
-          tmp/net/arp.o \
-          tmp/net/ipv4.o \
-          tmp/net/icmp.o \
-          tmp/net/udp.o \
-          tmp/net/tcp.o \
-          tmp/net/dhcp.o \
-          tmp/systemcalls.o \
-          tmp/multitasking.o \
-          tmp/kernel.o
+objects:= $(patsubst src/%.cpp,tmp/%.o,$(shell find src/ -name "*.cpp")) $(patsubst src/%.s,tmp/%.o,$(shell find src/ -name "*.s")) 
 
 tmp/%.o: src/%.cpp
 	mkdir -p $(@D)
