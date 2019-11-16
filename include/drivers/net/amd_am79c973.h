@@ -3,7 +3,7 @@
 
   #include <common/types.h>
   #include <drivers/driver.h>
-  #include <drivers/ethernet_driver.h>
+  #include <drivers/net/ethernet_driver.h>
   #include <hardware/interrupts.h>
   #include <hardware/pci.h>
   #include <hardware/port.h>

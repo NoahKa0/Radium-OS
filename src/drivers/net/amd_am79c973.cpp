@@ -1,4 +1,4 @@
-#include <drivers/amd_am79c973.h>
+#include <drivers/net/amd_am79c973.h>
 
 using namespace sys;
 using namespace sys::common;

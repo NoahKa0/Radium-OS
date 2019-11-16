@@ -2,7 +2,7 @@
 #define __SYS__NET__ETHERFRAME_H
 
   #include <common/types.h>
-  #include <drivers/ethernet_driver.h>
+  #include <drivers/net/ethernet_driver.h>
   
   namespace sys {
     namespace drivers {

@@ -1,5 +1,5 @@
 #include <hardware/pci.h>
-#include <drivers/amd_am79c973.h>
+#include <drivers/net/amd_am79c973.h>
 
 using namespace sys::hardware;
 using namespace sys::common;

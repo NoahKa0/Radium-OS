@@ -1,4 +1,4 @@
-#include <drivers/ethernet_driver.h>
+#include <drivers/net/ethernet_driver.h>
 
 using namespace sys;
 using namespace sys::common;

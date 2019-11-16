@@ -10,7 +10,7 @@
 #include <drivers/mouse.h>
 #include <drivers/vga.h>
 #include <drivers/ata.h>
-#include <drivers/ethernet_driver.h>
+#include <drivers/net/ethernet_driver.h>
 
 #include <net/etherframe.h>
 #include <net/arp.h>
