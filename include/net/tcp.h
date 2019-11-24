@@ -102,7 +102,7 @@
         
         TransmissionControlProtocolPacket* getRecvPacket(common::uint16_t n);
         void deleteRecvPacket(common::uint16_t n);
-        bool addRecvPacket(TransmissionControlProtocolPacket* packet);
+        bool addRecvPacket(TransmissionControlProtocolPacket* packet, common::uint32_t dataLength);
         
         void removeOldPackets(common::uint32_t acknum);
         TransmissionControlProtocolPacket* getSendPacket(common::uint16_t n);

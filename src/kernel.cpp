@@ -178,6 +178,7 @@ public:
     MemoryManager::activeMemoryManager->free(chars);
   }
   void loop() {
+    while(mySocket == 0);
     while(mySocket != 0 && !mySocket->isClosed()) {
       if(mySocket->hasNext() != 0) {
         uint32_t bytesToRead = mySocket->hasNext();
@@ -324,12 +325,13 @@ void taskA() {
       printf("\n");
     }
   }
-  if(udp != 0) {
+  if(tcp != 0) {
     while(ipv4->getIpAddress() == 0) {}
     
     myProgram = new Program(tcp);
+    myProgram->loop();
   } else {
-    printf("ICMP == 0\n");
+    printf("TCP == 0\n");
   }
   while(true) {
     //char* txt = "_";

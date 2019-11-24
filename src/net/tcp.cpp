@@ -73,11 +73,10 @@ void TransmissionControlProtocolSocket::readNext(uint8_t* data, uint32_t length)
   if(length > this->nextBytes) {
     length = this->nextBytes;
   }
-  this->nextBytes -= length;
   
   uint32_t i = 0;
   while(i < length) {
-    TransmissionControlProtocolPacket* packet = getRecvPacket(this->recvBufferReadPacket);
+    TransmissionControlProtocolPacket* packet = this->getRecvPacket(this->recvBufferReadPacket);
     TransmissionControlProtocolHeader* header = (TransmissionControlProtocolHeader*) (packet->data + sizeof(TransmissionControlProtocolPseudoHeader));
     uint8_t* pdata = packet->data + sizeof(TransmissionControlProtocolPseudoHeader) + (header->headerSize32*4);
     uint32_t packetLength = packet->length - (header->headerSize32*4);
@@ -89,7 +88,7 @@ void TransmissionControlProtocolSocket::readNext(uint8_t* data, uint32_t length)
       }
       this->recvBufferReadPosition += read;
     } else {
-      for(uint32_t j = this->recvBufferReadPosition; j < packetLength; i++) {
+      for(uint32_t j = this->recvBufferReadPosition; j < packetLength; j++) {
         data[i] = pdata[j];
         i++;
       }
@@ -98,6 +97,7 @@ void TransmissionControlProtocolSocket::readNext(uint8_t* data, uint32_t length)
       this->recvBufferReadPacket = (this->recvBufferReadPacket+1)%this->recvBufferSize;
     }
   }
+  this->nextBytes -= length;
 }
 
 void TransmissionControlProtocolSocket::removeOldPackets(uint32_t acknum) {
@@ -127,14 +127,14 @@ TransmissionControlProtocolPacket* TransmissionControlProtocolSocket::getSendPac
   return (TransmissionControlProtocolPacket*) buffer[n];
 }
 
-bool TransmissionControlProtocolSocket::addRecvPacket(TransmissionControlProtocolPacket* packet) {
+bool TransmissionControlProtocolSocket::addRecvPacket(TransmissionControlProtocolPacket* packet, uint32_t dataLength) {
   uint8_t** buffer = (uint8_t**) this->recvBufferPtr;
   if(buffer[this->recvBufferPosition] != 0) {
     return false;
   }
   buffer[this->recvBufferPosition] = (uint8_t*) packet;
   this->recvBufferPosition = (this->recvBufferPosition+1)%this->recvBufferSize;
-  this->nextBytes += packet->length;
+  this->nextBytes += dataLength;
   return true;
 }
 
@@ -340,7 +340,7 @@ bool TransmissionControlProtocolProvider::onInternetProtocolReceived(uint32_t sr
             packet->data = recvPacketPtr;
             
             // If packet is added to buffer, acknowledge packet
-            if(socket->addRecvPacket(packet)) {
+            if(socket->addRecvPacket(packet, size - (header->headerSize32*4))) {
               socket->acknowledgementNumber += size - (header->headerSize32*4);
             }
           } else {
