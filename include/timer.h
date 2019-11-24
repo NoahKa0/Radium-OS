@@ -15,7 +15,6 @@
       hardware::Port8Bit channel2;
       hardware::Port8Bit command;
       
-      common::uint16_t readTime();
     public:
       static SystemTimer* activeTimer;
       
@@ -27,8 +26,6 @@
       static common::uint64_t getTimeInInterrupts();
       
       static void sleep(common::uint32_t milliseconds);
-      
-      static void sleepWithIntDisabled(common::uint32_t milliseconds);
     };
   }
 

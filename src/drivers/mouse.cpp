@@ -29,6 +29,7 @@ commandPort(0x64)
 MouseDriver::~MouseDriver() {}
 
 void MouseDriver::activate() {
+    asm("cli");
     commandPort.write(0xA8);
     
     commandPort.write(0x20); // Get current state
@@ -42,6 +43,7 @@ void MouseDriver::activate() {
     dataPort.write(0xF4);
     
     dataPort.read();
+    asm("sti");
 }
 
 uint32_t MouseDriver::handleInterrupt(uint32_t esp) {

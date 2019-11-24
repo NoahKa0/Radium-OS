@@ -11,29 +11,34 @@ uint32_t bigEndian32(uint32_t n) {
        | ((n & 0x000000FF) << 24);
 }
 
-TransmissionControlProtocolHandler::TransmissionControlProtocolHandler() {}
-TransmissionControlProtocolHandler::~TransmissionControlProtocolHandler() {}
-
-bool TransmissionControlProtocolHandler::handleTransmissionControlProtocolMessage(TransmissionControlProtocolSocket* socket, uint8_t* data, uint32_t length) {
-  return true;
-}
-
 TransmissionControlProtocolSocket::TransmissionControlProtocolSocket(TransmissionControlProtocolProvider* backend) {
-  // Initialize sendBuffers (buffers that store packets in case they get lost).
+  // Initialize send buffers.
   this->sendBufferSize = 16;
   uint8_t** sendBuffer = new uint8_t*[this->sendBufferSize]; // New array of uint8_t* returns a pointer to that array (so it's a pointer to a pointer),
   this->sendBufferPtr = (uint8_t*)sendBuffer;
-  this->currentBufferPosition = 0;
+  this->sendBufferPosition = 0;
   
   for(uint32_t i = 0; i < this->sendBufferSize; i++) {
     sendBuffer[i] = 0;
+  }
+  
+  // Initialize receive buffers.
+  this->recvBufferSize = 16;
+  uint8_t** recvBuffer = new uint8_t*[this->recvBufferSize]; // New array of uint8_t* returns a pointer to that array (so it's a pointer to a pointer),
+  this->recvBufferPtr = (uint8_t*)recvBuffer;
+  this->recvBufferPosition = 0;
+  this->recvBufferReadPacket = 0;
+  this->recvBufferReadPosition = 0;
+  this->nextBytes = 0;
+  
+  for(uint32_t i = 0; i < this->recvBufferSize; i++) {
+    recvBuffer[i] = 0;
   }
   
   this->lastRecivedTime = SystemTimer::getTimeInInterrupts();
   
   this->state = CLOSED;
   this->backend = backend;
-  this->handler = 0;
   
   this->packetSize = 1000;
 }
@@ -43,46 +48,123 @@ TransmissionControlProtocolSocket::~TransmissionControlProtocolSocket() {
   
   if(this->sendBufferPtr == 0) return;
   
-  // We need to delete all packets that this socket has buffered.
-  uint8_t** buffer = (uint8_t**) this->sendBufferPtr;
+  // Delete send buffers.
+  uint8_t** sbuffer = (uint8_t**) this->sendBufferPtr;
   for(uint16_t i = 0; i < this->sendBufferSize; i++) {
-    this->deletePacket(i);
+    this->deleteSendPacket(i);
   }
-  delete buffer;
+  delete sbuffer;
   this->sendBufferPtr = 0;
+  
+  // Delete receive buffers.
+  uint8_t** rbuffer = (uint8_t**) this->recvBufferPtr;
+  for(uint16_t i = 0; i < this->recvBufferSize; i++) {
+    this->deleteRecvPacket(i);
+  }
+  delete rbuffer;
+  this->recvBufferPtr = 0;
+}
+
+uint32_t TransmissionControlProtocolSocket::hasNext() {
+  return this->nextBytes;
+}
+
+void TransmissionControlProtocolSocket::readNext(uint8_t* data, uint32_t length) {
+  if(length > this->nextBytes) {
+    length = this->nextBytes;
+  }
+  this->nextBytes -= length;
+  
+  uint32_t i = 0;
+  while(i < length) {
+    TransmissionControlProtocolPacket* packet = getRecvPacket(this->recvBufferReadPacket);
+    TransmissionControlProtocolHeader* header = (TransmissionControlProtocolHeader*) (packet->data + sizeof(TransmissionControlProtocolPseudoHeader));
+    uint8_t* pdata = packet->data + sizeof(TransmissionControlProtocolPseudoHeader) + (header->headerSize32*4);
+    uint32_t packetLength = packet->length - (header->headerSize32*4);
+    if(packetLength-this->recvBufferReadPosition > (length-i)) {
+      uint16_t read = length-i;
+      for(uint32_t j = this->recvBufferReadPosition; j < read; i++) {
+        data[i] = pdata[j];
+        i++;
+      }
+      this->recvBufferReadPosition += read;
+    } else {
+      for(uint32_t j = this->recvBufferReadPosition; j < packetLength; i++) {
+        data[i] = pdata[j];
+        i++;
+      }
+      this->deleteRecvPacket(this->recvBufferReadPacket);
+      this->recvBufferReadPosition = 0;
+      this->recvBufferReadPacket = (this->recvBufferReadPacket+1)%this->recvBufferSize;
+    }
+  }
 }
 
 void TransmissionControlProtocolSocket::removeOldPackets(uint32_t acknum) {
   for(uint32_t i = 0; i < this->sendBufferSize; i++) {
-    TransmissionControlProtocolPacket* packet = this->getPacket(i);
+    TransmissionControlProtocolPacket* packet = this->getSendPacket(i);
     // Check to see if packet sequenceNumber is acked.
     // The second part is to detect when the ack number wraps around
     if(packet != 0
       && (packet->sequenceNumber <= acknum || ((packet->sequenceNumber & 0xC0000000) == 0xC0000000 && (acknum & 0x80000000) != 0x80000000)))
     {
-      this->deletePacket(i);
+      this->deleteSendPacket(i);
     }
   }
 }
 
-TransmissionControlProtocolPacket* TransmissionControlProtocolSocket::getPacket(common::uint16_t n) {
+TransmissionControlProtocolPacket* TransmissionControlProtocolSocket::getRecvPacket(common::uint16_t n) {
+  if(this->recvBufferPtr == 0 || n >= this->recvBufferSize) return 0;
+  
+  uint8_t** buffer = (uint8_t**) this->recvBufferPtr;
+  return (TransmissionControlProtocolPacket*) buffer[n];
+}
+
+TransmissionControlProtocolPacket* TransmissionControlProtocolSocket::getSendPacket(common::uint16_t n) {
   if(this->sendBufferPtr == 0 || n >= this->sendBufferSize) return 0;
   
   uint8_t** buffer = (uint8_t**) this->sendBufferPtr;
   return (TransmissionControlProtocolPacket*) buffer[n];
 }
 
-bool TransmissionControlProtocolSocket::addPacket(TransmissionControlProtocolPacket* packet) {
-  uint8_t** buffer = (uint8_t**) this->sendBufferPtr;
-  if(buffer[this->currentBufferPosition] != 0) {
+bool TransmissionControlProtocolSocket::addRecvPacket(TransmissionControlProtocolPacket* packet) {
+  uint8_t** buffer = (uint8_t**) this->recvBufferPtr;
+  if(buffer[this->recvBufferPosition] != 0) {
     return false;
   }
-  buffer[this->currentBufferPosition] = (uint8_t*) packet;
-  this->currentBufferPosition = (this->currentBufferPosition+1)%this->sendBufferSize;
+  buffer[this->recvBufferPosition] = (uint8_t*) packet;
+  this->recvBufferPosition = (this->recvBufferPosition+1)%this->recvBufferSize;
+  this->nextBytes += packet->length;
   return true;
 }
 
-void TransmissionControlProtocolSocket::deletePacket(common::uint16_t n) {
+bool TransmissionControlProtocolSocket::addSendPacket(TransmissionControlProtocolPacket* packet) {
+  uint8_t** buffer = (uint8_t**) this->sendBufferPtr;
+  if(buffer[this->sendBufferPosition] != 0) {
+    return false;
+  }
+  buffer[this->sendBufferPosition] = (uint8_t*) packet;
+  this->sendBufferPosition = (this->sendBufferPosition+1)%this->sendBufferSize;
+  return true;
+}
+
+void TransmissionControlProtocolSocket::deleteRecvPacket(common::uint16_t n) {
+  if(this->recvBufferPtr == 0 || n >= this->recvBufferSize) return;
+  
+  uint8_t** buffer = (uint8_t**) this->recvBufferPtr;
+  if(buffer[n] != 0) {
+    uint8_t* bufferData = buffer[n];
+    TransmissionControlProtocolPacket* packet = (TransmissionControlProtocolPacket*) bufferData;
+    if(packet->data != 0) {
+      delete packet->data; // Packet data is a pointer so it should also be deleted.
+      packet->data = 0;
+    }
+    delete packet;
+    buffer[n] = 0;
+  }
+}
+
+void TransmissionControlProtocolSocket::deleteSendPacket(common::uint16_t n) {
   if(this->sendBufferPtr == 0 || n >= this->sendBufferSize) return;
   
   uint8_t** buffer = (uint8_t**) this->sendBufferPtr;
@@ -98,13 +180,6 @@ void TransmissionControlProtocolSocket::deletePacket(common::uint16_t n) {
   }
 }
 
-bool TransmissionControlProtocolSocket::handleTransmissionControlProtocolMessage(uint8_t* data, uint32_t length) {
-  if(this->handler != 0) {
-    return this->handler->handleTransmissionControlProtocolMessage(this, data, length);
-  }
-  return true;
-}
-
 void TransmissionControlProtocolSocket::send(uint8_t* data, uint32_t length) {
   uint32_t packetSize = this->packetSize;
   uint32_t bytesToSend = length;
@@ -118,10 +193,6 @@ void TransmissionControlProtocolSocket::send(uint8_t* data, uint32_t length) {
       bytesToSend = 0;
     }
   }
-}
-
-void TransmissionControlProtocolSocket::setHandler(TransmissionControlProtocolHandler* handler) {
-  this->handler = handler;
 }
 
 void TransmissionControlProtocolSocket::disconnect() {
@@ -238,15 +309,46 @@ bool TransmissionControlProtocolProvider::onInternetProtocolReceived(uint32_t sr
         // When connection is ESTABLISHED, an ACK might contain data.
         // NO BREAK.
       default:
-        if(bigEndian32(header->sequenceNumber) <= socket->acknowledgementNumber && size - (header->headerSize32*4) > 0) {
-          if(bigEndian32(header->sequenceNumber) == socket->acknowledgementNumber) {
-            reset = !socket->handleTransmissionControlProtocolMessage(payload + (header->headerSize32*4), size - (header->headerSize32*4));
+        if(bigEndian32(header->sequenceNumber) == socket->acknowledgementNumber && size - (header->headerSize32*4) > 0) {
+          // Save checksum
+          uint16_t recvChecksum = header->checksum;
+          header->checksum = 0; // Checksum should be 0 when recalculating.
+          
+          uint8_t* recvPacketPtr = (uint8_t*) MemoryManager::activeMemoryManager->malloc(size + sizeof(TransmissionControlProtocolPseudoHeader));
+          uint8_t* recvHeaderPtr = recvPacketPtr + sizeof(TransmissionControlProtocolPseudoHeader);
+          for(uint32_t i = 0; i < size; i++) {
+            recvHeaderPtr[i] = payload[i];
+          }
+          
+          // Reconstruct pseudoHeader.
+          TransmissionControlProtocolPseudoHeader* pseudoHeader = (TransmissionControlProtocolPseudoHeader*) recvPacketPtr;
+          pseudoHeader->srcIp = socket->remoteIp;
+          pseudoHeader->destIp = socket->localIp;
+          pseudoHeader->protocol = 0x0600; // BE 6.
+          pseudoHeader->totalLength = ((size & 0x00FF) << 8) | ((size & 0xFF00) >> 8);
+          
+          // Recalculate checksum.
+          uint16_t newChecksum = InternetProtocolV4Provider::checksum((uint16_t*) recvPacketPtr, size + sizeof(TransmissionControlProtocolPseudoHeader));
+          
+          if(newChecksum == recvChecksum) {
+            uint8_t* packetPtr = (uint8_t*) MemoryManager::activeMemoryManager->malloc(sizeof(TransmissionControlProtocolPacket));
+            TransmissionControlProtocolPacket* packet = (TransmissionControlProtocolPacket*) packetPtr;
+            packet->lastTransmit = 0; // Doesn't matter.
+            packet->length = size;
+            packet->sequenceNumber = 0; // Doesn't matter.
+            // recvPacketPtr will get freed when packet gets deleted from socket.
+            packet->data = recvPacketPtr;
             
-            socket->acknowledgementNumber += size - (header->headerSize32*4);
+            // If packet is added to buffer, acknowledge packet
+            if(socket->addRecvPacket(packet)) {
+              socket->acknowledgementNumber += size - (header->headerSize32*4);
+            }
+          } else {
+            MemoryManager::activeMemoryManager->free(recvPacketPtr); // Packet not added, delete recvPacketPtr
           }
-          if(!reset) {
-            this->sendTCP(socket, 0,0, ACK, true);
-          }
+        }
+        if(!reset && size - (header->headerSize32*4) > 0) {
+          this->sendTCP(socket, 0,0, ACK, true);
         }
         break;
     }
@@ -327,7 +429,7 @@ void TransmissionControlProtocolProvider::sendTCP(TransmissionControlProtocolSoc
     packet->data = buffer;
     
     // Que packet.
-    while(!socket->addPacket(packet)) {
+    while(!socket->addSendPacket(packet)) {
       this->sendExpiredPackets(socket);
     }
     this->sendExpiredPackets(socket);
@@ -336,7 +438,7 @@ void TransmissionControlProtocolProvider::sendTCP(TransmissionControlProtocolSoc
 
 void TransmissionControlProtocolProvider::sendExpiredPackets(TransmissionControlProtocolSocket* socket) {
   for(uint32_t i = 0; i < socket->sendBufferSize; i++) {
-    TransmissionControlProtocolPacket* packet = socket->getPacket(i);
+    TransmissionControlProtocolPacket* packet = socket->getSendPacket(i);
     // If lastTransmit was more than 18 PIT interrupts ago (that's about one second), resend.
     if(packet != 0 && packet->lastTransmit + 18 < SystemTimer::getTimeInInterrupts()) {
       uint8_t* headerPtr = packet->data + sizeof(TransmissionControlProtocolPseudoHeader);

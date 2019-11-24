@@ -39,11 +39,14 @@
       Task* tasks[256];
       int numTasks;
       int currentTask;
+      
+      bool taskSwitchingEnabled;
     public:
       TaskManager();
       ~TaskManager();
       bool addTask(Task* task);
       CPUState* schedule(CPUState* cpuState);
+      void enable();
     };
   }
 

@@ -68,15 +68,6 @@
       } __attribute__((packed));
       
       class TransmissionControlProtocolProvider;
-      class TransmissionControlProtocolSocket;
-      
-      
-      class TransmissionControlProtocolHandler {
-      public:
-        TransmissionControlProtocolHandler();
-        ~TransmissionControlProtocolHandler();
-        virtual bool handleTransmissionControlProtocolMessage(TransmissionControlProtocolSocket* socket, common::uint8_t* data, common::uint32_t length);
-      };
       
       class TransmissionControlProtocolSocket {
       friend class TransmissionControlProtocolProvider;
@@ -90,34 +81,46 @@
         common::uint32_t acknowledgementNumber;
         
         TransmissionControlProtocolProvider* backend;
-        TransmissionControlProtocolHandler* handler;
         
         TransmissionControlProtocolSocketState state;
         
+        common::uint32_t nextBytes;
+        
+        common::uint8_t* recvBufferPtr;
+        common::uint16_t recvBufferSize;
+        common::uint16_t recvBufferPosition;
+        common::uint16_t recvBufferReadPacket;
+        common::uint16_t recvBufferReadPosition;
+        
         common::uint8_t* sendBufferPtr;
         common::uint16_t sendBufferSize;
-        common::uint16_t currentBufferPosition;
+        common::uint16_t sendBufferPosition;
         
         common::uint64_t lastRecivedTime;
         
         common::uint16_t packetSize;
         
+        TransmissionControlProtocolPacket* getRecvPacket(common::uint16_t n);
+        void deleteRecvPacket(common::uint16_t n);
+        bool addRecvPacket(TransmissionControlProtocolPacket* packet);
+        
         void removeOldPackets(common::uint32_t acknum);
-        TransmissionControlProtocolPacket* getPacket(common::uint16_t n);
-        void deletePacket(common::uint16_t n);
-        bool addPacket(TransmissionControlProtocolPacket* packet);
+        TransmissionControlProtocolPacket* getSendPacket(common::uint16_t n);
+        void deleteSendPacket(common::uint16_t n);
+        bool addSendPacket(TransmissionControlProtocolPacket* packet);
         
       public:
         TransmissionControlProtocolSocket(TransmissionControlProtocolProvider* backend);
         ~TransmissionControlProtocolSocket();
         
-        virtual bool handleTransmissionControlProtocolMessage(common::uint8_t* data, common::uint32_t length);
         virtual void send(common::uint8_t* data, common::uint32_t length);
         
-        void setHandler(TransmissionControlProtocolHandler* handler);
         void disconnect();
         bool isConnected();
         bool isClosed();
+        
+        common::uint32_t hasNext();
+        void readNext(common::uint8_t* data, common::uint32_t length);
       };
       
       class TransmissionControlProtocolProvider : public InternetProtocolV4Handler {

@@ -43,6 +43,7 @@ Task::~Task() {}
 TaskManager::TaskManager() {
   numTasks = 0;
   currentTask = -1;
+  this->taskSwitchingEnabled = false;
 }
 TaskManager::~TaskManager() {}
 
@@ -55,7 +56,7 @@ bool TaskManager::addTask(Task* task) {
 }
 
 CPUState* TaskManager::schedule(CPUState* cpuState) {
-  if(numTasks <= 0) return cpuState; // No tasks, switch back to what we where doing before the interrupt.
+  if(numTasks <= 0 || !this->taskSwitchingEnabled) return cpuState; // No tasks, or task switching disabled, switch back.
   
   if(currentTask >= 0) {
     tasks[currentTask]->cpuState = cpuState;
@@ -66,4 +67,8 @@ CPUState* TaskManager::schedule(CPUState* cpuState) {
   }
   
   return tasks[currentTask]->cpuState;
+}
+
+void TaskManager::enable() {
+  this->taskSwitchingEnabled = true;
 }

@@ -90,6 +90,7 @@ busControlRegisterDataPort(device->portBase + 0x16)
 amd_am79c973::~amd_am79c973() {}
 
 void amd_am79c973::activate() {
+  asm("cli");
   registerAddressPort.write(0);
   registerDataPort.write(0x41);
   
@@ -100,6 +101,7 @@ void amd_am79c973::activate() {
   
   registerAddressPort.write(0);
   registerDataPort.write(0x42);
+  asm("sti");
 }
 
 int amd_am79c973::reset() {

@@ -117,23 +117,15 @@ void VideoGraphicsArray::putPixel(uint32_t x, uint32_t y, uint8_t color) {
 }
 
 uint8_t VideoGraphicsArray::getColorIndex(uint8_t r, uint8_t g, uint8_t b) {
-  if(r > 10 && g == r && b == r) {
-    return 0x07;
-  }
-  if(r < b && g < b && b > 10) {
-    return 0x01;
-  }
-  if(r < g && g > 10 && b == g) {
-    return 0x03;
-  }
-  if(r < g && g > 10 && b < g) {
-    return 0x02;
-  }
-  if(r > 10 && b == r) {
-    return 0x05;
-  }
-  if(r > 10) {
-    return 0x04;
-  }
-  return 0x00;
+  uint8_t rgb = 0;
+  uint8_t light = 0;
+  if(r > 50) rgb |= 0b100;
+  if(g > 50) rgb |= 0b010;
+  if(b > 50) rgb |= 0b001;
+  
+  if(r > 200) rgb |= (0b100 << 3);
+  if(g > 200) rgb |= (0b010 << 3);
+  if(b > 200) rgb |= (0b001 << 3);
+  
+  return rgb;
 }

@@ -142,18 +142,31 @@ void printHex32(uint32_t num) {
     printf(txt);
 }
 
-class Program: public TransmissionControlProtocolHandler {
+class Program {
 private:
   TransmissionControlProtocolSocket* mySocket;
   TransmissionControlProtocolProvider* myTcpProvider;
   uint8_t* chars;
   uint32_t current;
+  
+  uint8_t command;
+  uint8_t r;
+  uint8_t g;
+  uint8_t b;
+  uint8_t x;
+  uint8_t y;
 public:
-  Program(TransmissionControlProtocolProvider* backend):TransmissionControlProtocolHandler() {
+  Program(TransmissionControlProtocolProvider* backend) {
     this->myTcpProvider = backend;
     mySocket = 0;
     chars = (uint8_t*) MemoryManager::activeMemoryManager->malloc(1024);
     this->current = 0;
+    this->r = 0;
+    this->g = 0;
+    this->b = 0;
+    this->x = 0;
+    this->y = 0;
+    this->command = 0;
     printf("IP:");
   }
   ~Program() {
@@ -164,17 +177,46 @@ public:
     }
     MemoryManager::activeMemoryManager->free(chars);
   }
-  virtual bool handleTransmissionControlProtocolMessage(TransmissionControlProtocolSocket* socket, uint8_t* data, uint32_t length) {
-    if(length == 0) return true;
-    data[length-1] = 0; // To make it terminate.
-    if(data[0] == '.') {
-      mySocket->send((uint8_t*)".Hi", 3); // If we get hidden info send hidden hi back (so the program knows we are alive).
-    } else {
-      printf("RECEIVED: ");
-      printf((char*) data);
-      printf("\n\n");
+  void loop() {
+    while(mySocket != 0 && !mySocket->isClosed()) {
+      if(mySocket->hasNext() != 0) {
+        uint32_t bytesToRead = mySocket->hasNext();
+        uint8_t* data = (uint8_t*) MemoryManager::activeMemoryManager->malloc(bytesToRead);
+        mySocket->readNext(data, bytesToRead);
+        for(int i = 0; i < bytesToRead; i++) {
+          if(data[i] == 175 && this->command > 4) {
+            this->command = 0;
+            continue;
+          }
+          switch(this->command) {
+            default:
+              break;
+            case 0:
+              this->r = data[i];
+              break;
+            case 1:
+              this->g = data[i];
+              break;
+            case 2:
+              this->b = data[i];
+              break;
+            case 3:
+              this->x = data[i];
+              break;
+            case 4:
+              this->y = data[i];
+              if(this->x < 320 && this->y < 200) {
+                getVGA()->putPixel(this->x, this->y, this->r, this->g, this->b);
+              }
+              break;
+          }
+          this->command = this->command+1;
+        }
+        MemoryManager::activeMemoryManager->free(data);
+      } else {
+        asm("hlt"); // Nothing to do.
+      }
     }
-    return true;
   }
   void onKeyDown(uint8_t key) {
     if(mySocket == 0) {
@@ -188,11 +230,12 @@ public:
         printf("\n");
         
         mySocket = myTcpProvider->connect(ip, 1234);
-        mySocket->setHandler((TransmissionControlProtocolHandler*) this);
         printf("Connecting to ");
         printHex32(ip);
         printf(" on port 1234\n");
         current = 0;
+        
+        enableVGA();
       } else {
         chars[current] = key;
         current++;
@@ -303,6 +346,16 @@ void taskB() {
   }
 }
 
+float sqrt(float num) {
+  float sqrt = num/2;
+  float temp = 0;
+  while(sqrt != temp) {
+    temp = sqrt;
+    sqrt = ( num/temp + temp) / 2;
+  }
+  return sqrt;
+}
+
 extern "C" void kernelMain(void* multiboot_structure, uint32_t magicNumber) {
     for(uint8_t y = 0; y < 25; y++)
         for(uint8_t x = 0; x < 80; x++) 
@@ -393,9 +446,11 @@ extern "C" void kernelMain(void* multiboot_structure, uint32_t magicNumber) {
     }
     
     printf("Enabling interrupts...\n");
+    interrupts.enableInterrupts();
     
     driverManager.activateAll();
-    interrupts.enableInterrupts();
+    
+    taskManager.enable();
     
     while(true);
 }
