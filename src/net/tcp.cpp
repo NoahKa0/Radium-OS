@@ -210,6 +210,10 @@ bool TransmissionControlProtocolSocket::isClosed() {
   return this->state == CLOSED;
 }
 
+void TransmissionControlProtocolSocket::sendExpiredPackets() {
+  this->backend->sendExpiredPackets(this);
+}
+
 TransmissionControlProtocolProvider::TransmissionControlProtocolProvider(InternetProtocolV4Provider* backend)
 : InternetProtocolV4Handler(backend, 0x06)
 {
@@ -305,10 +309,10 @@ bool TransmissionControlProtocolProvider::onInternetProtocolReceived(uint32_t sr
           socket->state = CLOSED;
           break;
         }
-        socket->removeOldPackets(header->acknowledgementNumber);
         // When connection is ESTABLISHED, an ACK might contain data.
         // NO BREAK.
       default:
+        socket->removeOldPackets(header->acknowledgementNumber);
         if(bigEndian32(header->sequenceNumber) == socket->acknowledgementNumber && size - (header->headerSize32*4) > 0) {
           // Save checksum
           uint16_t recvChecksum = header->checksum;
@@ -440,7 +444,7 @@ void TransmissionControlProtocolProvider::sendExpiredPackets(TransmissionControl
   for(uint32_t i = 0; i < socket->sendBufferSize; i++) {
     TransmissionControlProtocolPacket* packet = socket->getSendPacket(i);
     // If lastTransmit was more than 18 PIT interrupts ago (that's about one second), resend.
-    if(packet != 0 && packet->lastTransmit + 18 < SystemTimer::getTimeInInterrupts()) {
+    if(packet != 0 && packet->lastTransmit + 9 < SystemTimer::getTimeInInterrupts()) {
       uint8_t* headerPtr = packet->data + sizeof(TransmissionControlProtocolPseudoHeader);
       
       this->send(socket->remoteIp, headerPtr, packet->length);

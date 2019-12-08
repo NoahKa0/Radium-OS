@@ -178,6 +178,8 @@ public:
     MemoryManager::activeMemoryManager->free(chars);
   }
   void loop() {
+    char* msg = "Got it";
+    uint32_t recvd = 0;
     while(mySocket == 0);
     while(mySocket != 0 && !mySocket->isClosed()) {
       if(mySocket->hasNext() != 0) {
@@ -208,13 +210,19 @@ public:
               this->y = data[i];
               if(this->x < 320 && this->y < 200) {
                 getVGA()->putPixel(this->x, this->y, this->r, this->g, this->b);
+                recvd++;
               }
               break;
           }
           this->command = this->command+1;
+          if(recvd > 25) {
+            recvd = 0;
+            mySocket->send((uint8_t*) msg, 6);
+          }
         }
         MemoryManager::activeMemoryManager->free(data);
       } else {
+        mySocket->sendExpiredPackets();
         asm("hlt"); // Nothing to do.
       }
     }

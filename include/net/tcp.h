@@ -121,6 +121,8 @@
         
         common::uint32_t hasNext();
         void readNext(common::uint8_t* data, common::uint32_t length);
+        
+        void sendExpiredPackets();
       };
       
       class TransmissionControlProtocolProvider : public InternetProtocolV4Handler {
