@@ -1,5 +1,6 @@
 #include <hardware/pci.h>
 #include <drivers/net/amd_am79c973.h>
+#include <drivers/net/broadcom_BCM5751.h>
 
 using namespace sys::hardware;
 using namespace sys::common;
@@ -64,6 +65,7 @@ void PeripheralComponentInterconnect::selectDrivers(DriverManager* driverManager
         
         for(int barNum = 0; barNum < 6; barNum++) {
           BaseAddressRegister bar = getBaseAddressRegister(bus, device, function, barNum);
+          dd.bar[barNum] = bar;
           if(bar.address && (bar.type == inputOutput)) {
             dd.portBase = (uint32_t) bar.address;
           }
@@ -127,6 +129,7 @@ BaseAddressRegister PeripheralComponentInterconnect::getBaseAddressRegister(uint
   result.type = (barValue & 0x1) ? inputOutput : memoryMapping;
   
   if(result.type == memoryMapping) {
+    // This is used to see where memory can be mapped, and of what type.
     switch((barValue >> 1) & 0x3) {
       case 0:
       case 1:
@@ -135,6 +138,7 @@ BaseAddressRegister PeripheralComponentInterconnect::getBaseAddressRegister(uint
     }
     
     result.prefetchable = ((barValue >> 3) & 0x1) == 0x1;
+    result.address = (uint8_t*) (barValue & ~0x12);
   } else {
     result.address = (uint8_t*) (barValue & ~0x3);
     result.prefetchable = false;
@@ -173,9 +177,16 @@ Driver* PeripheralComponentInterconnect::getDriver(PeripheralComponentDeviceDesc
       }
       break;
     case 0x14E4:
-      case 0x1677:
-        setNicName("NetXtreme BCM5751");
-        break;
+      switch(dev.deviceId) {
+        case 0x1677:
+          printf("NetXtreme BCM5751");
+          driver = (broadcom_BCM5751*)MemoryManager::activeMemoryManager->malloc(sizeof(broadcom_BCM5751));
+          if(driver != 0) {
+            new (driver) broadcom_BCM5751(&dev, &dev.bar[0], interruptManager);
+          }
+          return driver;
+          break;
+      }
       break;
   }
 

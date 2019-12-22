@@ -171,6 +171,16 @@
         FrameError = 1<<10,
       };
       
+      struct Block {
+        Block* next;
+
+        common::uint8_t* rp;
+        common::uint8_t* wp;
+        common::uint8_t* lim;
+
+        common::uint8_t*	base; // Used to be array with unspecified bounds, but compiler started complaining of invalid use...
+      };
+      
       struct BCM5751_Ctlr {
         BCM5751_Ctlr* link;
         hardware::PeripheralComponentDeviceDescriptor* pciDevice;
@@ -183,13 +193,43 @@
         
         common::uint64_t port;
         common::uint64_t recvreti, recvprodi, sendri, sendcleani;
-        common::uint8_t** sends; // TODO This used to be of type Block, i changed it to uint8_t* so i could compile, but i should figure out what block was.
+        Block** sends;
         int active, duplex;
+      };
+      
+      struct Etherpacket { // NOTICE We already have a header structure in /net/etherframe. I should use that one instead.
+        common::uint8_t d[6];
+        common::uint8_t s[6];
+        common::uint8_t type[2];
+        common::int8_t data[1500];
       };
       
       class broadcom_BCM5751 : public EthernetDriver, public hardware::InterruptHandler {
       private:
+        common::uint64_t macAddress; // Original stored in EDev, but i don't have EDev.
+        BCM5751_Ctlr ctlr;
         
+        // Allocb, memset, paddr and struct block where actually not part of this driver, but i didn't have them.
+        Block* allocb(common::uint32_t size);
+        
+        void bcmtransclean();
+        
+        static common::uint64_t dummyread(common::uint64_t n);
+        static void memset(void* dst, common::int32_t v, common::int32_t n);
+        static common::uint64_t paddr(common::uint64_t a);
+        
+        static common::int32_t miir(common::uint64_t* nic, common::int32_t ra);
+        static common::int32_t miiw(common::uint64_t* nic, common::int32_t ra, common::int32_t value);
+        
+        common::uint64_t* currentrecvret();
+        void consumerecvret();
+        
+        void checklink();
+        
+        common::int32_t replenish(Block* bp = 0); // The original driver doesn't allow you to pass a block, but if i do the same thing it will reacllocate the same block. I think reusing them is better.
+        
+        common::int32_t mbps;
+        common::int32_t link;
       public:
         broadcom_BCM5751(sys::hardware::PeripheralComponentDeviceDescriptor* device, hardware::BaseAddressRegister* bar, sys::hardware::InterruptManager* interruptManager);
         ~broadcom_BCM5751();
