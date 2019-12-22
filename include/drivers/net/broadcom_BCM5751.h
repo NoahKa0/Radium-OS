@@ -231,7 +231,7 @@
         common::int32_t mbps;
         common::int32_t link;
       public:
-        broadcom_BCM5751(sys::hardware::PeripheralComponentDeviceDescriptor* device, hardware::BaseAddressRegister* bar, sys::hardware::InterruptManager* interruptManager);
+        broadcom_BCM5751(sys::hardware::PeripheralComponentDeviceDescriptor* device, sys::hardware::InterruptManager* interruptManager);
         ~broadcom_BCM5751();
         
         virtual void activate();

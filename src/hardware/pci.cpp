@@ -65,9 +65,13 @@ void PeripheralComponentInterconnect::selectDrivers(DriverManager* driverManager
         
         for(int barNum = 0; barNum < 6; barNum++) {
           BaseAddressRegister bar = getBaseAddressRegister(bus, device, function, barNum);
-          dd.bar[barNum] = bar;
           if(bar.address && (bar.type == inputOutput)) {
             dd.portBase = (uint32_t) bar.address;
+            dd.memoryMapped = false;
+          }
+          if(bar.address && (bar.type == inputOutput)) {
+            dd.portBase = (uint32_t) bar.address;
+            dd.memoryMapped = true;
           }
         }
         
@@ -182,7 +186,7 @@ Driver* PeripheralComponentInterconnect::getDriver(PeripheralComponentDeviceDesc
           printf("NetXtreme BCM5751");
           driver = (broadcom_BCM5751*)MemoryManager::activeMemoryManager->malloc(sizeof(broadcom_BCM5751));
           if(driver != 0) {
-            new (driver) broadcom_BCM5751(&dev, &dev.bar[0], interruptManager);
+            new (driver) broadcom_BCM5751(&dev, interruptManager);
           }
           return driver;
           break;

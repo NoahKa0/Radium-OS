@@ -23,8 +23,6 @@
             
             class PeripheralComponentDeviceDescriptor {
             public:
-                BaseAddressRegister bar[6];
-                
                 sys::common::uint32_t portBase;
                 sys::common::uint32_t interrupt;
 
@@ -40,6 +38,8 @@
                 sys::common::uint8_t interfaceId;
 
                 sys::common::uint8_t revision;
+                
+                bool memoryMapped;
 
                 PeripheralComponentDeviceDescriptor();
                 ~PeripheralComponentDeviceDescriptor();

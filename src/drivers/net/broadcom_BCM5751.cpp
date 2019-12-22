@@ -188,11 +188,11 @@ out:
   csr32(nic, MACEventStatus) |= (1<<4) | (1<<3); /* undocumented bits (sync and config changed) */
 }
 
-broadcom_BCM5751::broadcom_BCM5751(PeripheralComponentDeviceDescriptor* device, BaseAddressRegister* bar, InterruptManager* interruptManager)
+broadcom_BCM5751::broadcom_BCM5751(PeripheralComponentDeviceDescriptor* device, InterruptManager* interruptManager)
 : EthernetDriver(),
 InterruptHandler(device->interrupt + 0x20, interruptManager) // hardware interrupt is asigned, so the device doesn't know that it starts at 0x20.
 {
-  if(bar->type != 0) { // 0 = Memory mapped
+  if(device->memoryMapped != true) {
     printf("BCM5751 bar is not set to memory mapped!\nPANIC!");
     while(true) {
       asm("cli");
@@ -205,8 +205,8 @@ InterruptHandler(device->interrupt + 0x20, interruptManager) // hardware interru
   this->link = 0;
   
   BCM5751_Ctlr ctlr = this->ctlr;
-  ctlr.nic = (uint64_t*) (((uint32_t) (bar->address)) & ~0x0F);
-  ctlr.port = (uint64_t) (((uint32_t) (bar->address)) & ~0x0F);
+  ctlr.nic = (uint64_t*) (device->portBase & ~0x0F);
+  ctlr.port = (uint64_t) (device->portBase & ~0x0F);
   
   ctlr.status = (uint64_t*) this->allocb(20+16);
   ctlr.recvprod = (uint64_t*) this->allocb(32 * RecvProdRingLen + 16);
