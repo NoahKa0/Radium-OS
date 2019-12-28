@@ -194,6 +194,7 @@ broadcom_BCM5751::broadcom_BCM5751(PeripheralComponentDeviceDescriptor* device, 
 : EthernetDriver(),
 InterruptHandler(device->interrupt + 0x20, interruptManager) // hardware interrupt is asigned, so the device doesn't know that it starts at 0x20.
 {
+  this->device = device;
   if(device->memoryMapped != true) {
     printf("BCM5751 bar is not set to memory mapped!\nPANIC!");
     while(true) {
@@ -228,11 +229,16 @@ void broadcom_BCM5751::activate() {
   
   uint64_t i, j;
   uint64_t* nic = this->ctlr.nic;
-  uint64_t* mem = nic + 0x8000;
+  uint64_t* mem = &(nic[0x2000]);
   
   printf("BCM Starting at ");
   printHex32((uint32_t) nic);
   printf("\n");
+  
+  // Enable MAC memory space decode and bus mastering.
+  uint32_t pciCommandRead = this->device->read(0x04); // Read PCI command value.
+  pciCommandRead |= 0x2; // Enable bus mastering.
+  this->device->write(0x04, pciCommandRead); // Write modified value to pci command.
   
   csr32(nic, MiscHostCtl) |= MaskPCIInt | ClearIntA;
   csr32(nic, SwArbitration) |= SwArbitSet1;
@@ -251,10 +257,12 @@ void broadcom_BCM5751::activate() {
   asm("sti");
   SystemTimer::sleep(150); // I should wait 100 ms, but the timer isn't that accurate, so wait slightly more.
   asm("cli");
-  // NOTICE I can't find pcr in pdev, so i ignore it for now, and hope for the best.
-  // ctlr->pdev->pcr |= 1<<1; // This is the original line of code from etherbcm.c
   
-  // NOTICE pcisetbme(ctlr->pdev); // I don't know exactly what this does. It doesn't seem important, but i might be wrong.
+  // Enable MAC memory space decode and bus mastering (again).
+  pciCommandRead = this->device->read(0x04);
+  pciCommandRead |= 0x2;
+  this->device->write(0x04, pciCommandRead);
+  
   csr32(nic, MiscHostCtl) |= MaskPCIInt;
   csr32(nic, MemArbiterMode) |= Enable;
   csr32(nic, MiscHostCtl) |= IndirectAccessEnable | EnablePCIStateRegister | EnableClockControlRegister | TaggedStatus;

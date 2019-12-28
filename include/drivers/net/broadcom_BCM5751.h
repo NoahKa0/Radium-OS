@@ -206,6 +206,7 @@
       
       class broadcom_BCM5751 : public EthernetDriver, public hardware::InterruptHandler {
       private:
+        sys::hardware::PeripheralComponentDeviceDescriptor* device;
         common::uint64_t macAddress; // Original stored in EDev, but i don't have EDev.
         BCM5751_Ctlr ctlr;
         

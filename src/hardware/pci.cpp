@@ -6,12 +6,23 @@ using namespace sys::hardware;
 using namespace sys::common;
 using namespace sys::drivers;
 
-PeripheralComponentDeviceDescriptor::PeripheralComponentDeviceDescriptor() {}
-PeripheralComponentDeviceDescriptor::~PeripheralComponentDeviceDescriptor() {}
-
 void printf(char* str);
 void printHex32(uint32_t num);
 
+PeripheralComponentDeviceDescriptor::PeripheralComponentDeviceDescriptor(PeripheralComponentInterconnect* pci) {
+  this->pci = pci;
+}
+PeripheralComponentDeviceDescriptor::~PeripheralComponentDeviceDescriptor() {}
+
+uint32_t PeripheralComponentDeviceDescriptor::read(uint32_t registerOffset) {
+  return this->pci->read(this->bus, this->device, this->function, registerOffset);
+}
+
+void PeripheralComponentDeviceDescriptor::write(uint32_t registerOffset, uint32_t value) {
+  this->pci->write(this->bus, this->device, this->function, registerOffset, value);
+}
+
+      
 
 PeripheralComponentInterconnect::PeripheralComponentInterconnect()
 : dataPort(0xCFC),
@@ -100,7 +111,7 @@ void PeripheralComponentInterconnect::selectDrivers(DriverManager* driverManager
 }
 
 PeripheralComponentDeviceDescriptor PeripheralComponentInterconnect::getDeviceDescriptor(uint16_t bus, uint16_t device, uint16_t function) {
-  PeripheralComponentDeviceDescriptor result;
+  PeripheralComponentDeviceDescriptor result(this);
   
   result.bus = bus;
   result.device = device;

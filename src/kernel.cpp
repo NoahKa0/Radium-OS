@@ -434,7 +434,11 @@ extern "C" void kernelMain(void* multiboot_structure, uint32_t magicNumber) {
     printf("Initialising SystemTimer\n");
     new SystemTimer();
     
-    printf("Networking...");
+    printf("Enabling interrupts and activating drivers...\n");
+    interrupts.enableInterrupts();
+    driverManager.activateAll();
+    
+    printf("Setting up networking...\n");
     EtherFrameProvider* etherframe = 0;
     if(currentEthernetDriver != 0) {
       etherframe = new EtherFrameProvider(currentEthernetDriver);
@@ -455,12 +459,6 @@ extern "C" void kernelMain(void* multiboot_structure, uint32_t magicNumber) {
       printf("\n");
     }
     
-    printf("Enabling interrupts...\n");
-    interrupts.enableInterrupts();
-    
-    driverManager.activateAll();
-    
     taskManager.enable();
-    
     while(true);
 }
