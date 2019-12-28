@@ -203,6 +203,11 @@ InterruptHandler(device->interrupt + 0x20, interruptManager) // hardware interru
     }
   }
   
+  // Enable MAC memory space decode and bus mastering.
+  uint32_t pciCommandRead = this->device->read(0x04); // Read PCI command value.
+  pciCommandRead |= 0x2; // Enable bus mastering.
+  this->device->write(0x04, pciCommandRead); // Write modified value to pci command.
+  
   this->macAddress = 0;
   this->mbps = 0;
   this->link = 0;
@@ -235,11 +240,6 @@ void broadcom_BCM5751::activate() {
   printHex32((uint32_t) nic);
   printf("\n");
   
-  // Enable MAC memory space decode and bus mastering.
-  uint32_t pciCommandRead = this->device->read(0x04); // Read PCI command value.
-  pciCommandRead |= 0x2; // Enable bus mastering.
-  this->device->write(0x04, pciCommandRead); // Write modified value to pci command.
-  
   csr32(nic, MiscHostCtl) |= MaskPCIInt | ClearIntA;
   csr32(nic, SwArbitration) |= SwArbitSet1;
   
@@ -259,7 +259,7 @@ void broadcom_BCM5751::activate() {
   asm("cli");
   
   // Enable MAC memory space decode and bus mastering (again).
-  pciCommandRead = this->device->read(0x04);
+  uint32_t pciCommandRead = this->device->read(0x04);
   pciCommandRead |= 0x2;
   this->device->write(0x04, pciCommandRead);
   
@@ -271,10 +271,16 @@ void broadcom_BCM5751::activate() {
   
   asm("sti");
   SystemTimer::sleep(100); // Original driver sleeps for 40 ms, but the timer isn't that accurate.
-  asm("cli");
   
   printf("While 2\n");
-  while(csr32(mem, 0xB50) != 0xB49A89AB);
+  while(csr32(mem, 0xB50) != 0xB49A89AB) {
+    printHex32(csr32(mem, 0xB50));
+    printf("\n");
+    SystemTimer::sleep(40);
+  }
+  
+  asm("cli");
+  
   csr32(nic, TLPControl) |= (1<<25) | (1<<29);
   printf("Memset");
   this->memset(this->ctlr.status, 0, 20);
