@@ -84,6 +84,9 @@ busControlRegisterDataPort(device->portBase + 0x16)
   registerAddressPort.write(2);
   registerDataPort.write(((uint32_t) (&initBlock) >> 16) & 0xFFFF);
   
+  // This descriptor is no longer needed.
+  delete device;
+  
   setSelectedEthernetDriver(this); // Make this instance accessable in kernel.cpp
 }
 
@@ -101,6 +104,7 @@ void amd_am79c973::activate() {
   
   registerAddressPort.write(0);
   registerDataPort.write(0x42);
+  
   asm("sti");
 }
 

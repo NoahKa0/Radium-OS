@@ -66,11 +66,11 @@
         
         void selectDrivers(sys::drivers::DriverManager* driverManager, sys::hardware::InterruptManager* interruptManager);
         
-        PeripheralComponentDeviceDescriptor getDeviceDescriptor(sys::common::uint16_t bus, sys::common::uint16_t device, sys::common::uint16_t function);
+        PeripheralComponentDeviceDescriptor* getDeviceDescriptor(sys::common::uint16_t bus, sys::common::uint16_t device, sys::common::uint16_t function);
         
         BaseAddressRegister getBaseAddressRegister(sys::common::uint16_t bus, sys::common::uint16_t device, sys::common::uint16_t function, sys::common::uint16_t bar);
         
-        sys::drivers::Driver* getDriver(PeripheralComponentDeviceDescriptor dev, sys::hardware::InterruptManager* interruptManager);
+        sys::drivers::Driver* getDriver(PeripheralComponentDeviceDescriptor* dev, sys::hardware::InterruptManager* interruptManager);
       };
     }
   }

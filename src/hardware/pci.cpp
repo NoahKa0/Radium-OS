@@ -69,20 +69,20 @@ void PeripheralComponentInterconnect::selectDrivers(DriverManager* driverManager
     for(int device = 0; device < 32; device++) {
       int maxFunction = hasFunctions(bus, device) ? 8 : 1;
       for(int function = 0; function < maxFunction; function++) {
-        PeripheralComponentDeviceDescriptor dd = getDeviceDescriptor(bus, device, function);
-        if(dd.vendorId == 0x0000 || dd.vendorId == 0xFFFF) {
+        PeripheralComponentDeviceDescriptor* dd = getDeviceDescriptor(bus, device, function);
+        if(dd->vendorId == 0x0000 || dd->vendorId == 0xFFFF) {
           continue;
         }
         
         for(int barNum = 0; barNum < 6; barNum++) {
           BaseAddressRegister bar = getBaseAddressRegister(bus, device, function, barNum);
           if(bar.address && (bar.type == inputOutput)) {
-            dd.portBase = (uint32_t) bar.address;
-            dd.memoryMapped = false;
+            dd->portBase = (uint32_t) bar.address;
+            dd->memoryMapped = false;
           }
           if(bar.address && (bar.type == inputOutput)) {
-            dd.portBase = (uint32_t) bar.address;
-            dd.memoryMapped = true;
+            dd->portBase = (uint32_t) bar.address;
+            dd->memoryMapped = true;
           }
         }
         
@@ -99,10 +99,10 @@ void PeripheralComponentInterconnect::selectDrivers(DriverManager* driverManager
         printHex32(function);
         
         printf(" = vendor ");
-        printHex32(dd.vendorId);
+        printHex32(dd->vendorId);
         
         printf(", device ");
-        printHex32(dd.deviceId);
+        printHex32(dd->deviceId);
         
         printf("\n");
       }
@@ -110,22 +110,22 @@ void PeripheralComponentInterconnect::selectDrivers(DriverManager* driverManager
   }
 }
 
-PeripheralComponentDeviceDescriptor PeripheralComponentInterconnect::getDeviceDescriptor(uint16_t bus, uint16_t device, uint16_t function) {
-  PeripheralComponentDeviceDescriptor result(this);
+PeripheralComponentDeviceDescriptor* PeripheralComponentInterconnect::getDeviceDescriptor(uint16_t bus, uint16_t device, uint16_t function) {
+  PeripheralComponentDeviceDescriptor* result = new PeripheralComponentDeviceDescriptor(this);
   
-  result.bus = bus;
-  result.device = device;
-  result.function = function;
+  result->bus = bus;
+  result->device = device;
+  result->function = function;
   
-  result.vendorId = read(bus, device, function, 0x00);
-  result.deviceId = read(bus, device, function, 0x02);
+  result->vendorId = read(bus, device, function, 0x00);
+  result->deviceId = read(bus, device, function, 0x02);
   
-  result.classId = read(bus, device, function, 0x0B);
-  result.subclassId = read(bus, device, function, 0x0A);
-  result.interfaceId = read(bus, device, function, 0x09);
+  result->classId = read(bus, device, function, 0x0B);
+  result->subclassId = read(bus, device, function, 0x0A);
+  result->interfaceId = read(bus, device, function, 0x09);
   
-  result.revision = read(bus, device, function, 0x08);
-  result.interrupt = read(bus, device, function, 0x3C);
+  result->revision = read(bus, device, function, 0x08);
+  result->interrupt = read(bus, device, function, 0x3C);
   return result;
 }
 
@@ -164,13 +164,15 @@ BaseAddressRegister PeripheralComponentInterconnect::getBaseAddressRegister(uint
 
 void setNicName(char* name);
 
-Driver* PeripheralComponentInterconnect::getDriver(PeripheralComponentDeviceDescriptor dev, InterruptManager* interruptManager) {
+Driver* PeripheralComponentInterconnect::getDriver(PeripheralComponentDeviceDescriptor* dev, InterruptManager* interruptManager) {
   
   Driver* driver = 0;
+  
+  // TODO This should not be handled here
     
-  switch(dev.vendorId) {
+  switch(dev->vendorId) {
     case 0x8086: // Intel
-      switch(dev.deviceId) {
+      switch(dev->deviceId) {
         case 0x100E:
           setNicName("Intel 0x100E");
           break;
@@ -180,24 +182,24 @@ Driver* PeripheralComponentInterconnect::getDriver(PeripheralComponentDeviceDesc
       }
       break;
     case 0x1022: // AMD
-      switch(dev.deviceId) {
+      switch(dev->deviceId) {
         case 0x2000: // am79c973
           printf("AMD am79c973 ");
           driver = (amd_am79c973*)MemoryManager::activeMemoryManager->malloc(sizeof(amd_am79c973));
           if(driver != 0) {
-            new (driver) amd_am79c973(&dev, interruptManager);
+            new (driver) amd_am79c973(dev, interruptManager);
           }
           return driver;
           break;
       }
       break;
     case 0x14E4:
-      switch(dev.deviceId) {
+      switch(dev->deviceId) {
         case 0x1677:
           printf("NetXtreme BCM5751");
           driver = (broadcom_BCM5751*)MemoryManager::activeMemoryManager->malloc(sizeof(broadcom_BCM5751));
           if(driver != 0) {
-            new (driver) broadcom_BCM5751(&dev, interruptManager);
+            new (driver) broadcom_BCM5751(dev, interruptManager);
           }
           return driver;
           break;
@@ -206,15 +208,17 @@ Driver* PeripheralComponentInterconnect::getDriver(PeripheralComponentDeviceDesc
   }
 
 
-  switch(dev.classId) {
+  switch(dev->classId) {
     case 0x03: // graphics
-      switch(dev.subclassId) {
+      switch(dev->subclassId) {
         case 0x00: // VGA
           printf("VGA ");
           break;
       }
       break;
   }
+  
+  delete dev;
   
   return 0;
 }
