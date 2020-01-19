@@ -78,10 +78,9 @@ void PeripheralComponentInterconnect::selectDrivers(DriverManager* driverManager
           BaseAddressRegister bar = getBaseAddressRegister(bus, device, function, barNum);
           if(bar.address && (bar.type == inputOutput)) {
             dd->portBase = (uint32_t) bar.address;
-            dd->memoryMapped = false;
           }
           if(bar.address && (bar.type == memoryMapping)) {
-            dd->portBase = (uint32_t) bar.address;
+            dd->addressBase = (uint32_t) bar.address;
             dd->memoryMapped = true;
           }
           
@@ -127,6 +126,12 @@ PeripheralComponentDeviceDescriptor* PeripheralComponentInterconnect::getDeviceD
   
   result->revision = read(bus, device, function, 0x08);
   result->interrupt = read(bus, device, function, 0x3C);
+
+  // Default values
+  result->addressBase = 0;
+  result->memoryMapped = false;
+  result->portBase = 0;
+
   return result;
 }
 

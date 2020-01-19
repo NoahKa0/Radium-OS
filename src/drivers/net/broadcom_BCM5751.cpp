@@ -207,7 +207,7 @@ InterruptHandler(device->interrupt + 0x20, interruptManager) // hardware interru
   this->mbps = 0;
   this->link = 0;
   
-  this->ctlr.nic = (uint64_t*) device->portBase;
+  this->ctlr.nic = (uint64_t*) device->addressBase;
   this->ctlr.port = (uint64_t) device->portBase;
   
   this->ctlr.status = (uint64_t*) this->allocb(20+16);

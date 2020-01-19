@@ -27,6 +27,7 @@
         PeripheralComponentInterconnect* pci;
       public:
         sys::common::uint32_t portBase;
+        sys::common::uint32_t addressBase;
         sys::common::uint32_t interrupt;
 
         sys::common::uint16_t bus;
