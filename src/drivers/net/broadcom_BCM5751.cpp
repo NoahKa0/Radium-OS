@@ -203,11 +203,6 @@ InterruptHandler(device->interrupt + 0x20, interruptManager) // hardware interru
     }
   }
   
-  // Enable MAC memory space decode and bus mastering.
-  uint32_t pciCommandRead = this->device->read(0x04); // Read PCI command value.
-  pciCommandRead |= 0x2; // Enable bus mastering.
-  this->device->write(0x04, pciCommandRead); // Write modified value to pci command.
-  
   this->macAddress = 0;
   this->mbps = 0;
   this->link = 0;
@@ -234,11 +229,22 @@ void broadcom_BCM5751::activate() {
   
   uint64_t i, j;
   uint64_t* nic = this->ctlr.nic;
-  uint64_t* mem = &(nic[0x2000]);
+  uint64_t* mem = nic + 0x8000;
   
   printf("BCM Starting at ");
   printHex32((uint32_t) nic);
   printf("\n");
+  
+  // Enable MAC memory space decode and bus mastering (again).
+  printf("\nPCI device ");
+  printHex32(this->device->read(0x02));
+  printf(" ");
+  printHex32(this->device->deviceId);
+  uint32_t pciCommandRead = this->device->read(0x04);
+  printf("\nPCI Command ");
+  printHex32(pciCommandRead);
+  pciCommandRead |= 0x06;
+  this->device->write(0x04, pciCommandRead);
   
   csr32(nic, MiscHostCtl) |= MaskPCIInt | ClearIntA;
   csr32(nic, SwArbitration) |= SwArbitSet1;
@@ -259,9 +265,15 @@ void broadcom_BCM5751::activate() {
   asm("cli");
   
   // Enable MAC memory space decode and bus mastering (again).
-  uint32_t pciCommandRead = this->device->read(0x04);
-  pciCommandRead |= 0x2;
+  pciCommandRead = this->device->read(0x04);
+  pciCommandRead |= 0x06;
   this->device->write(0x04, pciCommandRead);
+  
+  printf(" ");
+  printHex32(pciCommandRead);
+  printf(" ");
+  printHex32(this->device->read(0x04));
+  printf("\n");
   
   csr32(nic, MiscHostCtl) |= MaskPCIInt;
   csr32(nic, MemArbiterMode) |= Enable;
@@ -274,9 +286,7 @@ void broadcom_BCM5751::activate() {
   
   printf("While 2\n");
   while(csr32(mem, 0xB50) != 0xB49A89AB) {
-    printHex32(csr32(mem, 0xB50));
-    printf("\n");
-    SystemTimer::sleep(40);
+    SystemTimer::sleep(100);
   }
   
   asm("cli");

@@ -22,7 +22,7 @@ void PeripheralComponentDeviceDescriptor::write(uint32_t registerOffset, uint32_
   this->pci->write(this->bus, this->device, this->function, registerOffset, value);
 }
 
-      
+
 
 PeripheralComponentInterconnect::PeripheralComponentInterconnect()
 : dataPort(0xCFC),
@@ -80,10 +80,11 @@ void PeripheralComponentInterconnect::selectDrivers(DriverManager* driverManager
             dd->portBase = (uint32_t) bar.address;
             dd->memoryMapped = false;
           }
-          if(bar.address && (bar.type == inputOutput)) {
+          if(bar.address && (bar.type == memoryMapping)) {
             dd->portBase = (uint32_t) bar.address;
             dd->memoryMapped = true;
           }
+          
         }
         
         Driver* driver = getDriver(dd, interruptManager);
