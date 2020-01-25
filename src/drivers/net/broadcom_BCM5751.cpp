@@ -253,6 +253,8 @@ void broadcom_BCM5751::activate() {
   
   csr32(nic, MemArbiterMode) |= Enable;
   csr32(nic, MiscHostCtl) |= IndirectAccessEnable | EnablePCIStateRegister | EnableClockControlRegister;
+  csr32(nic, MiscHostCtl) = (csr32(nic, MiscHostCtl) & ~(1<<2|1<<3)) | 1<<3;
+	csr32(nic, ModeControl) |= ByteWordSwap;
   csr32(nic, MemoryWindow) = 0;
   csr32(mem, 0xB50) = 0x4B657654; // magic number
   
@@ -261,9 +263,9 @@ void broadcom_BCM5751::activate() {
   
   SystemTimer::sleep(150); // I should wait 100 ms, but the timer isn't that accurate, so wait slightly more.
   
-  // Enable MAC memory space decode and bus mastering (again).
+  // Enable MAC memory space decode and bus mastering.
   uint32_t pciCommandRead = this->device->read(0x04);
-  pciCommandRead |= 0x04;
+  pciCommandRead |= 0x06; // 0x04 | 0x02
   this->device->write(0x04, pciCommandRead);
   
   printf(" ");
