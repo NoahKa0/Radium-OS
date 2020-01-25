@@ -91,11 +91,14 @@ int32_t broadcom_BCM5751::miiw(uint64_t* nic, int32_t ra, int32_t value) {
 common::int32_t broadcom_BCM5751::replenish(Block* bp) {
   uint64_t* next;
   uint64_t incr;
+  uint64_t idx;
   
   printf("Replenish\n");
 
+  idx = this->ctlr.recvprodi;
   incr = (this->ctlr.recvprodi + 1) & (RecvProdRingLen - 1);
   if(incr == (this->ctlr.status[2] >> 16)) return -1;
+  if(this->ctlr.recvs[idx] != 0) return -1;
   if(bp == 0) {
     bp = this->allocb(Rbsz);
   }
@@ -103,6 +106,7 @@ common::int32_t broadcom_BCM5751::replenish(Block* bp) {
     printf("bcm: out of memory for receive buffers\n");
     return -1;
   }
+  this->ctlr.recvs[idx] = bp;
   next = this->ctlr.recvprod + this->ctlr.recvprodi * 8;
   memset(next, 0, 32);
   next[1] = this->paddr((uint64_t) bp->rp);
@@ -202,6 +206,11 @@ InterruptHandler(device->interrupt + 0x20, interruptManager) // hardware interru
       asm("hlt");
     }
   }
+
+  // Enable MAC memory space decode and bus mastering.
+  uint32_t pciCommandRead = this->device->read(0x04);
+  pciCommandRead |= 0x04;
+  this->device->write(0x04, pciCommandRead);
   
   this->macAddress = 0;
   this->mbps = 0;
@@ -215,9 +224,8 @@ InterruptHandler(device->interrupt + 0x20, interruptManager) // hardware interru
   this->ctlr.recvret = (uint64_t*) this->allocb(32 * RecvRetRingLen + 16);
   this->ctlr.sendr = (uint64_t*) this->allocb(16 * SendRingLen + 16);
   
-  // NOTICE It seems weird to me that sizeof(Block) is used here, since it's an array of Block*.
-  // I think this might be a mistake, but since it allocates too much, nothing horrible happens. Just leave it as it is for now.
-  this->ctlr.sends = (Block**) MemoryManager::activeMemoryManager->malloc(sizeof(Block) * SendRingLen);
+  this->ctlr.sends = (Block**) MemoryManager::activeMemoryManager->malloc(sizeof(this->ctlr.sends[0]) * SendRingLen);
+  this->ctlr.recvs = (Block**) MemoryManager::activeMemoryManager->malloc(sizeof(this->ctlr.recvs[0]) * RecvProdRingLen);
   
   setSelectedEthernetDriver(this); // Make this instance accessable in kernel.cpp
 }
@@ -225,8 +233,6 @@ InterruptHandler(device->interrupt + 0x20, interruptManager) // hardware interru
 broadcom_BCM5751::~broadcom_BCM5751() {}
 
 void broadcom_BCM5751::activate() {
-  asm("cli");
-  
   uint64_t i, j;
   uint64_t* nic = this->ctlr.nic;
   uint64_t* mem = nic + 0x8000;
@@ -235,22 +241,15 @@ void broadcom_BCM5751::activate() {
   printHex32((uint32_t) nic);
   printf("\n");
   
-  // Enable MAC memory space decode and bus mastering (again).
-  printf("\nPCI device ");
-  printHex32(this->device->read(0x02));
-  printf(" ");
-  printHex32(this->device->deviceId);
-  uint32_t pciCommandRead = this->device->read(0x04);
-  printf("\nPCI Command ");
-  printHex32(pciCommandRead);
-  pciCommandRead |= 0x06;
-  this->device->write(0x04, pciCommandRead);
-  
   csr32(nic, MiscHostCtl) |= MaskPCIInt | ClearIntA;
   csr32(nic, SwArbitration) |= SwArbitSet1;
   
-  printf("While 1\n");
-  while((csr32(nic, SwArbitration) & SwArbitWon1) == 0);
+  printf("While 1 ");
+  while((csr32(nic, SwArbitration) & SwArbitWon1) == 0) {
+    SystemTimer::sleep(40);
+    printf(".");
+  }
+  printf("'n");
   
   csr32(nic, MemArbiterMode) |= Enable;
   csr32(nic, MiscHostCtl) |= IndirectAccessEnable | EnablePCIStateRegister | EnableClockControlRegister;
@@ -260,13 +259,11 @@ void broadcom_BCM5751::activate() {
   csr32(nic, MiscConfiguration) |= GPHYPowerDownOverride | DisableGRCResetOnPCIE;
   csr32(nic, MiscConfiguration) |= CoreClockBlocksReset;
   
-  asm("sti");
   SystemTimer::sleep(150); // I should wait 100 ms, but the timer isn't that accurate, so wait slightly more.
-  asm("cli");
   
   // Enable MAC memory space decode and bus mastering (again).
-  pciCommandRead = this->device->read(0x04);
-  pciCommandRead |= 0x06;
+  uint32_t pciCommandRead = this->device->read(0x04);
+  pciCommandRead |= 0x04;
   this->device->write(0x04, pciCommandRead);
   
   printf(" ");
@@ -281,15 +278,12 @@ void broadcom_BCM5751::activate() {
   csr32(nic, ModeControl) |= ByteWordSwap;
   csr32(nic, MACMode) = (csr32(nic, MACMode) & MACPortMask) | MACPortGMII;
   
-  asm("sti");
   SystemTimer::sleep(100); // Original driver sleeps for 40 ms, but the timer isn't that accurate.
   
   printf("While 2\n");
   while(csr32(mem, 0xB50) != 0xB49A89AB) {
     SystemTimer::sleep(100);
   }
-  
-  asm("cli");
   
   csr32(nic, TLPControl) |= (1<<25) | (1<<29);
   printf("Memset");
@@ -513,9 +507,18 @@ void broadcom_BCM5751::receive() {
   Block* bp;
   uint64_t* pkt;
   uint32_t len;
+  uint64_t idx;
   
   while(pkt = currentrecvret()) {
-    bp = (Block*) pkt[7];
+		idx = pkt[7] & (RecvProdRingLen - 1);
+		bp = this->ctlr.recvs[idx];
+
+    if(bp == 0) {
+			printf("bcm: nil block -- shouldn't happen\n");
+			break;
+		}
+
+    this->ctlr.recvs[idx] = 0;
     len = pkt[2] & 0xFFFF;
     bp->wp = bp->rp + len;
     if((pkt[3] & PacketEnd) == 0) printf("bcm: partial frame received\n");

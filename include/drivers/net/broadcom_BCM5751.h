@@ -194,6 +194,7 @@
         common::uint64_t port;
         common::uint64_t recvreti, recvprodi, sendri, sendcleani;
         Block** sends;
+        Block** recvs;
         int active, duplex;
       };
       
