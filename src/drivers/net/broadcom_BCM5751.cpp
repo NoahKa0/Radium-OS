@@ -73,7 +73,7 @@ void broadcom_BCM5751::bcmtransclean() {
 	}
 }
 
-int32_t broadcom_BCM5751::miir(uint64_t* nic, int32_t ra) {
+int32_t broadcom_BCM5751::miir(uint32_t* nic, int32_t ra) {
   while(csr32(nic, MIComm) & (1<<29));
   csr32(nic, MIComm) = (ra << 16) | (1 << 21) | (1 << 27) | (1 << 29);
   while(csr32(nic, MIComm) & (1<<29));
@@ -81,7 +81,7 @@ int32_t broadcom_BCM5751::miir(uint64_t* nic, int32_t ra) {
   return csr32(nic, MIComm) & 0xFFFF;
 }
 
-int32_t broadcom_BCM5751::miiw(uint64_t* nic, int32_t ra, int32_t value) {
+int32_t broadcom_BCM5751::miiw(uint32_t* nic, int32_t ra, int32_t value) {
   while(csr32(nic, MIComm) & (1<<29));
   csr32(nic, MIComm) = (value & 0xFFFF) | (ra << 16) | (1 << 21) | (1 << 27) | (1 << 29);
   while(csr32(nic, MIComm) & (1<<29));
@@ -89,9 +89,9 @@ int32_t broadcom_BCM5751::miiw(uint64_t* nic, int32_t ra, int32_t value) {
 }
 
 common::int32_t broadcom_BCM5751::replenish(Block* bp) {
-  uint64_t* next;
-  uint64_t incr;
-  uint64_t idx;
+  uint32_t* next;
+  uint32_t incr;
+  uint32_t idx;
   
   printf("Replenish\n");
 
@@ -109,9 +109,9 @@ common::int32_t broadcom_BCM5751::replenish(Block* bp) {
   this->ctlr.recvs[idx] = bp;
   next = this->ctlr.recvprod + this->ctlr.recvprodi * 8;
   memset(next, 0, 32);
-  next[1] = this->paddr((uint64_t) bp->rp);
+  next[1] = this->paddr((uint32_t) bp->rp);
   next[2] = Rbsz;
-  next[7] = (uint64_t) bp;
+  next[7] = (uint32_t) bp;
   csr32(this->ctlr.nic, RecvProdBDRingIndex) = this->ctlr.recvprodi = incr;
   return 0;
 }
@@ -134,7 +134,7 @@ uint64_t broadcom_BCM5751::paddr(uint64_t a) {
   return (a) & ~0xFFFFFFFFF0000000ull;
 }
 
-uint64_t* broadcom_BCM5751::currentrecvret() {
+uint32_t* broadcom_BCM5751::currentrecvret() {
 	if(this->ctlr.recvreti == (this->ctlr.status[4] & 0xFFFF)) return 0;
 	return this->ctlr.recvret + this->ctlr.recvreti * 8;
 }
@@ -144,8 +144,8 @@ void broadcom_BCM5751::consumerecvret() {
 }
 
 void broadcom_BCM5751::checklink() {
-  uint64_t i;
-  uint64_t* nic = this->ctlr.nic;
+  uint32_t i;
+  uint32_t* nic = this->ctlr.nic;
   
   miir(nic, PhyStatus); /* dummy read necessary */
   if(!(miir(nic, PhyStatus) & PhyLinkStatus)) {
@@ -209,20 +209,20 @@ InterruptHandler(device->interrupt + 0x20, interruptManager) // hardware interru
 
   // Enable MAC memory space decode and bus mastering.
   uint32_t pciCommandRead = this->device->read(0x04);
-  pciCommandRead |= 0x04;
+  pciCommandRead |= 0x06;
   this->device->write(0x04, pciCommandRead);
   
   this->macAddress = 0;
   this->mbps = 0;
   this->link = 0;
   
-  this->ctlr.nic = (uint64_t*) device->addressBase;
-  this->ctlr.port = (uint64_t) device->portBase;
+  this->ctlr.nic = (uint32_t*) device->addressBase;
+  this->ctlr.port = (uint32_t) device->portBase;
   
-  this->ctlr.status = (uint64_t*) this->allocb(20+16);
-  this->ctlr.recvprod = (uint64_t*) this->allocb(32 * RecvProdRingLen + 16);
-  this->ctlr.recvret = (uint64_t*) this->allocb(32 * RecvRetRingLen + 16);
-  this->ctlr.sendr = (uint64_t*) this->allocb(16 * SendRingLen + 16);
+  this->ctlr.status = (uint32_t*) this->allocb(20+16);
+  this->ctlr.recvprod = (uint32_t*) this->allocb(32 * RecvProdRingLen + 16);
+  this->ctlr.recvret = (uint32_t*) this->allocb(32 * RecvRetRingLen + 16);
+  this->ctlr.sendr = (uint32_t*) this->allocb(16 * SendRingLen + 16);
   
   this->ctlr.sends = (Block**) MemoryManager::activeMemoryManager->malloc(sizeof(this->ctlr.sends[0]) * SendRingLen);
   this->ctlr.recvs = (Block**) MemoryManager::activeMemoryManager->malloc(sizeof(this->ctlr.recvs[0]) * RecvProdRingLen);
@@ -234,8 +234,8 @@ broadcom_BCM5751::~broadcom_BCM5751() {}
 
 void broadcom_BCM5751::activate() {
   uint64_t i, j;
-  uint64_t* nic = this->ctlr.nic;
-  uint64_t* mem = nic + 0x8000;
+  uint32_t* nic = this->ctlr.nic;
+  uint32_t* mem = nic + 0x8000;
   
   printf("BCM Starting at ");
   printHex32((uint32_t) nic);
@@ -245,9 +245,11 @@ void broadcom_BCM5751::activate() {
   csr32(nic, SwArbitration) |= SwArbitSet1;
   
   printf("While 1 ");
+  printHex32((csr32(nic, SwArbitration)));
+  printf("  ");
+  printHex32(SwArbitWon1);
   while((csr32(nic, SwArbitration) & SwArbitWon1) == 0) {
     SystemTimer::sleep(40);
-    printf(".");
   }
   printf("'n");
   
@@ -417,7 +419,7 @@ int broadcom_BCM5751::reset() {
 }
 
 common::uint32_t broadcom_BCM5751::handleInterrupt(common::uint32_t esp) {
-  uint64_t* nic = this->ctlr.nic;
+  uint32_t* nic = this->ctlr.nic;
   uint64_t status = 0;
   uint64_t tag = 0;
   
@@ -471,7 +473,7 @@ void broadcom_BCM5751::send(common::uint8_t* buffer, int size) {
   }
   
   uint64_t incr = 0;
-  uint64_t* next = 0;
+  uint32_t* next = 0;
   Block* bp = 0;
   
   while(true) {
@@ -497,7 +499,7 @@ void broadcom_BCM5751::send(common::uint8_t* buffer, int size) {
 		if(bp == 0) break;
 		next = this->ctlr.sendr + this->ctlr.sendri * 4;
 		next[0] = 0;
-		next[1] = this->paddr((uint64_t) bp->rp);
+		next[1] = this->paddr((uint32_t) bp->rp);
 		next[2] = (BLEN(bp) << 16) | PacketEnd;
 		next[3] = 0;
 		this->ctlr.sends[this->ctlr.sendri] = bp;
@@ -507,7 +509,7 @@ void broadcom_BCM5751::send(common::uint8_t* buffer, int size) {
 
 void broadcom_BCM5751::receive() {
   Block* bp;
-  uint64_t* pkt;
+  uint32_t* pkt;
   uint32_t len;
   uint64_t idx;
   

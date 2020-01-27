@@ -184,15 +184,15 @@
       struct BCM5751_Ctlr {
         BCM5751_Ctlr* link;
         hardware::PeripheralComponentDeviceDescriptor* pciDevice;
-        common::uint64_t* nic;
-        common::uint64_t* status;
+        common::uint32_t* nic;
+        common::uint32_t* status;
         
-        common::uint64_t* recvret;
-        common::uint64_t* recvprod;
-        common::uint64_t* sendr;
+        common::uint32_t* recvret;
+        common::uint32_t* recvprod;
+        common::uint32_t* sendr;
         
-        common::uint64_t port;
-        common::uint64_t recvreti, recvprodi, sendri, sendcleani;
+        common::uint32_t port;
+        common::uint32_t recvreti, recvprodi, sendri, sendcleani;
         Block** sends;
         Block** recvs;
         int active, duplex;
@@ -220,10 +220,10 @@
         static void memset(void* dst, common::int32_t v, common::int32_t n);
         static common::uint64_t paddr(common::uint64_t a);
         
-        static common::int32_t miir(common::uint64_t* nic, common::int32_t ra);
-        static common::int32_t miiw(common::uint64_t* nic, common::int32_t ra, common::int32_t value);
+        static common::int32_t miir(common::uint32_t* nic, common::int32_t ra);
+        static common::int32_t miiw(common::uint32_t* nic, common::int32_t ra, common::int32_t value);
         
-        common::uint64_t* currentrecvret();
+        common::uint32_t* currentrecvret();
         void consumerecvret();
         
         void checklink();
