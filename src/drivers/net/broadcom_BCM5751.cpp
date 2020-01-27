@@ -24,8 +24,6 @@ Block* broadcom_BCM5751::allocb(common::uint32_t size) {
   size += 16;
   b = (Block*) MemoryManager::activeMemoryManager->malloc(sizeof(Block)+size+(64));
   
-  printHex32((uint32_t) b);
-  printf("\n");
   if(b == 0) {
     printf("broadcom_BCM5751-allocb->malloc failed!\nPANIC!\n");
     while(true) {
@@ -93,7 +91,7 @@ common::int32_t broadcom_BCM5751::replenish(Block* bp) {
   uint32_t incr;
   uint32_t idx;
   
-  printf("Replenish\n");
+  printf(".");
 
   idx = this->ctlr.recvprodi;
   incr = (this->ctlr.recvprodi + 1) & (RecvProdRingLen - 1);
@@ -235,7 +233,7 @@ broadcom_BCM5751::~broadcom_BCM5751() {}
 void broadcom_BCM5751::activate() {
   uint64_t i, j;
   uint32_t* nic = this->ctlr.nic;
-  uint32_t* mem = nic + 0x8000;
+  uint32_t* mem = nic + 0x2000;
   
   printf("BCM Starting at ");
   printHex32((uint32_t) nic);
@@ -443,7 +441,7 @@ common::uint32_t broadcom_BCM5751::handleInterrupt(common::uint32_t esp) {
     }
     csr32(nic, MACEventStatus) = 0; /* worth ignoring */
     if(csr32(nic, ReadDMAStatus) || csr32(nic, WriteDMAStatus)) {
-      printf("bcm: DMA error\n");
+      printf("DMA!    ");
       csr32(nic, ReadDMAStatus) = 0;
       csr32(nic, WriteDMAStatus) = 0;
     }

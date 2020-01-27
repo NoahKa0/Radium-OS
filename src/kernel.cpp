@@ -322,15 +322,22 @@ uint64_t getTime() {
 void taskA() {
   uint64_t lastTime = getTime();
   uint64_t lastSec = 0;
-  while(lastSec < 1) { // Let timer run for 10 secondss.
+  printf("Waiting 15 seconds for BCM5751 to connect\n");
+  while(lastSec < 15) { // Let timer run for 10 secondss.
     if(lastTime+18 < getTime()) {
       lastTime += 18;
       lastSec++;
-      printf("PIT: ");
-      printHex32(lastTime);
-      printf("   in seconds: ");
-      printHex32(lastSec);
-      printf("\n");
+    }
+  }
+          
+  if(dhcp != 0) {
+    dhcp->sendDiscover();
+  }
+  
+  while(lastSec < 3) { // Let timer run for 10 secondss.
+    if(lastTime+18 < getTime()) {
+      lastTime += 18;
+      lastSec++;
     }
   }
   if(tcp != 0) {
@@ -448,7 +455,6 @@ extern "C" void kernelMain(void* multiboot_structure, uint32_t magicNumber) {
       udp = new UserDatagramProtocolProvider(ipv4);
       tcp = new TransmissionControlProtocolProvider(ipv4);
       dhcp = new DynamicHostConfigurationProtocol(udp, ipv4);
-      dhcp->sendDiscover();
     } else {
       if(nicName != 0) {
         printf("NO SOPPURT: ");
