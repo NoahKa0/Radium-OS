@@ -469,40 +469,40 @@ void broadcom_BCM5751::send(common::uint8_t* buffer, int size) {
   if(size > sizeof(Etherpacket)) {
     size = sizeof(Etherpacket);
   }
+
+  this->bcmtransclean();
   
   uint64_t incr = 0;
   uint32_t* next = 0;
   Block* bp = 0;
-  
-  while(true) {
-    incr = (this->ctlr.sendri + 1) & (SendRingLen - 1);
-		if(incr == (this->ctlr.status[4] >> 16)) {
-			printf("bcm: send queue full\n");
-			break;
-		}
-		if(incr == this->ctlr.sendcleani) {
-			this->bcmtransclean();
-			if(incr == this->ctlr.sendcleani)
-				break;
-		}
-		
-		// The original driver fetches a block from a que, but we don't have that, so setup a new one.
-		bp = this->allocb(Rbsz);
-    bp->wp = bp->rp + size;
-    uint8_t* blockData = bp->rp;
-    for(int i = 0; i < size; i++) {
-      blockData[i] = buffer[i];
-    }
-    
-		if(bp == 0) break;
-		next = this->ctlr.sendr + this->ctlr.sendri * 4;
-		next[0] = 0;
-		next[1] = this->paddr((uint32_t) bp->rp);
-		next[2] = (BLEN(bp) << 16) | PacketEnd;
-		next[3] = 0;
-		this->ctlr.sends[this->ctlr.sendri] = bp;
-		csr32(this->ctlr.nic, SendBDRingHostIndex) = this->ctlr.sendri = incr;
+
+  incr = (this->ctlr.sendri + 1) & (SendRingLen - 1);
+  if(incr == (this->ctlr.status[4] >> 16)) {
+    printf("bcm: send queue full\n");
+    return;
   }
+
+  if(incr == this->ctlr.sendcleani) {
+    if(incr == this->ctlr.sendcleani)
+      return;
+  }
+  
+  // The original driver fetches a block from a que, but we don't have that, so setup a new one.
+  bp = this->allocb(Rbsz);
+  if(bp == 0) return;
+  bp->wp = bp->rp + size;
+  uint8_t* blockData = bp->rp;
+  for(int i = 0; i < size; i++) {
+    blockData[i] = buffer[i];
+  }
+
+  next = this->ctlr.sendr + this->ctlr.sendri * 4;
+  next[0] = 0;
+  next[1] = this->paddr((uint32_t) bp->rp);
+  next[2] = (BLEN(bp) << 16) | PacketEnd;
+  next[3] = 0;
+  this->ctlr.sends[this->ctlr.sendri] = bp;
+  csr32(this->ctlr.nic, SendBDRingHostIndex) = this->ctlr.sendri = incr;
 }
 
 void broadcom_BCM5751::receive() {
