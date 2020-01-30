@@ -67,7 +67,7 @@ void broadcom_BCM5751::bcmtransclean() {
   while(this->ctlr.sendcleani != (this->ctlr.status[4] >> 16)) {
 		MemoryManager::activeMemoryManager->free(this->ctlr.sends[this->ctlr.sendcleani]);
 		this->ctlr.sends[this->ctlr.sendcleani] = 0;
-		this->ctlr.sendcleani = (this->ctlr.sendcleani + 1) & (SendRingLen - 1);
+		this->ctlr.sendcleani = (this->ctlr.sendcleani + 1) & (TxRingLen - 1);
 	}
 }
 
@@ -89,14 +89,11 @@ int32_t broadcom_BCM5751::miiw(uint32_t* nic, int32_t ra, int32_t value) {
 common::int32_t broadcom_BCM5751::replenish(Block* bp) {
   uint32_t* next;
   uint32_t incr;
-  uint32_t idx;
   
   printf(".");
-
-  idx = this->ctlr.recvprodi;
-  incr = (this->ctlr.recvprodi + 1) & (RecvProdRingLen - 1);
+  
+  incr = (this->ctlr.recvprodi + 1) & (RxProdRingLen - 1);
   if(incr == (this->ctlr.status[2] >> 16)) return -1;
-  if(this->ctlr.recvs[idx] != 0) return -1;
   if(bp == 0) {
     bp = this->allocb(Rbsz);
   }
@@ -104,13 +101,14 @@ common::int32_t broadcom_BCM5751::replenish(Block* bp) {
     printf("bcm: out of memory for receive buffers\n");
     return -1;
   }
-  this->ctlr.recvs[idx] = bp;
   next = this->ctlr.recvprod + this->ctlr.recvprodi * 8;
   memset(next, 0, 32);
+  next[0] = 0;
   next[1] = this->paddr((uint32_t) bp->rp);
   next[2] = Rbsz;
-  next[7] = (uint32_t) bp;
-  csr32(this->ctlr.nic, RecvProdBDRingIndex) = this->ctlr.recvprodi = incr;
+  next[7] = this->ctlr.recvprodi;
+  this->ctlr.rxs[this->ctlr.recvprodi] = bp;
+  csr32(this->ctlr.nic, RxProdBDRingIdx) = this->ctlr.recvprodi = incr;
   return 0;
 }
 
@@ -138,33 +136,34 @@ uint32_t* broadcom_BCM5751::currentrecvret() {
 }
 
 void broadcom_BCM5751::consumerecvret() {
-	csr32(this->ctlr.nic, RecvBDRetRingIndex) = this->ctlr.recvreti = (this->ctlr.recvreti + 1) & (RecvRetRingLen - 1);
+  this->ctlr.recvreti = this->ctlr.recvreti+1 & RxRetRingLen-1;
+	csr32(this->ctlr.nic, RxBDRetRingIdx) = this->ctlr.recvreti = this->ctlr.recvreti;
 }
 
 void broadcom_BCM5751::checklink() {
   uint32_t i;
   uint32_t* nic = this->ctlr.nic;
   
-  miir(nic, PhyStatus); /* dummy read necessary */
-  if(!(miir(nic, PhyStatus) & PhyLinkStatus)) {
+  miir(nic, Bmsr); /* Dummy read */
+	if(!(miir(nic, Bmsr) & 4)) {
     this->link = 0;
     this->mbps = 1000;
     this->ctlr.duplex = 1;
     printf("bcm: no link\n");
     goto out;
-  }
+	}
   this->link = 1;
-  while((miir(nic, PhyStatus) & PhyAutoNegComplete) == 0);
-  i = miir(nic, PhyGbitStatus);
-  if(i & (Phy1000FD | Phy1000HD)) {
+  while((miir(nic, Bmsr) & 32) == 0);
+  i = miir(nic, Mssr);
+  if(i & (Mssr1000THD | Mssr1000TFD)) {
     this->mbps = 1000;
-    this->ctlr.duplex = (i & Phy1000FD) != 0;
-  } else if(i = miir(nic, PhyPartnerStatus), i & (Phy100FD | Phy100HD)) {
+    this->ctlr.duplex = (i & Mssr1000TFD) != 0;
+  } else if(i = miir(nic, Anlpar), i & (AnaTXHD | AnaTXFD)) {
     this->mbps = 100;
-    this->ctlr.duplex = (i & Phy100FD) != 0;
-  } else if(i & (Phy10FD | Phy10HD)) {
+    this->ctlr.duplex = (i & AnaTXFD) != 0;
+  } else if(i & (Ana10HD | Ana10FD)) {
     this->mbps = 10;
-    this->ctlr.duplex = (i & Phy10FD) != 0;
+    this->ctlr.duplex = (i & Ana10FD) != 0;
   } else {
     this->link = 0;
     this->mbps = 1000;
@@ -216,14 +215,15 @@ InterruptHandler(device->interrupt + 0x20, interruptManager) // hardware interru
   
   this->ctlr.nic = (uint32_t*) device->addressBase;
   this->ctlr.port = (uint32_t) device->portBase;
-  
+
+  // NOTICE: Objects below are 16-bit aligned in original driver, i should make a version of malloc that can allign.
   this->ctlr.status = (uint32_t*) this->allocb(20+16);
-  this->ctlr.recvprod = (uint32_t*) this->allocb(32 * RecvProdRingLen + 16);
-  this->ctlr.recvret = (uint32_t*) this->allocb(32 * RecvRetRingLen + 16);
-  this->ctlr.sendr = (uint32_t*) this->allocb(16 * SendRingLen + 16);
+  this->ctlr.recvprod = (uint32_t*) this->allocb(32 * RxProdRingLen + 16);
+  this->ctlr.recvret = (uint32_t*) this->allocb(32 * RxRetRingLen + 16);
+  this->ctlr.sendr = (uint32_t*) this->allocb(16 * TxRingLen + 16);
   
-  this->ctlr.sends = (Block**) MemoryManager::activeMemoryManager->malloc(sizeof(this->ctlr.sends[0]) * SendRingLen);
-  this->ctlr.recvs = (Block**) MemoryManager::activeMemoryManager->malloc(sizeof(this->ctlr.recvs[0]) * RecvProdRingLen);
+  this->ctlr.sends = (Block**) MemoryManager::activeMemoryManager->malloc(sizeof(this->ctlr.sends[0]) * TxRingLen);
+  this->ctlr.rxs = (Block**) MemoryManager::activeMemoryManager->malloc(sizeof(this->ctlr.sends[0]) * TxRingLen);
   
   setSelectedEthernetDriver(this); // Make this instance accessable in kernel.cpp
 }
@@ -239,27 +239,22 @@ void broadcom_BCM5751::activate() {
   printHex32((uint32_t) nic);
   printf("\n");
   
-  csr32(nic, MiscHostCtl) |= MaskPCIInt | ClearIntA;
-  csr32(nic, SwArbitration) |= SwArbitSet1;
+  csr32(nic, MiscHostCtl) |= MaskPCIInt | ClearIntA | WordSwap | IndirAccessEn;
+  csr32(nic, SwArbit) |= SwArbitSet1;
   
   printf("While 1 ");
-  printHex32((csr32(nic, SwArbitration)));
-  printf("  ");
-  printHex32(SwArbitWon1);
-  while((csr32(nic, SwArbitration) & SwArbitWon1) == 0) {
+  while((csr32(nic, SwArbit) & SwArbitWon1) == 0) {
     SystemTimer::sleep(40);
   }
   printf("'n");
   
-  csr32(nic, MemArbiterMode) |= Enable;
-  csr32(nic, MiscHostCtl) |= IndirectAccessEnable | EnablePCIStateRegister | EnableClockControlRegister;
-  csr32(nic, MiscHostCtl) = (csr32(nic, MiscHostCtl) & ~(1<<2|1<<3)) | 1<<3;
-	csr32(nic, ModeControl) |= ByteWordSwap;
-  csr32(nic, MemoryWindow) = 0;
+	csr32(nic, MemArbiterMode) |= Enable;
+	csr32(nic, MiscHostCtl) = WordSwap | IndirAccessEn | PCIStateRegEn | EnableClockCtl
+		| MaskPCIInt | ClearIntA;
+	csr32(nic, Memwind) = 0;
   csr32(mem, 0xB50) = 0x4B657654; // magic number
   
-  csr32(nic, MiscConfiguration) |= GPHYPowerDownOverride | DisableGRCResetOnPCIE;
-  csr32(nic, MiscConfiguration) |= CoreClockBlocksReset;
+  csr32(nic, MiscConf) |= GPHYPwrdnOverride | DisableGRCRstOnPpcie | CoreClockBlocksReset;
   
   SystemTimer::sleep(150); // I should wait 100 ms, but the timer isn't that accurate, so wait slightly more.
   
@@ -274,11 +269,11 @@ void broadcom_BCM5751::activate() {
   printHex32(this->device->read(0x04));
   printf("\n");
   
-  csr32(nic, MiscHostCtl) |= MaskPCIInt;
-  csr32(nic, MemArbiterMode) |= Enable;
-  csr32(nic, MiscHostCtl) |= IndirectAccessEnable | EnablePCIStateRegister | EnableClockControlRegister | TaggedStatus;
-  csr32(nic, ModeControl) |= ByteWordSwap;
-  csr32(nic, MACMode) = (csr32(nic, MACMode) & MACPortMask) | MACPortGMII;
+	csr32(nic, MiscHostCtl) |= MaskPCIInt | ClearIntA;
+	csr32(nic, MemArbiterMode) |= Enable;
+	csr32(nic, MiscHostCtl) |= WordSwap | IndirAccessEn | PCIStateRegEn | EnableClockCtl | TaggedStatus;
+	csr32(nic, ModeControl) |= ByteWordSwap;
+	csr32(nic, MACMode) = (csr32(nic, MACMode) & MACPortMask) | MACPortGMII;
   
   SystemTimer::sleep(100); // Original driver sleeps for 40 ms, but the timer isn't that accurate.
   
@@ -287,41 +282,43 @@ void broadcom_BCM5751::activate() {
     SystemTimer::sleep(100);
   }
   
-  csr32(nic, TLPControl) |= (1<<25) | (1<<29);
-  printf("Memset");
   this->memset(this->ctlr.status, 0, 20);
-  printf(" eoms\n");
-  // --
-  csr32(nic, DMARWControl) = (csr32(nic, DMARWControl) & DMAWatermarkMask) | DMAWatermarkValue;
-  csr32(nic, ModeControl) |= HostSendBDs | HostStackUp | InterruptOnMAC;
-  csr32(nic, MiscConfiguration) = (csr32(nic, MiscConfiguration) & TimerMask) | TimerValue;
-  csr32(nic, MBUFLowWatermark) = 0x20;
-  csr32(nic, MBUFHighWatermark) = 0x60;
-  csr32(nic, LowWatermarkMaximum) = (csr32(nic, LowWatermarkMaximum) & LowWatermarkMaxMask) | LowWatermarkMaxValue;
-  csr32(nic, BufferManMode) |= Enable | Attn;
+
+
+  csr32(nic, Dmarwctl) = (csr32(nic, Dmarwctl) & DMAWaterMask) | DMAWaterValue;
+	csr32(nic, ModeControl) |= HostTxBDs | HostStackUp | InterruptOnMAC;
+	csr32(nic, MiscConf) = (csr32(nic, MiscConf) & TimerMask) | TimerValue;
+	csr32(nic, MBUFLowWater) = 0x20;
+	csr32(nic, MBUFHighWater) = 0x60;
+	csr32(nic, LowWaterMax) = (csr32(nic, LowWaterMax) & LowWaterMaxMask) | LowWaterMaxValue;
+	csr32(nic, BufferManMode) |= Enable | Attn;
+
   while((csr32(nic, BufferManMode) & Enable) == 0);
-  csr32(nic, FTQReset) = -1;
-  csr32(nic, FTQReset) = 0;
+  
+	csr32(nic, FTQReset) = ~0;
+	csr32(nic, FTQReset) = 0;
+
   while(csr32(nic, FTQReset));
-  csr32(nic, ReceiveBDHostAddr) = 0;
-  csr32(nic, ReceiveBDHostAddr + 4) = paddr((uint64_t) this->ctlr.recvprod);
-  csr32(nic, ReceiveBDFlags) = RecvProdRingLen << 16;
-  csr32(nic, ReceiveBDNIC) = 0x6000;
-  csr32(nic, ReceiveBDRepl) = 25;
-  csr32(nic, SendBDRingHostIndex) = 0;
-  csr32(nic, SendBDRingHostIndex+4) = 0;
-  csr32(mem, SendRCB) = 0;
-  csr32(mem, SendRCB + 4) = paddr((uint64_t) this->ctlr.sendr);
-  csr32(mem, SendRCB + 8) = SendRingLen << 16;
-  csr32(mem, SendRCB + 12) = 0x4000;
+  
+	csr32(nic, RxBDHostAddr) = 0;
+	csr32(nic, RxBDHostAddr + 4) = paddr((uint64_t) this->ctlr.recvprod);
+	csr32(nic, RxBDFlags) = RxProdRingLen << 16;
+	csr32(nic, RxBDNIC) = 0x6000;
+	csr32(nic, RxBDRepl) = 25;
+	csr32(nic, TxBDRingHostIdx) = 0;
+	csr32(nic, TxBDRingHostIdx+4) = 0;
+  csr32(mem, TxRCB) = 0;
+  csr32(mem, TxRCB + 4) = paddr((uint64_t) this->ctlr.sendr);
+  csr32(mem, TxRCB + 8) = TxRingLen << 16;
+  csr32(mem, TxRCB + 12) = 0x4000;
   
   for(i=1;i<4;i++)
-    csr32(mem, RecvRetRCB + i * 0x10 + 8) = 2;
-  csr32(mem, RecvRetRCB) = 0;
-  csr32(mem, RecvRetRCB + 4) = paddr((uint64_t) this->ctlr.recvret);
-  csr32(mem, RecvRetRCB + 8) = RecvRetRingLen << 16;
-  csr32(nic, RecvProdBDRingIndex) = 0;
-  csr32(nic, RecvProdBDRingIndex+4) = 0;
+    csr32(mem, RxRetRCB + i * 0x10 + 8) = 2;
+  csr32(mem, RxRetRCB) = 0;
+  csr32(mem, RxRetRCB + 4) = paddr((uint64_t) this->ctlr.recvret);
+  csr32(mem, RxRetRCB + 8) = RxRetRingLen << 16;
+  csr32(nic, RxProdBDRingIdx) = 0;
+  csr32(nic, RxProdBDRingIdx+4) = 0;
   
   asm("sti");
   SystemTimer::sleep(100);
@@ -339,74 +336,77 @@ void broadcom_BCM5751::activate() {
   // j += edev->ea[4] = i >> 8;
   // j += edev->ea[5] = i;
   
-  csr32(nic, EthernetRandomBackoff) = j & 0x3FF;
-  csr32(nic, ReceiveMTU) = Rbsz;
-  csr32(nic, TransmitMACLengths) = 0x2620;
-  csr32(nic, ReceiveListPlacement) = 1<<3;
-  csr32(nic, ReceiveListPlacementMask) = 0xFFFFFF;
-  csr32(nic, ReceiveListPlacementConfiguration) |= ReceiveStats;
-  csr32(nic, SendInitiatorMask) = 0xFFFFFF;
-  csr32(nic, SendInitiatorConfiguration) |= SendStats;
-  csr32(nic, HostCoalescingMode) = 0;
-  while(csr32(nic, HostCoalescingMode) != 0);
-  csr32(nic, HostCoalescingRecvTicks) = 150;
-  csr32(nic, HostCoalescingSendTicks) = 150;
-  csr32(nic, RecvMaxCoalescedFrames) = 10;
-  csr32(nic, SendMaxCoalescedFrames) = 10;
-  csr32(nic, RecvMaxCoalescedFramesInt) = 0;
-  csr32(nic, SendMaxCoalescedFramesInt) = 0;
+	csr32(nic, RandomBackoff) = j & 0x3FF;
+	csr32(nic, RxMTU) = Rbsz;
+	csr32(nic, TxMACLengths) = 0x2620;
+	csr32(nic, RxListPlacement) = 1<<3; /* one list */
+	csr32(nic, RxListPlacementMask) = 0xFFFFFF;
+	csr32(nic, RxListPlacementConf) |= RxStats;
+	csr32(nic, TxInitiatorMask) = 0xFFFFFF;
+	csr32(nic, TxInitiatorConf) |= TxStats;
+	csr32(nic, HostCoalMode) = 0;
+  while(csr32(nic, HostCoalMode) != 0);
+	csr32(nic, HostCoalRxTicks) = 150;
+	csr32(nic, HostCoalTxTicks) = 150;
+	csr32(nic, RxMaxCoalFrames) = 10;
+	csr32(nic, TxMaxCoalFrames) = 10;
+	csr32(nic, RxMaxCoalFramesInt) = 0;
+	csr32(nic, TxMaxCoalFramesInt) = 0;
   csr32(nic, StatusBlockHostAddr) = 0;
   csr32(nic, StatusBlockHostAddr + 4) = paddr((uint64_t) this->ctlr.status);
-  csr32(nic, HostCoalescingMode) |= Enable;
-  csr32(nic, ReceiveBDCompletionMode) |= Enable | Attn;
-  csr32(nic, ReceiveListPlacementMode) |= Enable;
-  csr32(nic, MACMode) |= MACEnable;
-  csr32(nic, MiscLocalControl) |= InterruptOnAttn | AutoSEEPROM;
-  csr32(nic, InterruptMailbox) = 0;
-  csr32(nic, WriteDMAMode) |= 0x200003fe;
-  csr32(nic, ReadDMAMode) |= 0x3fe;
-  csr32(nic, ReceiveDataCompletionMode) |= Enable | Attn;
-  csr32(nic, SendDataCompletionMode) |= Enable;
-  csr32(nic, SendBDCompletionMode) |= Enable | Attn;
-  csr32(nic, ReceiveBDInitiatorMode) |= Enable | Attn;
-  csr32(nic, ReceiveDataBDInitiatorMode) |= Enable | (1<<4);
-  csr32(nic, SendDataInitiatorMode) |= Enable;
-  csr32(nic, SendBDInitiatorMode) |= Enable | Attn;
-  csr32(nic, SendBDSelectorMode) |= Enable | Attn;
+	csr32(nic, HostCoalMode) |= Enable;
+	csr32(nic, RxBDCompletionMode) |= Enable | Attn;
+	csr32(nic, RxListPlacementMode) |= Enable;
+	csr32(nic, MACMode) |= MACEnable;
+	csr32(nic, MiscLocalControl) |= InterruptOnAttn | AutoSEEPROM;
+	csr32(nic, InterruptMailbox) = 0;
+	csr32(nic, WriteDMAMode) |= 0x200003fe; /* pulled out of my nose */
+	csr32(nic, ReadDMAMode) |= 0x3fe;
+	csr32(nic, RxDataCompletionMode) |= Enable | Attn;
+	csr32(nic, TxDataCompletionMode) |= Enable;
+	csr32(nic, TxBDCompletionMode) |= Enable | Attn;
+	csr32(nic, RxBDInitiatorMode) |= Enable | Attn;
+	csr32(nic, RxDataBDInitiatorMode) |= Enable | (1<<4);
+	csr32(nic, TxDataInitiatorMode) |= Enable;
+	csr32(nic, TxBDInitiatorMode) |= Enable | Attn;
+	csr32(nic, TxBDSelectorMode) |= Enable | Attn;
   this->ctlr.recvprodi = 0;
   
   while(this->replenish() >= 0);
   
-  csr32(nic, TransmitMACMode) |= Enable;
-  csr32(nic, ReceiveMACMode) |= Enable;
-  csr32(nic, PowerControlStatus) &= ~3;
-  csr32(nic, MIStatus) |= 1<<0;
-  csr32(nic, MACEventEnable) = 0;
-  csr32(nic, MACEventStatus) |= (1<<12);
-  csr32(nic, MIMode) = 0xC0000;
+	csr32(nic, TxMACMode) |= Enable;
+	csr32(nic, RxMACMode) |= Enable;
+	csr32(nic, Pwrctlstat) &= ~3;
+	csr32(nic, MIStatus) |= 1<<0;
+	csr32(nic, MACEventEnable) = 0;
+	csr32(nic, MACEventStatus) |= (1<<12);
+	csr32(nic, MIMode) = 0xC0000;		/* set base mii clock */
   
   asm("sti");
   SystemTimer::sleep(100);
   asm("cli");
   
-  this->miiw(nic, PhyControl, 1<<15);
-  while(this->miir(nic, PhyControl) & (1<<15));
-  this->miiw(nic, PhyAuxControl, 2);
-  this->miir(nic, PhyIntStatus);
-  this->miir(nic, PhyIntStatus);
-  this->miiw(nic, PhyIntMask, ~(1<<1));
+  this->miiw(nic, Bmcr, 1<<15);
+  while(this->miir(nic, Bmcr) & (1<<15));
+	miiw(nic, Bmcr, 4096 | 512);
+
+	miiw(nic, PhyAuxControl, 2);
+	miir(nic, PhyIntStatus);
+	miir(nic, PhyIntStatus);
+	miiw(nic, PhyIntMask, ~(1<<1));
   
   checklink();
   
-  csr32(nic, MACEventEnable) |= 1<<12;
-  csr32(nic, MACHash) = -1;
-  csr32(nic, MACHash+4) = -1;
-  csr32(nic, MACHash+8) = -1;
-  csr32(nic, MACHash+12) = -1;
-  for(i = 0; i < 8; i++) csr32(nic, ReceiveRules + 8 * i) = 0;
-  csr32(nic, ReceiveRulesConfiguration) = 1 << 3;
-  csr32(nic, MSIMode) |= Enable;
-  csr32(nic, MiscHostCtl) &= ~(MaskPCIInt | ClearIntA);
+	csr32(nic, MACEventEnable) |= 1<<12;
+	for(i = 0; i < 4; i++) {
+    csr32(nic, MACHash + 4*i) = ~0;
+  }
+	for(i = 0; i < 8; i++) {
+    csr32(nic, RxRules + 8 * i) = 0;
+  }
+	csr32(nic, RxRulesConf) = 1 << 3;
+	csr32(nic, MSIMode) |= Enable;
+	csr32(nic, MiscHostCtl) &= ~(MaskPCIInt | ClearIntA);
   
   asm("sti");
 }
@@ -476,7 +476,7 @@ void broadcom_BCM5751::send(common::uint8_t* buffer, int size) {
   uint32_t* next = 0;
   Block* bp = 0;
 
-  incr = (this->ctlr.sendri + 1) & (SendRingLen - 1);
+  incr = (this->ctlr.sendri + 1) & (TxRingLen - 1);
   if(incr == (this->ctlr.status[4] >> 16)) {
     printf("bcm: send queue full\n");
     return;
@@ -499,28 +499,25 @@ void broadcom_BCM5751::send(common::uint8_t* buffer, int size) {
   next = this->ctlr.sendr + this->ctlr.sendri * 4;
   next[0] = 0;
   next[1] = this->paddr((uint32_t) bp->rp);
-  next[2] = (BLEN(bp) << 16) | PacketEnd;
+  next[2] = ((bp->wp - bp->rp) << 16) | PacketEnd;
   next[3] = 0;
   this->ctlr.sends[this->ctlr.sendri] = bp;
-  csr32(this->ctlr.nic, SendBDRingHostIndex) = this->ctlr.sendri = incr;
+  csr32(this->ctlr.nic, TxBDRingHostIdx) = this->ctlr.sendri = incr;
 }
 
 void broadcom_BCM5751::receive() {
   Block* bp;
   uint32_t* pkt;
   uint32_t len;
-  uint64_t idx;
   
   while(pkt = currentrecvret()) {
-		idx = pkt[7] & (RecvProdRingLen - 1);
-		bp = this->ctlr.recvs[idx];
+		bp = this->ctlr.rxs[pkt[7]];
 
     if(bp == 0) {
 			printf("bcm: nil block -- shouldn't happen\n");
 			break;
 		}
-
-    this->ctlr.recvs[idx] = 0;
+    
     len = pkt[2] & 0xFFFF;
     bp->wp = bp->rp + len;
     if((pkt[3] & PacketEnd) == 0) printf("bcm: partial frame received\n");

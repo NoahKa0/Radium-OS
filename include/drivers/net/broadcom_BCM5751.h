@@ -12,163 +12,188 @@
   
   namespace sys {
     namespace drivers {
+      enum {					/* registers */
+        Bmcr		= 0x00,		/* Basic Mode Control */
+        Bmsr		= 0x01,		/* Basic Mode Status */
+        Phyidr1		= 0x02,		/* PHY Identifier #1 */
+        Phyidr2		= 0x03,		/* PHY Identifier #2 */
+        Anar		= 0x04,		/* Auto-Negotiation Advertisement */
+        Anlpar		= 0x05,		/* AN Link Partner Ability */
+        Aner		= 0x06,		/* AN Expansion */
+        Annptr		= 0x07,		/* AN Next Page TX */
+        Annprr		= 0x08,		/* AN Next Page RX */
+        Mscr		= 0x09,		/* MASTER-SLAVE Control */
+        Mssr		= 0x0a,		/* MASTER-SLAVE Status */
+        Esr		= 0x0f,		/* Extended Status */
+
+        NMiiPhyr	= 32,
+        NMiiPhy		= 32,
+      };
       enum {
-        RecvRetRingLen = 0x200,
-        RecvProdRingLen = 0x200,
-        SendRingLen = 0x200,
+        Ana10HD		= 0x0020,	/* Advertise 10BASE-T */
+        Ana10FD		= 0x0040,	/* Advertise 10BASE-T FD */
+        AnaTXHD		= 0x0080,	/* Advertise 100BASE-TX */
+        AnaTXFD		= 0x0100,	/* Advertise 100BASE-TX FD */
+        AnaT4		= 0x0200,	/* Advertise 100BASE-T4 */
+        AnaP		= 0x0400,	/* Pause */
+        AnaAP		= 0x0800,	/* Asymmetrical Pause */
+        AnaRf		= 0x2000,	/* Remote Fault */
+        AnaAck		= 0x4000,	/* Acknowledge */
+        AnaNp		= 0x8000,	/* Next Page Indication */
+
+	      Mssr1000THD	= 0x0400,	/* Link Partner 1000BASE-T HD able */
+	      Mssr1000TFD	= 0x0800,	/* Link Partner 1000BASE-T FD able */
       };
 
       enum {
-        Reset = 1<<0,
-        Enable = 1<<1,
-        Attn = 1<<2,
-        
-        PowerControlStatus = 0x4C,
+        /* configurable constants */
+        RxRetRingLen 		= 0x200,
+        RxProdRingLen 		= 0x200,
+        TxRingLen 		= 0x200,
 
-        MiscHostCtl = 0x68,
-        ClearIntA = 1<<0,
-        MaskPCIInt = 1<<1,
-        IndirectAccessEnable = 1<<7,
-        EnablePCIStateRegister = 1<<4,
-        EnableClockControlRegister = 1<<5,
-        TaggedStatus = 1<<9,
-        
-        DMARWControl = 0x6C,
-        DMAWatermarkMask = ~(7<<19),
-        DMAWatermarkValue = 3<<19,
+        Reset 			= 1<<0,
+        Enable 			= 1<<1,
+        Attn 			= 1<<2,
 
-        MemoryWindow = 0x7C,
-        MemoryWindowData = 0x84,
-        
-        SendRCB = 0x100,
-        RecvRetRCB = 0x200,
-        
-        InterruptMailbox = 0x204,
-        
-        RecvProdBDRingIndex = 0x26c,
-        RecvBDRetRingIndex = 0x284,
-        SendBDRingHostIndex = 0x304,
-        
-        MACMode = 0x400,
-        MACPortMask = ~((1<<3)|(1<<2)),
-        MACPortGMII = 1<<3,
-        MACPortMII = 1<<2,
-        MACEnable = (1<<23) | (1<<22) | (1<<21) | (1 << 15) | (1 << 14) | (1<<12) | (1<<11),
-        MACHalfDuplex = 1<<1,
-        
-        MACEventStatus = 0x404,
-        MACEventEnable = 0x408,
-        MACAddress = 0x410,
-        EthernetRandomBackoff = 0x438,
-        ReceiveMTU = 0x43C,
-        MIComm = 0x44C,
-        MIStatus = 0x450,
-        MIMode = 0x454,
-        ReceiveMACMode = 0x468,
-        TransmitMACMode = 0x45C,
-        TransmitMACLengths = 0x464,
-        MACHash = 0x470,
-        ReceiveRules = 0x480,
-        
-        ReceiveRulesConfiguration = 0x500,
-        LowWatermarkMaximum = 0x504,
-        LowWatermarkMaxMask = ~0xFFFF,
-        LowWatermarkMaxValue = 2,
+        Pwrctlstat 		= 0x4C,
 
-        SendDataInitiatorMode = 0xC00,
-        SendInitiatorConfiguration = 0x0C08,
-        SendStats = 1<<0,
-        SendInitiatorMask = 0x0C0C,
-        
-        SendDataCompletionMode = 0x1000,
-        SendBDSelectorMode = 0x1400,
-        SendBDInitiatorMode = 0x1800,
-        SendBDCompletionMode = 0x1C00,
-        
-        ReceiveListPlacementMode = 0x2000,
-        ReceiveListPlacement = 0x2010,
-        ReceiveListPlacementConfiguration = 0x2014,
-        ReceiveStats = 1<<0,
-        ReceiveListPlacementMask = 0x2018,
-        
-        ReceiveDataBDInitiatorMode = 0x2400,
-        ReceiveBDHostAddr = 0x2450,
-        ReceiveBDFlags = 0x2458,
-        ReceiveBDNIC = 0x245C,
-        ReceiveDataCompletionMode = 0x2800,
-        ReceiveBDInitiatorMode = 0x2C00,
-        ReceiveBDRepl = 0x2C18,
-        
-        ReceiveBDCompletionMode = 0x3000,
-        HostCoalescingMode = 0x3C00,
-        HostCoalescingRecvTicks = 0x3C08,
-        HostCoalescingSendTicks = 0x3C0C,
-        RecvMaxCoalescedFrames = 0x3C10,
-        SendMaxCoalescedFrames = 0x3C14,
-        RecvMaxCoalescedFramesInt = 0x3C20,
-        SendMaxCoalescedFramesInt = 0x3C24,
-        StatusBlockHostAddr = 0x3C38,
-        FlowAttention = 0x3C48,
+        MiscHostCtl 		= 0x68,
+        TaggedStatus		= 1<<9,
+        IndirAccessEn		= 1<<7,
+        EnableClockCtl		= 1<<5,
+        PCIStateRegEn		= 1<<4,
+        WordSwap		= 1<<3,
+        ByteSwap		= 1<<2,
+        MaskPCIInt		= 1<<1,
+        ClearIntA		= 1<<0,
 
-        MemArbiterMode = 0x4000,
-        
-        BufferManMode = 0x4400,
-        
-        MBUFLowWatermark = 0x4414,
-        MBUFHighWatermark = 0x4418,
-        
-        ReadDMAMode = 0x4800,
-        ReadDMAStatus = 0x4804,
-        WriteDMAMode = 0x4C00,
-        WriteDMAStatus = 0x4C04,
-        
-        RISCState = 0x5004,
-        FTQReset = 0x5C00,
-        MSIMode = 0x6000,
-        
-        ModeControl = 0x6800,
-        ByteWordSwap = (1<<4)|(1<<5)|(1<<2),//|(1<<1),
-        HostStackUp = 1<<16,
-        HostSendBDs = 1<<17,
-        InterruptOnMAC = 1<<26,
-        
-        MiscConfiguration = 0x6804,
-        CoreClockBlocksReset = 1<<0,
-        GPHYPowerDownOverride = 1<<26,
-        DisableGRCResetOnPCIE = 1<<29,
-        TimerMask = ~0xFF,
-        TimerValue = 65<<1,
-        MiscLocalControl = 0x6808,
-        InterruptOnAttn = 1<<3,
-        AutoSEEPROM = 1<<24,
-        
-        SwArbitration = 0x7020,
-        SwArbitSet1 = 1<<1,
-        SwArbitWon1 = 1<<9,
-        TLPControl = 0x7C00,
-        
-        PhyControl = 0x00,
-        PhyStatus = 0x01,
-        PhyLinkStatus = 1<<2,
-        PhyAutoNegComplete = 1<<5,
-        PhyPartnerStatus = 0x05,
-        Phy100FD = 1<<8,
-        Phy100HD = 1<<7,
-        Phy10FD = 1<<6,
-        Phy10HD = 1<<5,
-        PhyGbitStatus = 0x0A,
-        Phy1000FD = 1<<12,
-        Phy1000HD = 1<<11,
-        PhyAuxControl = 0x18,
-        PhyIntStatus = 0x1A,
-        PhyIntMask = 0x1B,
-        
-        Updated = 1<<0,
-        LinkStateChange = 1<<1,
-        Error = 1<<2,
-        
-        PacketEnd = 1<<2,
-        FrameError = 1<<10,
+        Fwmbox			= 0x0b50,	/* magic value exchange */
+        Fwmagic			= 0x4b657654,
+
+        Dmarwctl 		= 0x6C,
+        DMAWaterMask		= ~(7<<19),
+        DMAWaterValue		= 3<<19,
+
+        Memwind		= 0x7C,
+        MemwindData		= 0x84,
+
+        TxRCB 			= 0x100,
+        RxRetRCB 		= 0x200,
+
+        InterruptMailbox 		= 0x204,
+
+        RxProdBDRingIdx	= 0x26c,
+        RxBDRetRingIdx		= 0x284,
+        TxBDRingHostIdx	= 0x304,
+
+        MACMode		= 0x400,
+        MACPortMask		= ~(1<<3 | 1<<2),
+        MACPortGMII		= 1<<3,
+        MACPortMII		= 1<<2,
+        MACEnable		= 1<<23 | 1<<22 | 1<<21 | 1 << 15 | 1 << 14 | 1<<12 | 1<<11,
+        MACHalfDuplex		= 1<<1,
+
+        MACEventStatus		= 0x404,
+        MACEventEnable	= 0x408,
+        MACAddress		= 0x410,
+        RandomBackoff		= 0x438,
+        RxMTU			= 0x43C,
+        MIComm		= 0x44C,
+        MIStatus		= 0x450,
+        MIMode			= 0x454,
+        RxMACMode		= 0x468,
+        TxMACMode		= 0x45C,
+        TxMACLengths		= 0x464,
+        MACHash		= 0x470,
+        RxRules			= 0x480,
+
+        RxRulesConf		= 0x500,
+        LowWaterMax		= 0x504,
+        LowWaterMaxMask	= ~0xFFFF,
+        LowWaterMaxValue	= 2,
+
+        TxDataInitiatorMode	= 0xC00,
+        TxInitiatorConf		= 0x0C08,
+        TxStats			= 1<<0,
+        TxInitiatorMask		= 0x0C0C,
+
+        TxDataCompletionMode	= 0x1000,
+        TxBDSelectorMode	= 0x1400,
+        TxBDInitiatorMode	= 0x1800,
+        TxBDCompletionMode	= 0x1C00,
+
+        RxListPlacementMode	= 0x2000,
+        RxListPlacement		= 0x2010,
+        RxListPlacementConf	= 0x2014,
+        RxStats			= 1<<0,
+        RxListPlacementMask	= 0x2018,
+
+        RxDataBDInitiatorMode	= 0x2400,
+        RxBDHostAddr		= 0x2450,
+        RxBDFlags		= 0x2458,
+        RxBDNIC		= 0x245C,
+        RxDataCompletionMode	= 0x2800,
+        RxBDInitiatorMode	= 0x2C00,
+        RxBDRepl		= 0x2C18,
+
+        RxBDCompletionMode	= 0x3000,
+        HostCoalMode		= 0x3C00,
+        HostCoalRxTicks		= 0x3C08,
+        HostCoalTxTicks		= 0x3C0C,
+        RxMaxCoalFrames	= 0x3C10,
+        TxMaxCoalFrames	= 0x3C14,
+        RxMaxCoalFramesInt	= 0x3C20,
+        TxMaxCoalFramesInt	= 0x3C24,
+        StatusBlockHostAddr	= 0x3C38,
+        FlowAttention		= 0x3C48,
+
+        MemArbiterMode		= 0x4000,
+
+        BufferManMode		= 0x4400,
+
+        MBUFLowWater		= 0x4414,
+        MBUFHighWater		= 0x4418,
+
+        ReadDMAMode		= 0x4800,
+        ReadDMAStatus		= 0x4804,
+        WriteDMAMode		= 0x4C00,
+        WriteDMAStatus		= 0x4C04,
+
+        RISCState		= 0x5004,
+        FTQReset		= 0x5C00,
+        MSIMode		= 0x6000,
+
+        ModeControl		= 0x6800,
+        ByteWordSwap		= 1<<4 | 1<<5 | 1<<2, // | 1<<1,
+        HostStackUp		= 1<<16,
+        HostTxBDs		= 1<<17,
+        InterruptOnMAC		= 1<<26,
+
+        MiscConf		= 0x6804,
+        CoreClockBlocksReset	= 1<<0,
+        GPHYPwrdnOverride	= 1<<26,
+        DisableGRCRstOnPpcie	= 1<<29,
+        TimerMask		= ~0xFF,
+        TimerValue		= 65<<1,
+        MiscLocalControl		= 0x6808,
+        InterruptOnAttn		= 1<<3,
+        AutoSEEPROM		= 1<<24,
+
+        SwArbit			= 0x7020,
+        SwArbitSet1		= 1<<1,
+        SwArbitWon1		= 1<<9,
+        Pcitlplpl			= 0x7C00,	/* "lower 1k of the pcie pl regs" ?? */
+
+        PhyAuxControl		= 0x18,
+        PhyIntStatus		= 0x1A,
+        PhyIntMask		= 0x1B,
+
+        Updated			= 1<<0,
+        LinkStateChange		= 1<<1,
+        Error			= 1<<2,
+
+        PacketEnd		= 1<<2,
+        FrameError		= 1<<10,
       };
       
       struct Block {
@@ -194,7 +219,7 @@
         common::uint32_t port;
         common::uint32_t recvreti, recvprodi, sendri, sendcleani;
         Block** sends;
-        Block** recvs;
+        Block** rxs;
         int active, duplex;
       };
       
