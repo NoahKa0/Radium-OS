@@ -187,9 +187,9 @@
         common::uint32_t* nic;
         common::uint32_t* status;
         
-        common::uint32_t* recvret;
-        common::uint32_t* recvprod;
-        common::uint32_t* sendr;
+        common::uint64_t* recvret;
+        common::uint64_t* recvprod;
+        common::uint64_t* sendr;
         
         common::uint32_t port;
         common::uint32_t recvreti, recvprodi, sendri, sendcleani;
@@ -223,7 +223,7 @@
         static common::int32_t miir(common::uint32_t* nic, common::int32_t ra);
         static common::int32_t miiw(common::uint32_t* nic, common::int32_t ra, common::int32_t value);
         
-        common::uint32_t* currentrecvret();
+        common::uint64_t* currentrecvret();
         void consumerecvret();
         
         void checklink();
