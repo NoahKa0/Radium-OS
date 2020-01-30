@@ -22,7 +22,7 @@ Block* broadcom_BCM5751::allocb(common::uint32_t size) {
   
   // The 16 and 64 variables come from Hdrspc = 64, Tlrspc = 16, in original driver.
   size += 16;
-  b = (Block*) MemoryManager::activeMemoryManager->malloc((sizeof(Block)+size+(64))*2);
+  b = (Block*) MemoryManager::activeMemoryManager->malloc(sizeof(Block)+size+(64));
   
   if(b == 0) {
     printf("broadcom_BCM5751-allocb->malloc failed!\nPANIC!\n");
@@ -87,11 +87,11 @@ int32_t broadcom_BCM5751::miiw(uint32_t* nic, int32_t ra, int32_t value) {
 }
 
 common::int32_t broadcom_BCM5751::replenish(Block* bp) {
-  uint64_t* next;
+  uint32_t* next;
   uint32_t incr;
   uint32_t idx;
   
-  printf("+");
+  printf(".");
 
   idx = this->ctlr.recvprodi;
   incr = (this->ctlr.recvprodi + 1) & (RecvProdRingLen - 1);
@@ -132,7 +132,7 @@ uint64_t broadcom_BCM5751::paddr(uint64_t a) {
   return (a) & ~0xFFFFFFFFF0000000ull;
 }
 
-uint64_t* broadcom_BCM5751::currentrecvret() {
+uint32_t* broadcom_BCM5751::currentrecvret() {
 	if(this->ctlr.recvreti == (this->ctlr.status[4] & 0xFFFF)) return 0;
 	return this->ctlr.recvret + this->ctlr.recvreti * 8;
 }
@@ -218,9 +218,9 @@ InterruptHandler(device->interrupt + 0x20, interruptManager) // hardware interru
   this->ctlr.port = (uint32_t) device->portBase;
   
   this->ctlr.status = (uint32_t*) this->allocb(20+16);
-  this->ctlr.recvprod = (uint64_t*) this->allocb(32 * RecvProdRingLen + 16);
-  this->ctlr.recvret = (uint64_t*) this->allocb(32 * RecvRetRingLen + 16);
-  this->ctlr.sendr = (uint64_t*) this->allocb(16 * SendRingLen + 16);
+  this->ctlr.recvprod = (uint32_t*) this->allocb(32 * RecvProdRingLen + 16);
+  this->ctlr.recvret = (uint32_t*) this->allocb(32 * RecvRetRingLen + 16);
+  this->ctlr.sendr = (uint32_t*) this->allocb(16 * SendRingLen + 16);
   
   this->ctlr.sends = (Block**) MemoryManager::activeMemoryManager->malloc(sizeof(this->ctlr.sends[0]) * SendRingLen);
   this->ctlr.recvs = (Block**) MemoryManager::activeMemoryManager->malloc(sizeof(this->ctlr.recvs[0]) * RecvProdRingLen);
@@ -473,7 +473,7 @@ void broadcom_BCM5751::send(common::uint8_t* buffer, int size) {
   this->bcmtransclean();
   
   uint64_t incr = 0;
-  uint64_t* next = 0;
+  uint32_t* next = 0;
   Block* bp = 0;
 
   incr = (this->ctlr.sendri + 1) & (SendRingLen - 1);
@@ -507,7 +507,7 @@ void broadcom_BCM5751::send(common::uint8_t* buffer, int size) {
 
 void broadcom_BCM5751::receive() {
   Block* bp;
-  uint64_t* pkt;
+  uint32_t* pkt;
   uint32_t len;
   uint64_t idx;
   
