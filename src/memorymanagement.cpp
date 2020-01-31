@@ -22,10 +22,17 @@ MemoryManager::MemoryManager(size_t start, size_t size) {
 MemoryManager::~MemoryManager() {}
 
 void* MemoryManager::malloc(size_t size) {
+  return mallocalign(size, 0);
+}
+
+void printf(char*);
+void printHex32(uint32_t);
+
+void* MemoryManager::mallocalign(size_t size, size_t alignment) {
   MemoryChunk* result = 0;
   
   for(MemoryChunk* i = first; i != 0 && result == 0; i = i->next) {
-    if(i->size > size && !i->allocated) {
+    if(i->size > size + alignment && !i->allocated) {
       result = i;
     }
   }
@@ -34,7 +41,33 @@ void* MemoryManager::malloc(size_t size) {
     return 0;
   }
   
-  result->allocated = true; // If multiple tasks are allocating memory the other task won't bother our current chunk.
+  result->allocated = true;
+
+  size_t alignmentError = (size_t)result + sizeof(MemoryChunk);
+  if(alignment != 0) { // n % 0, throws an error.
+    alignmentError %= alignment;
+  } else {
+    alignmentError = 0;
+  }
+
+  // When alignment doesn't match, the whole chunk should be moved forward.
+  if(alignmentError != 0 && result != first) {
+    size_t diff = alignment - alignmentError;
+    size_t size = result->size - diff;
+    MemoryChunk* prev = result->previous;
+    MemoryChunk* next = result->next;
+
+    result += diff;
+    result->allocated = true;
+    result->next = next;
+    result->previous = prev;
+    result->size = size;
+    
+    if(next != 0) next->previous = result;
+    prev->next = result;
+    prev->size += diff; // Alignment is asually small enough that it isn't worth checking if a new chunk can be created.
+  }
+
   if(result->size > size+sizeof(MemoryChunk) + 1) {
     MemoryChunk* tmp = (MemoryChunk*) ((size_t) result + sizeof(MemoryChunk)+size);
     tmp->allocated = false;
@@ -48,6 +81,7 @@ void* MemoryManager::malloc(size_t size) {
     }
     result->next = tmp;
   }
+
   return (void*) (((size_t) result) + sizeof(MemoryChunk));
 }
 

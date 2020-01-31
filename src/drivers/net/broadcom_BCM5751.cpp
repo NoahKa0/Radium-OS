@@ -22,7 +22,7 @@ Block* broadcom_BCM5751::allocb(common::uint32_t size) {
   
   // The 16 and 64 variables come from Hdrspc = 64, Tlrspc = 16, in original driver.
   size += 16;
-  b = (Block*) MemoryManager::activeMemoryManager->malloc(sizeof(Block)+size+(64));
+  b = (Block*) MemoryManager::activeMemoryManager->mallocalign(sizeof(Block)+size+(64), 32);
   
   if(b == 0) {
     printf("broadcom_BCM5751-allocb->malloc failed!\nPANIC!\n");
@@ -217,10 +217,10 @@ InterruptHandler(device->interrupt + 0x20, interruptManager) // hardware interru
   this->ctlr.port = (uint32_t) device->portBase;
 
   // NOTICE: Objects below are 16-bit aligned in original driver, i should make a version of malloc that can allign.
-  this->ctlr.status = (uint32_t*) this->allocb(20+16);
-  this->ctlr.recvprod = (uint32_t*) this->allocb(32 * RxProdRingLen + 16);
-  this->ctlr.recvret = (uint32_t*) this->allocb(32 * RxRetRingLen + 16);
-  this->ctlr.sendr = (uint32_t*) this->allocb(16 * TxRingLen + 16);
+  this->ctlr.status = (uint32_t*) MemoryManager::activeMemoryManager->mallocalign(20+16, 16);
+  this->ctlr.recvprod = (uint32_t*) MemoryManager::activeMemoryManager->mallocalign(32 * RxProdRingLen + 16, 16);
+  this->ctlr.recvret = (uint32_t*) MemoryManager::activeMemoryManager->mallocalign(32 * RxRetRingLen + 16, 16);
+  this->ctlr.sendr = (uint32_t*) MemoryManager::activeMemoryManager->mallocalign(16 * TxRingLen + 16, 16);
   
   this->ctlr.sends = (Block**) MemoryManager::activeMemoryManager->malloc(sizeof(this->ctlr.sends[0]) * TxRingLen);
   this->ctlr.rxs = (Block**) MemoryManager::activeMemoryManager->malloc(sizeof(this->ctlr.sends[0]) * TxRingLen);
