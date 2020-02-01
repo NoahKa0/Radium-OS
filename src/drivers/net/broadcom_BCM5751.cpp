@@ -459,7 +459,6 @@ common::uint32_t broadcom_BCM5751::handleInterrupt(common::uint32_t esp) {
   
 	if(status & LinkStateChange) this->checklink();
 	this->receive();
-	this->bcmtransclean();
 	csr32(nic, InterruptMailbox) = tag << 24;
   
   return esp;
@@ -502,7 +501,9 @@ void broadcom_BCM5751::send(common::uint8_t* buffer, int size) {
   next[2] = ((bp->wp - bp->rp) << 16) | PacketEnd;
   next[3] = 0;
   this->ctlr.sends[this->ctlr.sendri] = bp;
-  csr32(this->ctlr.nic, TxBDRingHostIdx) = this->ctlr.sendri = incr;
+
+  this->ctlr.sendri = incr;
+  csr32(this->ctlr.nic, TxBDRingHostIdx) = this->ctlr.sendri;
 }
 
 void broadcom_BCM5751::receive() {
