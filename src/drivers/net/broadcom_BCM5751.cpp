@@ -511,6 +511,7 @@ void broadcom_BCM5751::transmit() {
     if(bp == 0) {
       break;
     }
+    sendBuffer[sendWrite] = 0;
     sendWrite = (sendWrite + 1) % TxRingLen;
 
     next = this->ctlr.sendr + this->ctlr.sendri * 4;
