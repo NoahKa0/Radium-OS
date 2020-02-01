@@ -235,6 +235,10 @@
         sys::hardware::PeripheralComponentDeviceDescriptor* device;
         common::uint64_t macAddress; // Original stored in EDev, but i don't have EDev.
         BCM5751_Ctlr ctlr;
+
+        Block** sendBuffer;
+        common::uint32_t sendRead;
+        common::uint32_t sendWrite;
         
         // Allocb, memset, paddr and struct block where actually not part of this driver, but i didn't have them.
         Block* allocb(common::uint32_t size);
@@ -257,6 +261,7 @@
         
         common::int32_t mbps;
         common::int32_t link;
+        common::uint32_t ipAddr;
       public:
         broadcom_BCM5751(sys::hardware::PeripheralComponentDeviceDescriptor* device, sys::hardware::InterruptManager* interruptManager);
         ~broadcom_BCM5751();
@@ -267,6 +272,8 @@
         virtual common::uint32_t handleInterrupt(common::uint32_t esp);
         
         virtual void send(common::uint8_t* buffer, int size);
+        void transmit();
+
         virtual void receive();
         virtual common::uint64_t getMacAddress();
         

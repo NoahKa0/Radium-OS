@@ -204,6 +204,8 @@ InterruptHandler(device->interrupt + 0x20, interruptManager) // hardware interru
     }
   }
 
+  this->ipAddr = 0;
+
   // Enable MAC memory space decode and bus mastering.
   uint32_t pciCommandRead = this->device->read(0x04);
   pciCommandRead |= 0x06;
@@ -224,6 +226,11 @@ InterruptHandler(device->interrupt + 0x20, interruptManager) // hardware interru
   
   this->ctlr.sends = (Block**) MemoryManager::activeMemoryManager->malloc(sizeof(this->ctlr.sends[0]) * TxRingLen);
   this->ctlr.rxs = (Block**) MemoryManager::activeMemoryManager->malloc(sizeof(this->ctlr.sends[0]) * TxRingLen);
+
+  sendBuffer = (Block**) MemoryManager::activeMemoryManager->malloc(sizeof(this->ctlr.sends[0]) * TxRingLen); 
+  for(int i = 0; i < TxRingLen; i++) sendBuffer[i] = 0;
+  sendRead = 0;
+  sendWrite = 0;
   
   setSelectedEthernetDriver(this); // Make this instance accessable in kernel.cpp
 }
@@ -459,35 +466,23 @@ common::uint32_t broadcom_BCM5751::handleInterrupt(common::uint32_t esp) {
   
 	if(status & LinkStateChange) this->checklink();
 	this->receive();
+  this->bcmtransclean();
+  this->transmit();
 	csr32(nic, InterruptMailbox) = tag << 24;
   
   return esp;
 }
 
 void broadcom_BCM5751::send(common::uint8_t* buffer, int size) {
+  if((sendWrite+1) % TxRingLen == sendRead) { // Send buffer full
+    return;
+  }
+
   if(size > sizeof(Etherpacket)) {
     size = sizeof(Etherpacket);
   }
 
-  this->bcmtransclean();
-  
-  uint64_t incr = 0;
-  uint32_t* next = 0;
-  Block* bp = 0;
-
-  incr = (this->ctlr.sendri + 1) & (TxRingLen - 1);
-  if(incr == (this->ctlr.status[4] >> 16)) {
-    printf("bcm: send queue full\n");
-    return;
-  }
-
-  if(incr == this->ctlr.sendcleani) {
-    if(incr == this->ctlr.sendcleani)
-      return;
-  }
-  
-  // The original driver fetches a block from a que, but we don't have that, so setup a new one.
-  bp = this->allocb(Rbsz);
+  Block* bp = this->allocb(Rbsz);
   if(bp == 0) return;
   bp->wp = bp->rp + size;
   uint8_t* blockData = bp->rp;
@@ -495,15 +490,39 @@ void broadcom_BCM5751::send(common::uint8_t* buffer, int size) {
     blockData[i] = buffer[i];
   }
 
-  next = this->ctlr.sendr + this->ctlr.sendri * 4;
-  next[0] = 0;
-  next[1] = this->paddr((uint32_t) bp->rp);
-  next[2] = ((bp->wp - bp->rp) << 16) | PacketEnd;
-  next[3] = 0;
-  this->ctlr.sends[this->ctlr.sendri] = bp;
+  sendBuffer[sendWrite] = bp;
 
-  this->ctlr.sendri = incr;
-  csr32(this->ctlr.nic, TxBDRingHostIdx) = this->ctlr.sendri;
+  sendWrite = (sendWrite + 1) % TxRingLen;
+}
+
+void broadcom_BCM5751::transmit() {
+  uint64_t incr = 0;
+  uint32_t* next = 0;
+  Block* bp = 0;
+
+  while(true) {
+    incr = (this->ctlr.sendri + 1) & (TxRingLen - 1);
+    if(incr == this->ctlr.sendcleani) {
+      printf("bcm: send queue full\n");
+      break;
+    }
+
+    bp = sendBuffer[sendWrite];
+    if(bp == 0) {
+      break;
+    }
+    sendWrite = (sendWrite + 1) % TxRingLen;
+
+    next = this->ctlr.sendr + this->ctlr.sendri * 4;
+    next[0] = 0;
+    next[1] = this->paddr((uint32_t) bp->rp);
+    next[2] = ((bp->wp - bp->rp) << 16) | PacketEnd;
+    next[3] = 0;
+    this->ctlr.sends[this->ctlr.sendri] = bp;
+
+    this->ctlr.sendri = incr;
+    csr32(this->ctlr.nic, TxBDRingHostIdx) = this->ctlr.sendri;
+  }
 }
 
 void broadcom_BCM5751::receive() {
@@ -543,10 +562,9 @@ uint64_t broadcom_BCM5751::getMacAddress() {
 }
 
 uint32_t broadcom_BCM5751::getIpAddress() {
-  // TODO
-  return 0;
+  return this->ipAddr;
 }
 
 void broadcom_BCM5751::setIpAddress(uint32_t ip) {
-  // TODO
+  this->ipAddr = ip;
 }
