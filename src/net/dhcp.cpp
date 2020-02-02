@@ -34,7 +34,6 @@ DynamicHostConfigurationProtocol::~DynamicHostConfigurationProtocol() {
 void DynamicHostConfigurationProtocol::handleUserDatagramProtocolMessage(UserDatagramProtocolSocket* socket, uint8_t* data, uint32_t length) {
   if(length < sizeof(DynamicHostConfigurationProtocolHeader)) return; // Our header size is the minimum required size, this message is invalid.
   DynamicHostConfigurationProtocolHeader* message = (DynamicHostConfigurationProtocolHeader*) data;
-  
   if(message->optionsMagicCookie == this->magicCookie
     && message->identifier == this->identifier
     && message->operationCode == 2)
@@ -106,10 +105,10 @@ void DynamicHostConfigurationProtocol::sendDiscover() {
 }
 
 void DynamicHostConfigurationProtocol::handleOffer(DynamicHostConfigurationProtocolHeader* message, DynamicHostConfigurationOptionsInfo* info) {
-  if(message->serverAddress == 0 || message->myAddress == 0 || this->ip_firstOffer != 0) return;
+  if(message->myAddress == 0 || this->ip_firstOffer != 0) return;
   
   // Save data.
-  this->ip_firstOffer = message->serverAddress;
+  this->ip_firstOffer = message->myAddress;
   this->ip = message->myAddress;
   this->lease = info->lease;
   this->defaultGateway = info->defaultGateway;
@@ -174,7 +173,7 @@ void DynamicHostConfigurationProtocol::sendRequest(DynamicHostConfigurationProto
 }
 
 void DynamicHostConfigurationProtocol::handleAck(DynamicHostConfigurationProtocolHeader* message, DynamicHostConfigurationOptionsInfo* info, bool nak) {
-  if(message->serverAddress == 0 || this->ip_firstOffer != message->serverAddress) return;
+  if(this->ip_firstOffer != message->myAddress) return;
   if(nak) {
     printf("DHCP NAK!\n");
     return;

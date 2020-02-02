@@ -13,7 +13,7 @@ uint32_t bigEndian32(uint32_t n) {
 
 TransmissionControlProtocolSocket::TransmissionControlProtocolSocket(TransmissionControlProtocolProvider* backend) {
   // Initialize send buffers.
-  this->sendBufferSize = 16;
+  this->sendBufferSize = 128;
   uint8_t** sendBuffer = new uint8_t*[this->sendBufferSize]; // New array of uint8_t* returns a pointer to that array (so it's a pointer to a pointer),
   this->sendBufferPtr = (uint8_t*)sendBuffer;
   this->sendBufferPosition = 0;
@@ -23,7 +23,7 @@ TransmissionControlProtocolSocket::TransmissionControlProtocolSocket(Transmissio
   }
   
   // Initialize receive buffers.
-  this->recvBufferSize = 16;
+  this->recvBufferSize = 128;
   uint8_t** recvBuffer = new uint8_t*[this->recvBufferSize]; // New array of uint8_t* returns a pointer to that array (so it's a pointer to a pointer),
   this->recvBufferPtr = (uint8_t*)recvBuffer;
   this->recvBufferPosition = 0;
@@ -106,7 +106,7 @@ void TransmissionControlProtocolSocket::removeOldPackets(uint32_t acknum) {
     // Check to see if packet sequenceNumber is acked.
     // The second part is to detect when the ack number wraps around
     if(packet != 0
-      && (packet->sequenceNumber <= acknum || ((packet->sequenceNumber & 0xC0000000) == 0xC0000000 && (acknum & 0x80000000) != 0x80000000)))
+      && (packet->sequenceNumber < acknum || ((packet->sequenceNumber & 0xF0000000) != 0 && (acknum & 0xFF000000) == 0)))
     {
       this->deleteSendPacket(i);
     }

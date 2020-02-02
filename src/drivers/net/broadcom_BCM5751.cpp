@@ -22,7 +22,7 @@ Block* broadcom_BCM5751::allocb(common::uint32_t size) {
   
   // The 16 and 64 variables come from Hdrspc = 64, Tlrspc = 16, in original driver.
   size += 16;
-  b = (Block*) MemoryManager::activeMemoryManager->mallocalign(sizeof(Block)+size+(64), 32);
+  b = (Block*) MemoryManager::activeMemoryManager->mallocalign(sizeof(Block)+size+(64)+32, 32);
   
   if(b == 0) {
     printf("broadcom_BCM5751-allocb->malloc failed!\nPANIC!\n");
@@ -47,10 +47,15 @@ Block* broadcom_BCM5751::allocb(common::uint32_t size) {
   addr = addr + sizeof(Block);
   b->base = (uint8_t*) addr;
   
-  b->lim = (uint8_t*) b + (sizeof(Block)+size+(64));
+  b->lim = (uint8_t*) b + (sizeof(Block)+size+(64)+32);
 
   // leave space for added headers
   b->rp = b->lim - size;
+  uint32_t mod = ((uint32_t) b->rp) % 32;
+  if(mod != 0) {
+    b->lim -= mod;
+    b->rp -= mod;
+  }
   if(b->rp < b->base) {
     printf("broadcom_BCM5751-allocb rp < base!\nPANIC!\n");
     while(true) {
@@ -89,8 +94,6 @@ int32_t broadcom_BCM5751::miiw(uint32_t* nic, int32_t ra, int32_t value) {
 common::int32_t broadcom_BCM5751::replenish(Block* bp) {
   uint32_t* next;
   uint32_t incr;
-  
-  printf(".");
   
   incr = (this->ctlr.recvprodi + 1) & (RxProdRingLen - 1);
   if(incr == (this->ctlr.status[2] >> 16)) return -1;
@@ -217,8 +220,10 @@ InterruptHandler(device->interrupt + 0x20, interruptManager) // hardware interru
   
   this->ctlr.nic = (uint32_t*) device->addressBase;
   this->ctlr.port = (uint32_t) device->portBase;
-
-  // NOTICE: Objects below are 16-bit aligned in original driver, i should make a version of malloc that can allign.
+  
+  this->ctlr.sendcleani = 0;
+  this->ctlr.sendri = 0;
+  
   this->ctlr.status = (uint32_t*) MemoryManager::activeMemoryManager->mallocalign(20+16, 16);
   this->ctlr.recvprod = (uint32_t*) MemoryManager::activeMemoryManager->mallocalign(32 * RxProdRingLen + 16, 16);
   this->ctlr.recvret = (uint32_t*) MemoryManager::activeMemoryManager->mallocalign(32 * RxRetRingLen + 16, 16);
@@ -242,18 +247,12 @@ void broadcom_BCM5751::activate() {
   uint32_t* nic = this->ctlr.nic;
   uint32_t* mem = nic + 0x2000;
   
-  printf("BCM Starting at ");
-  printHex32((uint32_t) nic);
-  printf("\n");
-  
   csr32(nic, MiscHostCtl) |= MaskPCIInt | ClearIntA | WordSwap | IndirAccessEn;
   csr32(nic, SwArbit) |= SwArbitSet1;
   
-  printf("While 1 ");
   while((csr32(nic, SwArbit) & SwArbitWon1) == 0) {
     SystemTimer::sleep(40);
   }
-  printf("'n");
   
 	csr32(nic, MemArbiterMode) |= Enable;
 	csr32(nic, MiscHostCtl) = WordSwap | IndirAccessEn | PCIStateRegEn | EnableClockCtl
@@ -270,12 +269,6 @@ void broadcom_BCM5751::activate() {
   pciCommandRead |= 0x06; // 0x04 | 0x02
   this->device->write(0x04, pciCommandRead);
   
-  printf(" ");
-  printHex32(pciCommandRead);
-  printf(" ");
-  printHex32(this->device->read(0x04));
-  printf("\n");
-  
 	csr32(nic, MiscHostCtl) |= MaskPCIInt | ClearIntA;
 	csr32(nic, MemArbiterMode) |= Enable;
 	csr32(nic, MiscHostCtl) |= WordSwap | IndirAccessEn | PCIStateRegEn | EnableClockCtl | TaggedStatus;
@@ -284,7 +277,6 @@ void broadcom_BCM5751::activate() {
   
   SystemTimer::sleep(100); // Original driver sleeps for 40 ms, but the timer isn't that accurate.
   
-  printf("While 2\n");
   while(csr32(mem, 0xB50) != 0xB49A89AB) {
     SystemTimer::sleep(100);
   }
@@ -331,17 +323,17 @@ void broadcom_BCM5751::activate() {
   SystemTimer::sleep(100);
   asm("cli");
   
+  // NOTICE this mess is because i messed up how the mac address is send, i should clean this up.
   i = csr32(nic, 0x410); // I don't know what this does, i also don't know why it is stored with the address.
-  // j = edev->ea[0] = i >> 8;
-  // j += edev->ea[1] = i;
+  this->macAddress = ((i & 0x00FF) << 8) | ((i & 0xFF00) >> 8);
+  this->macAddress = this->macAddress << 16;
   
   i = csr32(nic, MACAddress + 4);
-  this->macAddress = i;
-  // NOTICE original, remove later.
-  // j += edev->ea[2] = i >> 24;
-  // j += edev->ea[3] = i >> 16;
-  // j += edev->ea[4] = i >> 8;
-  // j += edev->ea[5] = i;
+  this->macAddress |= (i & 0x00000000000000FF) << 56;
+  this->macAddress |= (i & 0x000000000000FF00) << 40;
+  this->macAddress |= (i & 0x0000000000FF0000) << 24;
+  this->macAddress |= (i & 0x00000000FF000000) << 8;
+  this->macAddress = this->macAddress >> 16;
   
 	csr32(nic, RandomBackoff) = j & 0x3FF;
 	csr32(nic, RxMTU) = Rbsz;
@@ -448,7 +440,7 @@ common::uint32_t broadcom_BCM5751::handleInterrupt(common::uint32_t esp) {
     }
     csr32(nic, MACEventStatus) = 0; /* worth ignoring */
     if(csr32(nic, ReadDMAStatus) || csr32(nic, WriteDMAStatus)) {
-      printf("DMA!    ");
+      printf("bcm: dma error!\n");
       csr32(nic, ReadDMAStatus) = 0;
       csr32(nic, WriteDMAStatus) = 0;
     }
@@ -467,7 +459,7 @@ common::uint32_t broadcom_BCM5751::handleInterrupt(common::uint32_t esp) {
 	if(status & LinkStateChange) this->checklink();
 	this->receive();
   this->bcmtransclean();
-  this->transmit();
+  //this->transmit();
 	csr32(nic, InterruptMailbox) = tag << 24;
   
   return esp;
@@ -493,6 +485,8 @@ void broadcom_BCM5751::send(common::uint8_t* buffer, int size) {
   sendBuffer[sendWrite] = bp;
 
   sendWrite = (sendWrite + 1) % TxRingLen;
+  
+  this->transmit();
 }
 
 void broadcom_BCM5751::transmit() {
@@ -507,12 +501,12 @@ void broadcom_BCM5751::transmit() {
       break;
     }
 
-    bp = sendBuffer[sendWrite];
+    bp = sendBuffer[sendRead];
     if(bp == 0) {
       break;
     }
-    sendBuffer[sendWrite] = 0;
-    sendWrite = (sendWrite + 1) % TxRingLen;
+    sendBuffer[sendRead] = 0;
+    sendRead = (sendRead + 1) % TxRingLen;
 
     next = this->ctlr.sendr + this->ctlr.sendri * 4;
     next[0] = 0;

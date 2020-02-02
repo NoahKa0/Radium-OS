@@ -204,7 +204,7 @@
         common::uint8_t* lim;
 
         common::uint8_t*	base; // Used to be array with unspecified bounds, but compiler started complaining of invalid use...
-      };
+      }  __attribute__((packed));
       
       struct BCM5751_Ctlr {
         BCM5751_Ctlr* link;
@@ -228,7 +228,7 @@
         common::uint8_t s[6];
         common::uint8_t type[2];
         common::int8_t data[1500];
-      };
+      }  __attribute__((packed));
       
       class broadcom_BCM5751 : public EthernetDriver, public hardware::InterruptHandler {
       private:

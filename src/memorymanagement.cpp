@@ -38,6 +38,11 @@ void* MemoryManager::mallocalign(size_t size, size_t alignment) {
   }
   
   if(result == 0) {
+    printf("Out of memory!\nPANIC!");
+    while(true) {
+      asm("cli");
+      asm("hlt");
+    }
     return 0;
   }
   

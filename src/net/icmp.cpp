@@ -37,7 +37,7 @@ bool InternetControlMessageProtocol::onInternetProtocolReceived(uint32_t srcIp_B
       printf(" REQUEST\n");
       msg->type = 0;
       msg->checksum = 0;
-      msg->checksum = InternetProtocolV4Provider::checksum((uint16_t*) &msg, sizeof(InternetControlMessageProtocolHeader));
+      msg->checksum = InternetProtocolV4Provider::checksum((uint16_t*) msg, size);
       return true;
     default:
       break;
