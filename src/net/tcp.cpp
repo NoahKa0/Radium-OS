@@ -272,7 +272,7 @@ bool TransmissionControlProtocolProvider::onInternetProtocolReceived(uint32_t sr
           socket->acknowledgementNumber = bigEndian32(header->sequenceNumber) + 1;
           socket->sequenceNumber++;
           this->sendTCP(socket, 0,0, ACK, true);
-          socket->removeOldPackets(header->acknowledgementNumber);
+          socket->removeOldPackets(socket->sequenceNumber);
         } else {
           reset = true;
         }
@@ -312,7 +312,7 @@ bool TransmissionControlProtocolProvider::onInternetProtocolReceived(uint32_t sr
         // When connection is ESTABLISHED, an ACK might contain data.
         // NO BREAK.
       default:
-        socket->removeOldPackets(header->acknowledgementNumber);
+        socket->removeOldPackets(socket->sequenceNumber);
         if(bigEndian32(header->sequenceNumber) == socket->acknowledgementNumber && size - (header->headerSize32*4) > 0) {
           // Save checksum
           uint16_t recvChecksum = header->checksum;
