@@ -25,6 +25,8 @@
 #include <systemcalls.h>
 
 #include <timer.h>
+#include <common/string.h>
+#include <test/cli.h>
 
 using namespace sys;
 using namespace sys::common;
@@ -71,14 +73,6 @@ void enableVGA() {
   }
 }
 
-uint32_t decToInt(char* num) {
-  uint32_t ret = 0;
-  for(int i = 0; i < 11 & num[i] != 0; i++) {
-    ret = ret*10+(num[i]-('0'));
-  }
-  return ret;
-}
-
 void printf(char* str) {
   static uint16_t* videoMemory = (uint16_t*)0xB8000;
   static uint8_t x = 0, y = 0;
@@ -87,9 +81,15 @@ void printf(char* str) {
   for(int i = 0; str[i] != '\0'; i++) {
       switch(str[i]) {
           case '\n':
-              x = 0;
-              y++;
-              break;
+            x = 0;
+            y++;
+            break;
+          case '\b':
+            if(x != 0) {
+              x--;
+              videoMemory[y*80+x] = (videoMemory[y*80+x] & 0xFF00) | ' ';
+            }
+            break;
           default:
             videoMemory[y*80+x] = (videoMemory[y*80+x] & 0xFF00) | str[i];
             x++;
@@ -142,139 +142,21 @@ void printHex32(uint32_t num) {
     printf(txt);
 }
 
-class Program {
-private:
-  TransmissionControlProtocolSocket* mySocket;
-  TransmissionControlProtocolProvider* myTcpProvider;
-  uint8_t* chars;
-  uint32_t current;
-  
-  uint8_t command;
-  uint8_t r;
-  uint8_t g;
-  uint8_t b;
-  uint8_t x;
-  uint8_t y;
-public:
-  Program(TransmissionControlProtocolProvider* backend) {
-    this->myTcpProvider = backend;
-    mySocket = 0;
-    chars = (uint8_t*) MemoryManager::activeMemoryManager->malloc(1024);
-    this->current = 0;
-    this->r = 0;
-    this->g = 0;
-    this->b = 0;
-    this->x = 0;
-    this->y = 0;
-    this->command = 0;
-    printf("IP:");
-  }
-  ~Program() {
-    if(mySocket != 0) {
-      mySocket->disconnect();
-      MemoryManager::activeMemoryManager->free(mySocket);
-      mySocket = 0; // Remove pointer.
-    }
-    MemoryManager::activeMemoryManager->free(chars);
-  }
-  void loop() {
-    char* msg = "Got it";
-    uint32_t recvd = 0;
-    while(mySocket == 0);
-    while(mySocket != 0 && !mySocket->isClosed()) {
-      if(mySocket->hasNext() != 0) {
-        uint32_t bytesToRead = mySocket->hasNext();
-        uint8_t* data = (uint8_t*) MemoryManager::activeMemoryManager->malloc(bytesToRead);
-        mySocket->readNext(data, bytesToRead);
-        for(int i = 0; i < bytesToRead; i++) {
-          if(data[i] == 175 && this->command > 4) {
-            this->command = 0;
-            continue;
-          }
-          switch(this->command) {
-            default:
-              break;
-            case 0:
-              this->r = data[i];
-              break;
-            case 1:
-              this->g = data[i];
-              break;
-            case 2:
-              this->b = data[i];
-              break;
-            case 3:
-              this->x = data[i];
-              break;
-            case 4:
-              this->y = data[i];
-              if(this->x < 320 && this->y < 200) {
-                getVGA()->putPixel(this->x, this->y, this->r, this->g, this->b);
-                recvd++;
-              }
-              break;
-          }
-          this->command = this->command+1;
-          if(recvd > 25) {
-            recvd = 0;
-            mySocket->send((uint8_t*) msg, 6);
-          }
-        }
-        MemoryManager::activeMemoryManager->free(data);
-      } else {
-        mySocket->sendExpiredPackets();
-        asm("hlt"); // Nothing to do.
-      }
-    }
-  }
-  void onKeyDown(uint8_t key) {
-    if(mySocket == 0) {
-      if(key == '\n') {
-        chars[current] = 0;
-        uint32_t ip = decToInt((char*)chars);
-        ip = ((ip & 0xFF000000) >> 24) | ((ip & 0x00FF0000) >> 8) | ((ip & 0x0000FF00) << 8) | ((ip & 0x000000FF) << 24);
-        
-        printf("I'm at: ");
-        printHex32(ipv4->getIpAddress());
-        printf("\n");
-        
-        mySocket = myTcpProvider->connect(ip, 1234);
-        printf("Connecting to ");
-        printHex32(ip);
-        printf(" on port 1234\n");
-        current = 0;
-        
-        enableVGA();
-      } else {
-        chars[current] = key;
-        current++;
-        if(current > 10 || key == 'r') {
-          current = 0;
-          printf("resetting\nIP:");
-        }
-      }
-    } else {
-      chars[current] = key;
-      current++;
-      if(current >= 1024 || key == '\n') {
-        mySocket->send(chars, current);
-        current = 0;
-        printf("SENDING DATA\n");
-      }
-    }
-  }
-};
+InternetControlMessageProtocol* getICMP() {
+  return icmp;
+}
 
-Program* myProgram;
+TransmissionControlProtocolProvider* getTCP() {
+  return tcp;
+}
+
+test::Cli* myCli;
 
 class PrintKeyboardHandler:public KeyboardEventHandler {
 public:
   void onKeyDown(char c) {
-    char* txt = " ";
-    txt[0] = c;
-    printf(txt);
-    if(myProgram != 0) {
-      myProgram->onKeyDown((uint8_t) c);
+    if(myCli != 0) {
+      myCli->onKeyDown((uint8_t) c);
     }
   }
 };
@@ -315,43 +197,30 @@ void sysCall(uint32_t eax, uint32_t ebx) {
   asm("int $0x80" : : "a" (eax), "b" (ebx));
 }
 
-uint64_t getTime() {
-  return SystemTimer::getTimeInInterrupts();
-}
-
 void taskA() {
-  uint64_t lastTime = getTime();
-  uint64_t lastSec = 0;
-  printf("Waiting 15 seconds for BCM5751 to connect\n");
-  while(lastSec < 15) { // Let timer run for 10 secondss.
-    if(lastTime+18 < getTime()) {
-      lastTime += 18;
-      lastSec++;
+  if(currentEthernetDriver != 0) {
+    printf("Waiting for connection...");
+    for(int i = 0; i < 15 && !currentEthernetDriver->hasLink(); i++) {
+      SystemTimer::sleep(1000);
+    }
+    if(currentEthernetDriver->hasLink()) {
+      printf(" connected!\n");
+    } else {
+      printf(" no connection!\n");
     }
   }
           
   if(dhcp != 0) {
     dhcp->sendDiscover();
   }
-  
-  while(lastSec < 3) { // Let timer run for 10 secondss.
-    if(lastTime+18 < getTime()) {
-      lastTime += 18;
-      lastSec++;
-    }
-  }
-  if(tcp != 0) {
-    while(ipv4->getIpAddress() == 0) {}
-    
-    myProgram = new Program(tcp);
-    myProgram->loop();
-  } else {
-    printf("TCP == 0\n");
-  }
+  SystemTimer::sleep(1000);
+
+  myCli = new test::Cli();
+  myCli->run();
+  delete myCli;
+  myCli = 0;
   while(true) {
-    //char* txt = "_";
-    //sysCall(0x04, (uint32_t) txt); // 4 is printf.
-    //printf("_");
+    asm("hlt");
   }
 }
 

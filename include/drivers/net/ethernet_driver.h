@@ -29,6 +29,7 @@
         
         virtual common::uint32_t getIpAddress();
         virtual void setIpAddress(common::uint32_t ip);
+        virtual bool hasLink();
         
         void setEtherFrameProvider(net::EtherFrameProvider* efp);
       };

@@ -560,6 +560,10 @@ uint32_t broadcom_BCM5751::getIpAddress() {
   return this->ipAddr;
 }
 
+bool broadcom_BCM5751::hasLink() {
+  return this->link != 0;
+}
+
 void broadcom_BCM5751::setIpAddress(uint32_t ip) {
   this->ipAddr = ip;
 }

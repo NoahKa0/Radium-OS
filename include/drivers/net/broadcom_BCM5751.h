@@ -1,6 +1,12 @@
 #ifndef __MYOS__DRIVERS__BROADCOM_BCM5751_H
 #define __MYOS__DRIVERS__BROADCOM_BCM5751_H
 
+/*
+ * Broadcom BCM57xx
+ * This driver is mostly copied from: 9problems by mischief (https://github.com/mischief/9problems).
+ * sys/src/9/pc/etherbcm.c
+ */
+
   #include <common/types.h>
   #include <drivers/driver.h>
   #include <drivers/net/ethernet_driver.h>
@@ -278,6 +284,8 @@
         virtual common::uint64_t getMacAddress();
         
         virtual common::uint32_t getIpAddress();
+        virtual bool hasLink();
+
         virtual void setIpAddress(common::uint32_t ip);
       };
     }

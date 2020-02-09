@@ -4,9 +4,6 @@ using namespace sys::common;
 using namespace sys::drivers;
 using namespace sys::hardware;
 
-void printf(char* str);
-void printHex8(uint8_t num);
-
 KeyboardEventHandler::KeyboardEventHandler() {}
 KeyboardEventHandler::~KeyboardEventHandler() {}
 
@@ -97,12 +94,10 @@ uint32_t KeyboardDriver::handleInterrupt(uint32_t esp) {
         case 0x35: handler->onKeyDown('-'); break;
 
         case 0x1C: handler->onKeyDown('\n'); break;
+        case 0x0E: handler->onKeyDown('\b'); break;
         case 0x39: handler->onKeyDown(' '); break;
         
         default:
-          printf("\nUnknown key: ");
-          printHex8(key);
-          printf("\n");
           break;
       }
     }

@@ -37,6 +37,10 @@ void EthernetDriver::setIpAddress(uint32_t ip) {
   printf(this->defaultMessage);
 }
 
+bool EthernetDriver::hasLink() {
+  return true; // Default
+}
+
 void EthernetDriver::setEtherFrameProvider(EtherFrameProvider* efp) {
   this->etherFrameProvider = efp;
 }
