@@ -1,5 +1,5 @@
 #include <test/cli.h>
-#include <memorymanagement.h>
+#include <memorymanagement/memorymanagement.h>
 #include <timer.h>
 #include <drivers/vga.h>
 

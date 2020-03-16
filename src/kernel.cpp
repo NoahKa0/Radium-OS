@@ -1,6 +1,6 @@
 #include <common/types.h>
 #include <gdt.h>
-#include <memorymanagement.h>
+#include <memorymanagement/memorymanagement.h>
 
 #include <hardware/interrupts.h>
 #include <hardware/pci.h>

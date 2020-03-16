@@ -3,7 +3,7 @@
 
   #include <common/types.h>
   #include <hardware/port.h>
-  #include <memorymanagement.h>
+  #include <memorymanagement/memorymanagement.h>
   
   namespace sys {
     namespace drivers {
