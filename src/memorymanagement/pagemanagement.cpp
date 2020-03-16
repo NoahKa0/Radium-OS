@@ -6,6 +6,9 @@ using namespace sys::common;
 
 PageManager* PageManager::activePageManager = 0;
 
+void printf(char*);
+void printHex32(uint32_t);
+
 PageManager::PageManager() {
   activePageManager = this;
 
@@ -13,8 +16,9 @@ PageManager::PageManager() {
 
   // Allocate both the dictionary and all tables, since we will fill them all anyway.
   this->kernelDictionary = (uint32_t*) MemoryManager::activeMemoryManager->mallocalign(sizeof(uint32_t) * 1025 * 1024, 4096);
+
   // Skip over dictionary
-  uint32_t* tables = this->kernelDictionary + (sizeof(uint32_t) * 1024);
+  uint32_t* tables = this->kernelDictionary + 1024;
 
   uint32_t record;
   // Fill dictionary
@@ -22,7 +26,7 @@ PageManager::PageManager() {
     record = (uint32_t) tables;
     // First 18 bits are 4 KiB aligned address to table.
     // Set Read/Write enable and present (last two bits).
-    record = 3 | (0xFFFFF000 & (record + 1024 * sizeof(uint32_t) * (i)));
+    record = 3 | (0xFFFFF000 & (record + 1024 * sizeof(uint32_t) * i));
     this->kernelDictionary[i] = record;
   }
 
@@ -41,21 +45,21 @@ PageManager::PageManager() {
     "  mov %%cr0, %%eax\n"
     "  or $0x80000001, %%eax\n"
     "  mov %%eax, %%cr0\n"
-    :"r" (dictionary) /* %0 */
+    ::"r" (dictionary) /* %0 */
   );
 }
 
 PageManager::~PageManager() {}
 
-void switchToKernel() {
+void PageManager::switchToKernel() {
   // TODO
 }
 
-bool contextSwitch(common::int16_t pageId) {
+bool PageManager::contextSwitch(int16_t pageId) {
   // TODO
   return false;
 }
 
-common::uint16_t createPageDictionary(common::uint32_t startSize) {
+uint16_t PageManager::createPageDictionary(uint32_t startSize) {
   // TODO
 }

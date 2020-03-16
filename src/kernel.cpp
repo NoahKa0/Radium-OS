@@ -1,6 +1,7 @@
 #include <common/types.h>
 #include <gdt.h>
 #include <memorymanagement/memorymanagement.h>
+#include <memorymanagement/pagemanagement.h>
 
 #include <hardware/interrupts.h>
 #include <hardware/pci.h>
@@ -271,6 +272,9 @@ extern "C" void kernelMain(void* multiboot_structure, uint32_t magicNumber) {
     taskManager.addTask(task1);
     taskManager.addTask(task2);
     
+    printf("Setting up paging\n");
+    PageManager pageManager;
+
     printf("Setting up Drivers\n");
     InterruptManager interrupts(&gdt, &taskManager);
     SystemCallHandler systemCallHandler(&interrupts);
