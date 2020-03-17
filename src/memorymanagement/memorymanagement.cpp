@@ -1,4 +1,4 @@
-#include <memorymanagement.h>
+#include <memorymanagement/memorymanagement.h>
 
 using namespace sys;
 using namespace sys::common;
@@ -62,7 +62,7 @@ void* MemoryManager::mallocalign(size_t size, size_t alignment) {
     MemoryChunk* prev = result->previous;
     MemoryChunk* next = result->next;
 
-    result += diff;
+    result = (MemoryChunk*) (((uint8_t*) result) + diff);
     result->allocated = true;
     result->next = next;
     result->previous = prev;
@@ -92,7 +92,7 @@ void* MemoryManager::mallocalign(size_t size, size_t alignment) {
 
 void MemoryManager::free(void* pointer) {
   MemoryChunk* chunk = (MemoryChunk*) ((size_t) pointer - sizeof(MemoryChunk));
-  
+
   chunk->allocated = false;
   
   if(chunk->previous != 0 && !chunk->previous->allocated) {
