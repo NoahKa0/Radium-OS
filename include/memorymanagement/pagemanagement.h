@@ -7,8 +7,6 @@
     private:
       bool inKernel;
       common::uint32_t* kernelDictionary;
-      common::uint32_t** pageDictionaries;
-
     public:
       static PageManager* activePageManager;
 
@@ -16,23 +14,16 @@
       ~PageManager();
 
       /*
-      * Switches to the context of the kernel.
+      * @return pointer to kernel page dictionary.
       */
-      void switchToKernel();
-
-      /*
-      * Switches to the context of the provided page id.
-      */
-      bool contextSwitch(common::int16_t pageId);
+      common::uint32_t* getKernelPageDictionary();
 
       /*
       * Creates a new page dictionary.
       * 
-      * @param startSize - size of memory reserved for all the contents of the pages, this does not include the size needed for the kernel.
-      * 
-      * @return pageId
+      * @return pointer to page dictionary.
       */
-      common::uint16_t createPageDictionary(common::uint32_t startSize);
+      common::uint32_t* createPageDictionary();
     };
   }
 

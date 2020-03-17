@@ -38,7 +38,11 @@ PageManager::PageManager() {
   }
 
   uint32_t dictionary = (uint32_t) this->kernelDictionary;
-
+  
+  /**
+  * Load address of dictionary in cr3.
+  * Set first bit (paging) and last bit (protected mode) of cr0. Protected mode is already on, but paging requires it, so i'm doing it again to make that clear.
+  */
   __asm__( 
     "  mov %0, %%eax\n"
     "  mov %%eax, %%cr3\n"
@@ -51,15 +55,25 @@ PageManager::PageManager() {
 
 PageManager::~PageManager() {}
 
-void PageManager::switchToKernel() {
-  // TODO
+common::uint32_t* PageManager::getKernelPageDictionary() {
+  return this->kernelDictionary;
 }
 
-bool PageManager::contextSwitch(int16_t pageId) {
-  // TODO
-  return false;
-}
+common::uint32_t* PageManager::createPageDictionary() {
+  // Kernel takes up first 4 page tables.
+  uint32_t* dictionary = (uint32_t*) MemoryManager::activeMemoryManager->mallocalign(sizeof(uint32_t) * 5 * 1024, 4096);
+  uint32_t* tables = dictionary + 1024;
 
-uint16_t PageManager::createPageDictionary(uint32_t startSize) {
-  // TODO
+  uint32_t record;
+  for(uint32_t i = 0; i < 1024; i++) {
+    if(i < 4) { // Pages for kernel.
+      record = (uint32_t) tables;
+      // Set Read/Write enable and present. User should not be set (only kernel has access to these pages).
+      record = 3 | (0xFFFFF000 & (record + 1024 * sizeof(uint32_t) * i));
+    } else {
+      // Set Read/Write enable and User. Present bit will be off.
+      record = 6;
+      this->kernelDictionary[i] = record;
+    }
+  }
 }
