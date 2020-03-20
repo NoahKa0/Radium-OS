@@ -159,7 +159,7 @@ uint32_t InterruptManager::onInterrupt(uint8_t interruptNumber, uint32_t esp) {
 uint32_t InterruptManager::handleInterrupt(uint8_t interruptNumber, uint32_t esp) {
     if(handlers[interruptNumber] != 0) {
         handlers[interruptNumber]->handleInterrupt(esp);
-    } else if(interruptNumber != 0x20) {
+    } else if(interruptNumber != 0x20 && interruptNumber != 0x2E) {
         char* txt = "Unhandled interrupt: ";
         printf(txt);
         printHex8(interruptNumber);

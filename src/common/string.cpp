@@ -10,8 +10,8 @@ String::String() {
   this->length = 0;
 }
 
-String::String(char* str) {
-  this->length = String::findLength(str);
+String::String(char* str, uint32_t length) {
+  this->length = String::findLength(str, length);
   this->chars = (char *)MemoryManager::activeMemoryManager->malloc(sizeof(char) * (this->length + 1));
   for(int i = 0; i < this->length; i++) {
     this->chars[i] = str[i];
@@ -155,12 +155,15 @@ void String::append(char* str) {
   this->length = totalLen;
 }
 
-uint32_t String::findLength(char* str) {
+uint32_t String::findLength(char* str, uint32_t max) {
+  if(max == 0) {
+    max = ~max;
+  }
   char c = 0;
   uint32_t i = 0;
   do {
     c = str[i];
     i++;
-  } while(c != 0);
+  } while(c != 0 && i <= max);
   return i - 1; // Ignore 0.
 }

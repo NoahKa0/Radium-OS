@@ -1,6 +1,7 @@
 #include <hardware/pci.h>
 #include <drivers/net/amd_am79c973.h>
 #include <drivers/net/broadcom_BCM5751.h>
+#include <drivers/ata.h>
 
 using namespace sys::hardware;
 using namespace sys::common;
@@ -76,6 +77,8 @@ void PeripheralComponentInterconnect::selectDrivers(DriverManager* driverManager
         
         for(int barNum = 0; barNum < 6; barNum++) {
           BaseAddressRegister bar = getBaseAddressRegister(bus, device, function, barNum);
+
+          // NOTICE I should remove portBase, addressBase and memoryMapped from the device descriptors and use the base address descriptors in the drivers, i will do this later.
           if(bar.address && (bar.type == inputOutput)) {
             dd->portBase = (uint32_t) bar.address;
           }
@@ -83,7 +86,11 @@ void PeripheralComponentInterconnect::selectDrivers(DriverManager* driverManager
             dd->addressBase = (uint32_t) bar.address;
             dd->memoryMapped = true;
           }
-          
+
+          dd->bar[barNum].address = bar.address;
+          dd->bar[barNum].prefetchable = bar.prefetchable;
+          dd->bar[barNum].size = bar.size;
+          dd->bar[barNum].type = bar.type;
         }
         
         Driver* driver = getDriver(dd, interruptManager);
@@ -112,7 +119,14 @@ void PeripheralComponentInterconnect::selectDrivers(DriverManager* driverManager
 
 PeripheralComponentDeviceDescriptor* PeripheralComponentInterconnect::getDeviceDescriptor(uint16_t bus, uint16_t device, uint16_t function) {
   PeripheralComponentDeviceDescriptor* result = new PeripheralComponentDeviceDescriptor(this);
-  
+
+  for(int i = 0; i < 6; i++) {
+    result->bar[i].address = 0;
+    result->bar[i].type = memoryMapping;
+    result->bar[i].size = 0;
+    result->bar[i].prefetchable = 0;
+  }
+
   result->bus = bus;
   result->device = device;
   result->function = function;
@@ -215,6 +229,17 @@ Driver* PeripheralComponentInterconnect::getDriver(PeripheralComponentDeviceDesc
 
 
   switch(dev->classId) {
+    case 0x01: // Mass stroage device.
+      switch(dev->subclassId) {
+        case 0x01: // IDE
+          driver = (AdvancedTechnologyAttachment*)MemoryManager::activeMemoryManager->malloc(sizeof(AdvancedTechnologyAttachment));
+          if(driver != 0) {
+            new (driver) AdvancedTechnologyAttachment(dev, interruptManager);
+          }
+          return driver;
+          break;
+      }
+    break;
     case 0x03: // graphics
       switch(dev->subclassId) {
         case 0x00: // VGA

@@ -13,6 +13,8 @@
 #include <drivers/ata.h>
 #include <drivers/net/ethernet_driver.h>
 
+#include <filesystem/partition/mbr.h>
+
 #include <net/etherframe.h>
 #include <net/arp.h>
 #include <net/ipv4.h>
@@ -33,6 +35,7 @@ using namespace sys;
 using namespace sys::common;
 using namespace sys::drivers;
 using namespace sys::hardware;
+using namespace sys::filesystem::partition;
 using namespace sys::net;
 
 static VideoGraphicsArray* videoGraphicsArray = 0;
@@ -295,6 +298,7 @@ extern "C" void kernelMain(void* multiboot_structure, uint32_t magicNumber) {
     VideoGraphicsArray vga;
     videoGraphicsArray = &vga;
     
+    /**
     printf("ATA Primary: master: ");
     AdvancedTechnologyAttachment ataPM(0x1F0, true);
     ataPM.identify();
@@ -310,6 +314,9 @@ extern "C" void kernelMain(void* multiboot_structure, uint32_t magicNumber) {
     AdvancedTechnologyAttachment ataSS(0x170, false);
     ataSS.identify();
     printf("\n");
+
+    MBR::readMBR(&ataPM);
+    */
     
     printf("Initialising SystemTimer\n");
     new SystemTimer();

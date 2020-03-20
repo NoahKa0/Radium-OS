@@ -11,7 +11,7 @@ namespace sys {
       uint32_t length;
     public:
       String();
-      String(char* str);
+      String(char* str, common::uint32_t length = 0);
       ~String();
 
       uint32_t getLength();
@@ -24,7 +24,7 @@ namespace sys {
       bool contains(char* str, uint32_t strlen = 0);
       bool equals(char* str);
       void append(char* str);
-      static uint32_t findLength(char* str);
+      static uint32_t findLength(char* str, common::uint32_t max = 0);
     };
   }
 }

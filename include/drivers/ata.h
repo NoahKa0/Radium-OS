@@ -3,11 +3,12 @@
 
   #include <common/types.h>
   #include <hardware/port.h>
+  #include <hardware/pci.h>
   #include <memorymanagement/memorymanagement.h>
   
   namespace sys {
     namespace drivers {
-      class AdvancedTechnologyAttachment {
+      class AdvancedTechnologyAttachment:public Driver {
       protected:
         hardware::Port16Bit dataPort;
         hardware::Port8Bit errorPort;
@@ -22,12 +23,14 @@
         common::uint16_t bytesPerSector;
         bool master;
       public:
-        AdvancedTechnologyAttachment(common::uint16_t portBase, bool master);
+        AdvancedTechnologyAttachment(sys::hardware::PeripheralComponentDeviceDescriptor* device, sys::hardware::InterruptManager* interruptManager);
         ~AdvancedTechnologyAttachment();
+
+        virtual void activate();
         
         void identify();
-        void read28(common::uint32_t sector, common::uint8_t* data, int count);
-        void write28(common::uint32_t sector, common::uint8_t* data, int count);
+        void read(common::uint64_t sector, common::uint8_t* data, int count);
+        void write(common::uint64_t sector, common::uint8_t* data, int count);
         void flush();
       };
     }
