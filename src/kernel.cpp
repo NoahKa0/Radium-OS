@@ -10,7 +10,6 @@
 #include <drivers/keyboard.h>
 #include <drivers/mouse.h>
 #include <drivers/vga.h>
-#include <drivers/ata.h>
 #include <drivers/net/ethernet_driver.h>
 
 #include <filesystem/partition/mbr.h>

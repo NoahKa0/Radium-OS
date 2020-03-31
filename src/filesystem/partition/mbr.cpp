@@ -3,12 +3,12 @@
 using namespace sys;
 using namespace sys::common;
 using namespace sys::filesystem::partition;
-using namespace sys::drivers;
+using namespace sys::drivers::storage;
 
 void printf(char*);
 void printHex8(uint8_t);
 
-void MBR::readMBR(AdvancedTechnologyAttachment* ata) {
+void MBR::readMBR(StorageDevice* ata) {
   MBRStructure mbr;
   ata->read(0, (uint8_t*) &mbr, sizeof(MBRStructure));
 

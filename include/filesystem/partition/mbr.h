@@ -3,7 +3,7 @@
 
   #include <common/types.h>
   #include <filesystem/fat.h>
-  #include <drivers/ata.h>
+  #include <drivers/storage/storageDevice.h>
 
   namespace sys {
     namespace filesystem {
@@ -38,7 +38,7 @@
 
         class MBR {
         public:
-          static void readMBR(drivers::AdvancedTechnologyAttachment* ata);
+          static void readMBR(drivers::storage::StorageDevice* ata);
         };
       }
     }

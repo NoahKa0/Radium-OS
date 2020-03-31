@@ -1,7 +1,7 @@
 #include <hardware/pci.h>
 #include <drivers/net/amd_am79c973.h>
 #include <drivers/net/broadcom_BCM5751.h>
-#include <drivers/ata.h>
+#include <drivers/storage/ata.h>
 
 using namespace sys::hardware;
 using namespace sys::common;
@@ -232,9 +232,9 @@ Driver* PeripheralComponentInterconnect::getDriver(PeripheralComponentDeviceDesc
     case 0x01: // Mass stroage device.
       switch(dev->subclassId) {
         case 0x01: // IDE
-          driver = (AdvancedTechnologyAttachment*)MemoryManager::activeMemoryManager->malloc(sizeof(AdvancedTechnologyAttachment));
+          driver = (storage::AdvancedTechnologyAttachment*)MemoryManager::activeMemoryManager->malloc(sizeof(storage::AdvancedTechnologyAttachment));
           if(driver != 0) {
-            new (driver) AdvancedTechnologyAttachment(dev, interruptManager);
+            new (driver) storage::AdvancedTechnologyAttachment(dev, interruptManager);
           }
           return driver;
           break;

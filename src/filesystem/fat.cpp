@@ -3,13 +3,13 @@
 using namespace sys;
 using namespace sys::common;
 using namespace sys::filesystem;
-using namespace sys::drivers;
+using namespace sys::drivers::storage;
 
 void printf(char*);
 void printHex8(uint8_t);
 
 
-void tmpReadDir(AdvancedTechnologyAttachment* ata, fatBPB bpb, uint32_t fatStart, uint32_t dataStart, uint32_t dirSector, bool isRoot = true, uint8_t dirDepth = 0) {
+void tmpReadDir(StorageDevice* ata, fatBPB bpb, uint32_t fatStart, uint32_t dataStart, uint32_t dirSector, bool isRoot = true, uint8_t dirDepth = 0) {
   fatDirectoryEntry dirEntry[16];
   ata->read(dirSector, (uint8_t*) &dirEntry[0], 16 * sizeof(fatDirectoryEntry));
 
@@ -76,7 +76,7 @@ void tmpReadDir(AdvancedTechnologyAttachment* ata, fatBPB bpb, uint32_t fatStart
   }
 }
 
-void fat::readBPB(AdvancedTechnologyAttachment* ata, uint32_t offset) {
+void fat::readBPB(StorageDevice* ata, uint32_t offset) {
   fatBPB bpb;
 
   ata->read(offset, (uint8_t*) &bpb, sizeof(fatBPB));

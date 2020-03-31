@@ -1,11 +1,10 @@
-#include <drivers/ata.h>
-#include <filesystem/partition/mbr.h>
+#include <drivers/storage/ata.h>
 
 using namespace sys;
 using namespace sys::common;
 using namespace sys::drivers;
+using namespace sys::drivers::storage;
 using namespace sys::hardware;
-using namespace sys::filesystem::partition;
 
 void printf(char* str);
 void printHex32(uint32_t num);
@@ -46,7 +45,7 @@ AdvancedTechnologyAttachment::~AdvancedTechnologyAttachment() {}
 
 void AdvancedTechnologyAttachment::activate() {
   this->identify();
-  MBR::readMBR(this);
+  this->findPartitions();
 }
 
 void AdvancedTechnologyAttachment::identify() {
@@ -81,10 +80,20 @@ void AdvancedTechnologyAttachment::identify() {
     return;
   }
   
+  uint16_t data[256];
+
   for(uint16_t i = 0; i < 256; i++) {
-    uint16_t data = dataPort.read();
-    printHex8(data & 0x00FF);
+    data[i] = dataPort.read();
+    printHex8(data[i] & 0x00FF);
     printf(", ");
+  }
+
+  uint64_t size28 = data[61] << 16 | data[60];
+  uint64_t size48 = data[101] << 16 | data[100] | data[103] << 48 | data[102] << 32;
+  if(size48 == 0) {
+    this->sectorCount = size28;
+  } else {
+    this->sectorCount = size48;
   }
 }
 
@@ -179,4 +188,8 @@ void AdvancedTechnologyAttachment::flush() {
     printf("ERROR!");
     return;
   }
+}
+
+uint64_t AdvancedTechnologyAttachment::getSectorCount() {
+  return this->sectorCount;
 }

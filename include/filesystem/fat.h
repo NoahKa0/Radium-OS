@@ -3,7 +3,7 @@
 
   #include <common/types.h>
   #include <common/string.h>
-  #include <drivers/ata.h>
+  #include <drivers/storage/storageDevice.h>
 
   namespace sys {
     namespace filesystem {
@@ -60,7 +60,7 @@
 
       class fat {
       public:
-        static void readBPB(drivers::AdvancedTechnologyAttachment* ata, common::uint32_t offset);
+        static void readBPB(drivers::storage::StorageDevice* ata, common::uint32_t offset);
       };
 
     }
