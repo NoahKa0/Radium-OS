@@ -45,7 +45,7 @@ AdvancedTechnologyAttachment::~AdvancedTechnologyAttachment() {}
 
 void AdvancedTechnologyAttachment::activate() {
   this->identify();
-  this->findPartitions();
+  this->registerDevice();
 }
 
 void AdvancedTechnologyAttachment::identify() {
@@ -84,8 +84,6 @@ void AdvancedTechnologyAttachment::identify() {
 
   for(uint16_t i = 0; i < 256; i++) {
     data[i] = dataPort.read();
-    printHex8(data[i] & 0x00FF);
-    printf(", ");
   }
 
   uint64_t size28 = data[61] << 16 | data[60];

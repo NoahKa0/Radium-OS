@@ -2,7 +2,8 @@
 #define __SYS__FILESYSTEM__PARTITION__MBR_H
 
   #include <common/types.h>
-  #include <filesystem/fat.h>
+  #include <filesystem/partition/partition.h>
+  #include <filesystem/partition/partitionManager.h>
   #include <drivers/storage/storageDevice.h>
 
   namespace sys {
@@ -38,7 +39,8 @@
 
         class MBR {
         public:
-          static void readMBR(drivers::storage::StorageDevice* ata);
+          static bool isMBR(drivers::storage::StorageDevice* device);
+          static partitionEntry* findPartitions(drivers::storage::StorageDevice* device);
         };
       }
     }

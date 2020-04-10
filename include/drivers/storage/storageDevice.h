@@ -21,7 +21,7 @@
 
           virtual common::uint64_t getSectorCount();
 
-          void findPartitions();
+          void registerDevice();
         };
       }
     }

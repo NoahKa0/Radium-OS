@@ -3,13 +3,129 @@
 using namespace sys;
 using namespace sys::common;
 using namespace sys::filesystem;
-using namespace sys::drivers::storage;
+using namespace sys::filesystem::partition;
 
 void printf(char*);
 void printHex8(uint8_t);
+void printHex32(uint32_t);
+
+FatFile::FatFile(Fat* fat, bool isFolder, uint32_t firstFileCluster, uint32_t parentCluster, uint32_t size)
+:File(fat)
+{
+  this->fat = fat;
+  this->directory = isFolder;
+  this->firstFileCluster = firstFileCluster;
+  this->nextFileCluster = firstFileCluster;
+  this->parentCluster = parentCluster;
+  this->lastCluster = 0;
+  this->size = size;
+  this->readPosition = 0;
+  this->sectorOffset = 0;
+
+  uint32_t fileSector = fat->dataStart + fat->sectorsPerCluster * (nextFileCluster-2);
+  this->fat->partition->read(fileSector + sectorOffset, this->buffer, 512);
+  this->sectorOffset++;
+}
+FatFile::~FatFile() {
+
+}
+
+bool FatFile::isFolder() {
+  return this->directory;
+}
+File* FatFile::getParent() {
+  return 0;
+}
+File* FatFile::getChild(uint32_t file) {
+  if(!this->directory) {
+    return 0;
+  }
+}
+File* FatFile::getChildByName(common::String* file) {
+  if(!this->directory) {
+    return 0;
+  }
+}
+uint32_t FatFile::numChildren() {
+  if(!this->directory) {
+    return 0;
+  }
+}
+bool FatFile::mkFile(String* filename, bool folder) {
+  if(!this->directory) {
+    return 0;
+  }
+}
+
+bool FatFile::append(uint8_t* data, uint32_t length) {
+  return false;
+}
+
+int FatFile::hasNext() {
+  return this->size - this->readPosition;
+}
+
+void FatFile::read(uint8_t* buffer, uint32_t length) {
+
+}
 
 
-void tmpReadDir(StorageDevice* ata, fatBPB bpb, uint32_t fatStart, uint32_t dataStart, uint32_t dirSector, bool isRoot = true, uint8_t dirDepth = 0) {
+Fat::Fat(Partition* partition) {
+  this->bpb = (fatBPB*) MemoryManager::activeMemoryManager->malloc(sizeof(fatBPB));
+  partition->read(0, (uint8_t*) this->bpb, sizeof(fatBPB));
+  this->partition = partition;
+
+  this->fatStart = bpb->reservedSectors;
+  this->dataStart = this->fatStart + (bpb->tableSize * bpb->fatCopies);
+  this->rootStart = this->dataStart + bpb->sectorsPerCluster*bpb->rootCluster - 2;
+  this->sectorsPerCluster = bpb->sectorsPerCluster;
+
+  this->fat = (uint32_t*) MemoryManager::activeMemoryManager->malloc(this->bpb->tableSize * 512);
+  uint8_t* fatData = (uint8_t*) this->fat;
+  for(int s = 0; s < this->bpb->tableSize; s++) {
+    this->partition->read(this->fatStart + s, fatData + (s * 512), 512);
+  }
+}
+Fat::~Fat() {
+  this->flushFat();
+  this->partition = 0;
+  if(this->fat != 0) {
+    delete this->fat;
+  }
+  if(this->bpb != 0) {
+    delete this->bpb;
+  }
+  this->fat = 0;
+  this->bpb = 0;
+}
+
+File* Fat::getRoot() {
+  return 0;
+}
+String* Fat::getName() {
+  return 0;
+}
+String* Fat::getType() {
+  return new String("FAT32");
+}
+
+void Fat::flushFat() {
+  uint32_t fatSize = this->bpb->tableSize;
+  uint64_t sectorOffset = 0;
+  uint8_t* fatData = (uint8_t*) this->fat;
+  for(int f = 0; f < this->bpb->fatCopies; f++) {
+    printf("Fatflush ");
+    for(int s = 0; s < fatSize; s++) {
+      this->partition->write(this->fatStart + sectorOffset, fatData + (s * 512), 512);
+      sectorOffset++;
+      printf(".");
+    }
+    printf(" done!\n");
+  }
+  printHex32(fatSize);
+}
+
+void tmpReadDir(partition::Partition* ata, fatBPB bpb, uint32_t fatStart, uint32_t dataStart, uint32_t dirSector, bool isRoot = true, uint8_t dirDepth = 0) {
   fatDirectoryEntry dirEntry[16];
   ata->read(dirSector, (uint8_t*) &dirEntry[0], 16 * sizeof(fatDirectoryEntry));
 
@@ -35,8 +151,10 @@ void tmpReadDir(StorageDevice* ata, fatBPB bpb, uint32_t fatStart, uint32_t data
     uint32_t firstFileCluster = ((uint32_t) dirEntry[i].firstClusterHi) << 16 | ((uint32_t) dirEntry[i].firstClusterLow);
 
     if((dirEntry[i].attributes & 0x10) == 0x10) { // Directory
-      printf(" dir\n");
-      // Microsoft actually added the folders . and .. didn't see that coming.
+      int32_t dsize = dirEntry[i].size;
+      printf(" dir size: ");
+      printHex8(dsize);
+      printf("\n");
       if(isRoot || i >= 2) {
         uint32_t fileSector = dataStart + bpb.sectorsPerCluster * (firstFileCluster-2);
         tmpReadDir(ata, bpb, fatStart, dataStart, fileSector, false, dirDepth + 1);
@@ -44,7 +162,6 @@ void tmpReadDir(StorageDevice* ata, fatBPB bpb, uint32_t fatStart, uint32_t data
       continue;
     }
 
-    uint32_t sectorOffset = 0;
     int32_t size = dirEntry[i].size;
     if(size == 0) {
       size = 512;
@@ -55,6 +172,7 @@ void tmpReadDir(StorageDevice* ata, fatBPB bpb, uint32_t fatStart, uint32_t data
     printf(" content: ");
     while(size > 0) {
       uint32_t fileSector = dataStart + bpb.sectorsPerCluster * (nextFileCluster-2);
+      uint32_t sectorOffset = 0;
       while(size > 0) {
         ata->read(fileSector + sectorOffset, buffer, 512);
         buffer[dirEntry[i].size > 512 ? 512 : size] = 0;
@@ -62,7 +180,7 @@ void tmpReadDir(StorageDevice* ata, fatBPB bpb, uint32_t fatStart, uint32_t data
 
         size -= 512;
 
-        if(++sectorOffset > bpb.byesPerSector) {
+        if(++sectorOffset > bpb.sectorsPerCluster) {
           break;
         }
       }
@@ -76,18 +194,34 @@ void tmpReadDir(StorageDevice* ata, fatBPB bpb, uint32_t fatStart, uint32_t data
   }
 }
 
-void fat::readBPB(StorageDevice* ata, uint32_t offset) {
+void Fat::readBPB(partition::Partition* partition) {
   fatBPB bpb;
 
-  ata->read(offset, (uint8_t*) &bpb, sizeof(fatBPB));
+  partition->read(0, (uint8_t*) &bpb, sizeof(fatBPB));
 
-  printf("\nFat\n");
-
-  uint32_t fatStart = offset + bpb.reservedSectors;
+  uint32_t fatStart = bpb.reservedSectors;
   uint32_t tableSize = bpb.tableSize;
   uint32_t dataStart = fatStart + (tableSize * bpb.fatCopies);
 
   uint32_t rootStart = dataStart + bpb.sectorsPerCluster*bpb.rootCluster - 2;
 
-  tmpReadDir(ata, bpb, fatStart, dataStart, rootStart);
+  tmpReadDir(partition, bpb, fatStart, dataStart, rootStart);
+  printHex32(bpb.byesPerSector);
+  Fat* fat = new Fat(partition);
+  delete fat;
+}
+
+bool Fat::isFat(Partition* partition) {
+  fatBPB bpb;
+
+  partition->read(0, (uint8_t*) &bpb, sizeof(fatBPB));
+
+  if(bpb.signature != 29 && bpb.signature != 28) {
+    return false;
+  }
+  String* typeLabel = new String((char*) bpb.fatTypeLabel, 8);
+  bool hasFatLabel = typeLabel->contains("FAT32");
+  delete typeLabel;
+
+  return hasFatLabel;
 }

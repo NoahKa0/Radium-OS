@@ -1,5 +1,5 @@
 #include <drivers/storage/storageDevice.h>
-#include <filesystem/partition/mbr.h>
+#include <filesystem/partition/partitionManager.h>
 
 using namespace sys;
 using namespace sys::common;
@@ -29,6 +29,6 @@ common::uint64_t StorageDevice::getSectorCount() {
   return 0;
 }
 
-void StorageDevice::findPartitions() {
-  MBR::readMBR(this);
+void StorageDevice::registerDevice() {
+  PartitionManager::activePartitionManager->registerDevice(this);
 }

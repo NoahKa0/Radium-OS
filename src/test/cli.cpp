@@ -2,11 +2,14 @@
 #include <memorymanagement/memorymanagement.h>
 #include <timer.h>
 #include <drivers/vga.h>
+#include <drivers/storage/storageDevice.h>
 
 using namespace sys;
 using namespace sys::test;
 using namespace sys::common;
 using namespace sys::net;
+using namespace sys::filesystem;
+using namespace sys::filesystem::partition;
 
 void printf(char*);
 void printHex32(uint32_t);
@@ -83,12 +86,15 @@ void Cli::run() {
         cmd = new CmdPing();
       } else if(command->equals("img")) {
         cmd = new CmdIMG();
+      } else if(command->equals("sd")) {
+        cmd = new CmdSD();
       } else { // Only show text
         if(command->equals("help")) {
           printf("--- HELP ---\n");
           printf("help: Shows this\n");
           printf("tcp <ip> <port>: Send and receive text over TCP\n");
           printf("ping <ip> <times>: Pings an ip\n");
+          printf("sd: Shows commands for Storage Devices\n");
         } else {
           printf("Invalid command!\n");
         }
@@ -407,4 +413,69 @@ void CmdIMG::run(common::String** args, common::uint32_t argsLength) {
   delete ip4;
   delete socket;
   socket = 0;
+}
+
+
+CmdSD::CmdSD() {}
+CmdSD::~CmdSD() {}
+
+void CmdSD::run(String** args, uint32_t argsLength) {
+  if(argsLength < 1) {
+    printf("--- HELP ---\n");
+    printf("sd list: List all storage devices\n");
+    printf("sd mount <device>: Mount a device\n");
+    return;
+  }
+
+  if(args[0]->equals("list")) {
+    uint32_t devCount = PartitionManager::activePartitionManager->numDevices();
+    printf("0x");
+    printHex32(devCount);
+    printf(" devices detected.\n");
+    for(int i = 0; i < devCount; i++) {
+      uint32_t partitions = PartitionManager::activePartitionManager->numPartitions(i);
+      printf("Device 0x");
+      printHex32(i);
+      if(partitions == 0) {
+        printf(" has no partitions!\n");
+      } else {
+        printf(": \n");
+      }
+      for(int p = 0; p < partitions; p++) {
+        printf("  Partition 0x");
+        printHex32(p);
+        printf(" has 0x");
+        printHex32(PartitionManager::activePartitionManager->getPartition(i, p)->getSectorCount());
+        printf(" sectors!\n");
+      }
+    }
+  }
+  if(args[0]->equals("mount")) {
+    if(argsLength >= 2) {
+      uint32_t deviceId = args[1]->parseInt();
+      bool result = PartitionManager::activePartitionManager->mount(deviceId);
+      printf("Device 0x");
+      printHex32(deviceId);
+      if(result) {
+        uint32_t partitions = PartitionManager::activePartitionManager->numPartitions(deviceId);
+        if(partitions == 0) {
+          printf(" no partitions detected!\n");
+        } else {
+          printf(" mounted 0x");
+          printHex32(partitions);
+          printf(" partitions!\n");
+        }
+      } else {
+        printf(" mount failed: ");
+        if(PartitionManager::activePartitionManager->numPartitions(deviceId) != 0) {
+          printf("already mounted!\n");
+        } else {
+          printf("device does not exist!\n");
+        }
+      }
+    } else {
+      printf("Missing device id!\n");
+    }
+  }
+
 }

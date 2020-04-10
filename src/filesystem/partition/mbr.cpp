@@ -8,15 +8,25 @@ using namespace sys::drivers::storage;
 void printf(char*);
 void printHex8(uint8_t);
 
-void MBR::readMBR(StorageDevice* ata) {
+bool MBR::isMBR(StorageDevice* device) {
   MBRStructure mbr;
-  ata->read(0, (uint8_t*) &mbr, sizeof(MBRStructure));
+  device->read(0, (uint8_t*) &mbr, sizeof(MBRStructure));
+
+  return mbr.magicnumber == 0xAA55;
+}
+
+partitionEntry* MBR::findPartitions(StorageDevice* device) {
+  MBRStructure mbr;
+  device->read(0, (uint8_t*) &mbr, sizeof(MBRStructure));
 
   if(mbr.magicnumber != 0xAA55) {
     printf("Illegal mbr\n");
 
-    return;
+    return 0;
   }
+
+  partitionEntry* ret = 0;
+  partitionEntry* last = 0;
 
   for(uint8_t i = 0; i < 4; i++) {
     if(mbr.primaryPartition[i].partitionId == 0) {
@@ -32,6 +42,17 @@ void MBR::readMBR(StorageDevice* ata) {
     } else {
       printf(" not bootable\n");
     }
-    fat::readBPB(ata, mbr.primaryPartition[i].startLba);
+    partitionEntry* partition = (partitionEntry*) MemoryManager::activeMemoryManager->malloc(sizeof(partitionEntry));
+    partition->partition = new Partition(device, mbr.primaryPartition[i].startLba, mbr.primaryPartition[i].length);
+    partition->next = 0;
+
+    if(last != 0) {
+      last->next = partition;
+    }
+    last = partition;
+    if(ret == 0) {
+      ret = last;
+    }
   }
+  return ret;
 }

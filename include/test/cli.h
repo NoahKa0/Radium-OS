@@ -6,6 +6,7 @@
   #include <drivers/keyboard.h>
   #include <net/icmp.h>
   #include <net/tcp.h>
+  #include <filesystem/partition/partitionManager.h>
 
   namespace sys {
     namespace test {
@@ -63,6 +64,14 @@
       public:
         CmdIMG();
         ~CmdIMG();
+
+        virtual void run(common::String** args, common::uint32_t argsLength);
+      };
+
+      class CmdSD : public Cmd {
+      public:
+        CmdSD();
+        ~CmdSD();
 
         virtual void run(common::String** args, common::uint32_t argsLength);
       };

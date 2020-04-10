@@ -281,6 +281,7 @@ extern "C" void kernelMain(void* multiboot_structure, uint32_t magicNumber) {
     InterruptManager interrupts(&gdt, &taskManager);
     SystemCallHandler systemCallHandler(&interrupts);
     
+    PartitionManager partitionManager;
     DriverManager driverManager;
     
     PrintKeyboardHandler keyboardHandler;
