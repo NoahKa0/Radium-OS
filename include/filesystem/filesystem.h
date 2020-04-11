@@ -24,7 +24,9 @@
         virtual bool append(common::uint8_t* data, common::uint32_t length);
 
         virtual int hasNext();
+        virtual common::uint8_t nextByte();
         virtual void read(common::uint8_t* buffer, common::uint32_t length);
+        virtual common::String* getFilename();
 
         FileSystem* getFileSystem();
       };

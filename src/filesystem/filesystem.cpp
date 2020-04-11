@@ -40,7 +40,17 @@ bool File::append(uint8_t* data, uint32_t length) {
 int File::hasNext() {
   return 0;
 }
+
+uint8_t File::nextByte() {
+  return 0;
+}
+
 void File::read(uint8_t* buffer, uint32_t length) {}
+
+String* File::getFilename() {
+  return new String();
+}
+
 
 FileSystem* File::getFileSystem() {
   return this->fileSystem;

@@ -61,6 +61,7 @@
 
       class Fat;
       class FatFile: public File {
+      friend class Fat;
       private:
         Fat* fat;
         common::uint32_t parentCluster;
@@ -72,8 +73,13 @@
         common::uint32_t size;
         common::uint32_t readPosition;
         common::uint8_t buffer[512];
+        common::String* filename;
 
-        FatFile(Fat* fat, bool isFolder, common::uint32_t firstFileCluster, common::uint32_t parentCluster, common::uint32_t size = 0);
+        FatFile(Fat* fat, bool isFolder, common::uint32_t firstFileCluster, common::uint32_t parentCluster, common::String* filename, common::uint32_t size = 0);
+        void loadNextSector();
+        void reset();
+
+        static common::String* getRealFilename(common::String* filename);
       public:
         ~FatFile();
 
@@ -87,7 +93,9 @@
         virtual bool append(common::uint8_t* data, common::uint32_t length);
 
         virtual int hasNext();
+        virtual common::uint8_t nextByte();
         virtual void read(common::uint8_t* buffer, common::uint32_t length);
+        virtual common::String* getFilename();
       };
 
       class Fat: public FileSystem {

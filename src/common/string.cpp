@@ -90,6 +90,13 @@ uint32_t String::strpos(char c, uint32_t occurrence) {
   return this->length;
 }
 
+char String::charAt(uint32_t index) {
+  if(index >= this->length) {
+    return 0;
+  }
+  return this->chars[index];
+}
+
 char* String::getCharPtr() {
   return this->chars;
 }
@@ -153,6 +160,21 @@ void String::append(char* str) {
   delete this->chars;
   this->chars = tmp;
   this->length = totalLen;
+}
+
+void String::toLower() {
+  for(int i = 0; i < this->length; i++) {
+    if(this->chars[i] >= 'A' && this->chars[i] <= 'Z') {
+      this->chars[i] = this->chars[i] | 0x20;
+    }
+  }
+}
+void String::toUpper() {
+  for(int i = 0; i < this->length; i++) {
+    if(this->chars[i] >= 'a' && this->chars[i] <= 'z') {
+      this->chars[i] = this->chars[i] & ~0x20;
+    }
+  }
 }
 
 uint32_t String::findLength(char* str, uint32_t max) {

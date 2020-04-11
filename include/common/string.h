@@ -20,10 +20,13 @@ namespace sys {
       String* substring(uint32_t start, uint32_t end = 0);
       uint32_t strpos(char c, uint32_t occurrence = 0);
       char* getCharPtr();
+      char charAt(uint32_t index);
       int64_t parseInt();
       bool contains(char* str, uint32_t strlen = 0);
       bool equals(char* str);
       void append(char* str);
+      void toLower();
+      void toUpper();
       static uint32_t findLength(char* str, common::uint32_t max = 0);
     };
   }
