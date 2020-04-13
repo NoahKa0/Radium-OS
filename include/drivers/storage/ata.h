@@ -25,13 +25,6 @@
           common::uint16_t bytesPerSector;
           common::uint64_t sectorCount;
           bool master;
-          bool pio48;
-
-          void read48(common::uint64_t sector, common::uint8_t* data, int count);
-          void write48(common::uint64_t sector, common::uint8_t* data, int count);
-
-          void read28(common::uint32_t sector, common::uint8_t* data, int count);
-          void write28(common::uint32_t sector, common::uint8_t* data, int count);
         public:
           AdvancedTechnologyAttachment(sys::hardware::PeripheralComponentDeviceDescriptor* device, sys::hardware::InterruptManager* interruptManager);
           ~AdvancedTechnologyAttachment();

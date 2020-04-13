@@ -51,6 +51,14 @@ String* File::getFilename() {
   return new String();
 }
 
+bool File::remove() {
+  return false;
+}
+
+bool File::rename(String* name) {
+  return false;
+}
+
 
 FileSystem* File::getFileSystem() {
   return this->fileSystem;

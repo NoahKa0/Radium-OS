@@ -11,10 +11,13 @@ Partition::Partition(StorageDevice* device, common::uint64_t startLBA, common::u
   this->startLBA = startLBA;
   this->length = length;
   this->endLBA = startLBA + length;
+  this->filesystem = 0;
 }
 
 Partition::~Partition() {
-
+  if(this->filesystem != 0) {
+    delete this->filesystem;
+  }
 }
 
 void Partition::read(common::uint64_t sector, common::uint8_t* data, int length) {
@@ -34,5 +37,11 @@ StorageDevice* Partition::getDevice() {
 }
 
 void Partition::findFileSystem() {
-  Fat::readBPB(this);
+  if(this->filesystem != 0) {
+    delete this->filesystem;
+  }
+
+  if(Fat::isFat(this)) {
+    this->filesystem = new Fat(this);
+  }
 }

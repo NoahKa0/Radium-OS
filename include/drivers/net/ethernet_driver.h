@@ -21,7 +21,7 @@
         net::EtherFrameProvider* etherFrameProvider;
       public:
         EthernetDriver();
-        ~EthernetDriver();
+        virtual ~EthernetDriver();
         
         virtual void send(common::uint8_t* buffer, int size);
         virtual void receive();

@@ -71,7 +71,7 @@
       class CmdSD : public Cmd {
       public:
         CmdSD();
-        ~CmdSD();
+        virtual ~CmdSD();
 
         virtual void run(common::String** args, common::uint32_t argsLength);
       };

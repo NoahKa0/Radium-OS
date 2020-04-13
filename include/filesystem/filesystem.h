@@ -13,7 +13,7 @@
         FileSystem* fileSystem;
       public:
         File(FileSystem* fileSystem);
-        ~File();
+        virtual ~File();
         virtual bool isFolder();
         virtual File* getParent();
         virtual File* getChild(common::uint32_t file);
@@ -28,12 +28,15 @@
         virtual void read(common::uint8_t* buffer, common::uint32_t length);
         virtual common::String* getFilename();
 
+        virtual bool remove();
+        virtual bool rename(common::String* name);
+
         FileSystem* getFileSystem();
       };
       class FileSystem {
       public:
         FileSystem();
-        ~FileSystem();
+        virtual ~FileSystem();
 
         virtual File* getRoot();
         virtual common::String* getName();

@@ -3,6 +3,7 @@
 
   #include <common/types.h>
   #include <drivers/storage/storageDevice.h>
+  #include <filesystem/filesystem.h>
 
   namespace sys {
     namespace filesystem {
@@ -13,6 +14,7 @@
           common::uint64_t endLBA;
           common::uint64_t length;
           drivers::storage::StorageDevice* device;
+          FileSystem* filesystem;
         public:
           Partition(drivers::storage::StorageDevice* device, common::uint64_t startLBA, common::uint64_t length);
           ~Partition();

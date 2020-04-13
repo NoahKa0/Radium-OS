@@ -12,7 +12,7 @@
         class StorageDevice:public Driver {
         public:
           StorageDevice();
-          ~StorageDevice();
+          virtual ~StorageDevice();
           
           virtual void identify();
           virtual void read(common::uint64_t sector, common::uint8_t* data, int count);

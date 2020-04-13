@@ -59,6 +59,14 @@
         common::uint32_t size;
       } __attribute__((packed));
 
+      struct FATInfo {
+        common::uint32_t signature1;
+        common::uint8_t reserved[480];
+        common::uint32_t signature2;
+        common::uint32_t freeClusterCount;
+        common::uint32_t startAvailableClusters;
+      } __attribute__((packed));
+
       class Fat;
       class FatFile: public File {
       friend class Fat;
@@ -70,14 +78,18 @@
         common::uint32_t firstFileCluster;
         common::uint32_t nextFileCluster;
         common::uint32_t lastCluster;
-        common::uint32_t size;
-        common::uint32_t readPosition;
-        common::uint8_t buffer[512];
+        common::int32_t size;
+        common::int32_t readPosition;
+        common::uint8_t* buffer;
         common::String* filename;
 
         FatFile(Fat* fat, bool isFolder, common::uint32_t firstFileCluster, common::uint32_t parentCluster, common::String* filename, common::uint32_t size = 0);
         void loadNextSector();
         void reset();
+
+        void writeBuffer();
+        bool updateChild(common::uint32_t childCluster, common::uint32_t size, common::String* name = 0);
+        bool deleteChild(common::uint32_t childCluster);
 
         static common::String* getRealFilename(common::String* filename);
       public:
@@ -96,27 +108,30 @@
         virtual common::uint8_t nextByte();
         virtual void read(common::uint8_t* buffer, common::uint32_t length);
         virtual common::String* getFilename();
+        virtual bool remove();
+        virtual bool rename(common::String* name);
       };
 
       class Fat: public FileSystem {
       friend class FatFile;
       private:
         fatBPB* bpb;
+        FATInfo* info;
         partition::Partition* partition;
-        common::uint32_t* fat;
 
         common::uint32_t fatStart;
         common::uint32_t dataStart;
         common::uint32_t rootStart;
         common::uint8_t sectorsPerCluster;
+
+        common::uint32_t chain(common::uint32_t lastCluster, bool force = false);
+        bool deleteChain(common::uint32_t startCluster);
       public:
         Fat(partition::Partition* partition);
         ~Fat();
         virtual File* getRoot();
         virtual common::String* getName();
         virtual common::String* getType();
-
-        void flushFat();
 
         static bool isFat(partition::Partition* partition);
         static void readBPB(partition::Partition* partition);

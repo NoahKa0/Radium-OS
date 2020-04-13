@@ -478,4 +478,19 @@ void CmdSD::run(String** args, uint32_t argsLength) {
     }
   }
 
+  if(args[0]->equals("unmount")) {
+    if(argsLength >= 2) {
+      uint32_t deviceId = args[1]->parseInt();
+      bool result = PartitionManager::activePartitionManager->unmount(deviceId);
+      printf("Device 0x");
+      printHex32(deviceId);
+      if(result) {
+        printf(" unmounted!");
+      } else {
+        printf(" device is not mounted!");
+      }
+    } else {
+      printf("Missing device id!\n");
+    }
+  }
 }

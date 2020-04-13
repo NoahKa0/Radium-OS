@@ -90,62 +90,12 @@ void AdvancedTechnologyAttachment::identify() {
   uint64_t size48 = data[101] << 16 | data[100] | data[103] << 48 | data[102] << 32;
   if(size48 == 0) {
     this->sectorCount = size28;
-    this->pio48 = false;
   } else {
     this->sectorCount = size48;
-    this->pio48 = true;
   }
 }
 
 void AdvancedTechnologyAttachment::read(uint64_t sector, uint8_t* data, int count) {
-  if(this->pio48) {
-    this->read48(sector, data, count);
-  } else {
-    this->read28(sector, data, count);
-  }
-}
-
-void AdvancedTechnologyAttachment::read28(uint32_t sector, uint8_t* data, int count) {
-  if(sector & 0xF00000000000000) {
-    return;
-  }
-  if(count > bytesPerSector) {
-    return;
-  }
-  
-  devicePort.write((master ? 0xE0 : 0xF0) | ((sector & 0x0F000000) >> 24));
-  errorPort.write(0);
-
-  sectorCountPort.write(1);
-  lbaLowPort.write(sector & 0x000000FF);
-  lbaMidPort.write((sector & 0x0000FF00) >> 8);
-  lbaLowPort.write((sector & 0x00FF0000) >> 16);
-  commandPort.write(0x24);
-  
-  uint8_t status = commandPort.read();
-  while(((status & 0x80) == 0x80) && ((status & 0x01) != 0x01)) {
-    status = commandPort.read();
-  }
-  if(status & 0x01) {
-    printf("ERROR!");
-    return;
-  }
-  
-  for(uint16_t i = 0; i < count; i+=2) {
-    uint16_t rdata = dataPort.read();
-    
-    data[i] = rdata & 0x00FF;
-    if(i+1 < count) {
-      data[i+1] = (rdata >> 8) & 0x00FF;
-    }
-  }
-  for(uint16_t i = count+(count%2); i < bytesPerSector; i+=2) {
-    dataPort.read();
-  }
-  this->write(sector, data, count);
-}
-
-void AdvancedTechnologyAttachment::read48(uint64_t sector, uint8_t* data, int count) {
   if(sector & 0xF00000000000000) {
     return;
   }
@@ -191,54 +141,6 @@ void AdvancedTechnologyAttachment::read48(uint64_t sector, uint8_t* data, int co
 }
 
 void AdvancedTechnologyAttachment::write(uint64_t sector, uint8_t* data, int count) {
-  if(this->pio48) {
-    this->write48(sector, data, count);
-  } else {
-    this->write28(sector, data, count);
-  }
-  this->flush();
-}
-
-void AdvancedTechnologyAttachment::write28(uint32_t sector, uint8_t* data, int count) {
-  if(sector & 0xF0000000) {
-    return;
-  }
-  if(count > bytesPerSector) {
-    return;
-  }
-  
-  devicePort.write((master ? 0xE0 : 0xF0) | ((sector & 0x0F000000) >> 24));
-  errorPort.write(0);
-
-  sectorCountPort.write(1);
-  lbaLowPort.write(sector & 0x000000FF);
-  lbaMidPort.write((sector & 0x0000FF00) >> 8);
-  lbaLowPort.write((sector & 0x00FF0000) >> 16);
-  commandPort.write(0x30);
-
-  uint8_t status = commandPort.read();
-  while(((status & 0x80) == 0x80) && ((status & 0x01) != 0x01)) {
-    status = commandPort.read();
-  }
-  if(status & 0x01) {
-    printf("ERROR!");
-    return;
-  }
-  
-  for(uint16_t i = 0; i < count; i+=2) {
-    uint16_t wdata = data[i] & 0xFF;
-    if(i+1 < count) {
-      wdata = wdata | ((((uint16_t) data[i+1]) & 0xFF) << 8);
-    }
-    
-    dataPort.write(wdata);
-  }
-  for(uint16_t i = count+(count%2); i < bytesPerSector; i+=2) {
-    dataPort.write(0x0000);
-  }
-}
-
-void AdvancedTechnologyAttachment::write48(uint64_t sector, uint8_t* data, int count) {
   if(sector & 0xF00000000000000) {
     return;
   }
@@ -280,6 +182,7 @@ void AdvancedTechnologyAttachment::write48(uint64_t sector, uint8_t* data, int c
   for(uint16_t i = count+(count%2); i < bytesPerSector; i+=2) {
     dataPort.write(0x0000);
   }
+  this->flush();
 }
 
 void AdvancedTechnologyAttachment::flush() {

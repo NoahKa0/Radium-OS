@@ -22,11 +22,126 @@ FatFile::FatFile(Fat* fat, bool isFolder, uint32_t firstFileCluster, uint32_t pa
   this->readPosition = 0;
   this->sectorOffset = 0;
   this->filename = filename;
+  this->buffer = (uint8_t*) MemoryManager::activeMemoryManager->mallocalign(512, 4);
 
   this->reset();
 }
 FatFile::~FatFile() {
   delete this->filename;
+  delete buffer;
+}
+
+bool FatFile::updateChild(uint32_t childCluster, uint32_t size, String* name) {
+  if(!this->directory) {
+    return false;
+  }
+  if(this->nextFileCluster != this->firstFileCluster) {
+    this->reset();
+  }
+  fatDirectoryEntry* entry = (fatDirectoryEntry*) this->buffer;
+  uint32_t total = 0;
+
+  for(int i = 0; entry[i].name[0] != 0; i++) {
+    if(i >= 16) {
+      this->loadNextSector();
+      i = 0;
+    }
+    if(entry[i].name[0] == 0xE5 || (entry[i].attributes & 0x0F) == 0x0F) { // Ignored
+      continue;
+    }
+    uint32_t fileCluster = ((uint32_t) entry[i].firstClusterHi) << 16 | ((uint32_t) entry[i].firstClusterLow);
+    if(childCluster == fileCluster) {
+      entry[i].size = size;
+      if(name != 0 && name->getLength() == 11) {
+        for(int n = 0; n < 11; n++) {
+          entry[i].name[n] = name->charAt(n);
+        }
+      }
+      this->writeBuffer();
+      return true;
+    }
+  }
+  return false;
+}
+
+bool FatFile::deleteChild(uint32_t childCluster) {
+  if(!this->directory) {
+    return false;
+  }
+  if(this->nextFileCluster != this->firstFileCluster) {
+    this->reset();
+  }
+  fatDirectoryEntry* entry = (fatDirectoryEntry*) this->buffer;
+  uint32_t total = 0;
+  uint32_t entryId = 0;
+
+  for(int i = 0; entry[i].name[0] != 0; i++) {
+    if(i >= 16) {
+      this->loadNextSector();
+      i = 0;
+    }
+    if(entry[i].name[0] == 0xE5 || (entry[i].attributes & 0x0F) == 0x0F) { // Ignored
+      total++;
+      continue;
+    }
+    uint32_t fileCluster = ((uint32_t) entry[i].firstClusterHi) << 16 | ((uint32_t) entry[i].firstClusterLow);
+    if(childCluster == fileCluster) {
+      entryId = total;
+    }
+    total++;
+  }
+
+  uint8_t* fdata = (uint8_t*) MemoryManager::activeMemoryManager->malloc(total * sizeof(fatDirectoryEntry) + 512);
+  this->reset();
+  int f = 0;
+  for(int i = 0; entry[i].name[0] != 0; i++) {
+    if(i >= 16) {
+      this->loadNextSector();
+      i = 0;
+    }
+    for(int x = 0; x < sizeof(fatDirectoryEntry); x++) {
+      fdata[f] = this->buffer[i * sizeof(fatDirectoryEntry) + x];
+      f++;
+    }
+  }
+
+  fatDirectoryEntry* entries = (fatDirectoryEntry*) entries;
+  for(int i = 0; entries[i].name[0] != 0; i++) {
+    printf(".");
+    if(i >= entryId) {
+      for(int e = 0; e < sizeof(fatDirectoryEntry); e++) {
+        fdata[i + e] = fdata[(i * sizeof(fatDirectoryEntry)) + e];
+      }
+    }
+  }
+
+  uint32_t length = (total + 1) * sizeof(fatDirectoryEntry);
+  if(length + sizeof(fatDirectoryEntry) > 512) {
+    this->reset();
+    this->loadNextSector();
+    this->fat->deleteChain(this->nextFileCluster);
+    this->fat->chain(this->firstFileCluster, true);
+  }
+  this->reset();
+
+  printf("Do we even reach here???");
+
+  uint32_t write = 0;
+  for(int i = 0; i < length; i++) {
+    if(write >= 512) {
+      this->writeBuffer();
+      if(this->fat->chain(this->nextFileCluster) == 0) {
+        return false;
+      }
+      this->loadNextSector();
+      write = 0;
+    }
+    this->buffer[write] = fdata[i];
+
+    write++;
+  }
+  this->writeBuffer();
+  delete fdata;
 }
 
 String* FatFile::getRealFilename(String* filename) {
@@ -34,7 +149,9 @@ String* FatFile::getRealFilename(String* filename) {
   char* chars = realName->getCharPtr();
   if(filename->occurrences('.') != 0 || filename->getLength() > 3) {
     for(int i = 0; i < filename->getLength() - 3 && i < realName->getLength(); i++) {
-      chars[i] = filename->charAt(i);
+      if(filename->charAt(i) != '.') {
+        chars[i] = filename->charAt(i);
+      }
     }
     for(int i = 1; i < 4; i++) {
       chars[11-i] = filename->charAt(filename->getLength() - i);
@@ -68,6 +185,13 @@ void FatFile::loadNextSector() {
   uint32_t fileSector = fat->dataStart + fat->sectorsPerCluster * (nextFileCluster-2);
 
   this->fat->partition->read(fileSector + sectorOffset, this->buffer, 512);
+  this->sectorOffset++;
+}
+
+void FatFile::writeBuffer() {
+  this->sectorOffset--;
+  uint32_t fileSector = fat->dataStart + fat->sectorsPerCluster * (nextFileCluster-2);
+  this->fat->partition->write(fileSector + sectorOffset, this->buffer, 512);
   this->sectorOffset++;
 }
 
@@ -183,6 +307,37 @@ bool FatFile::append(uint8_t* data, uint32_t length) {
   if(this->directory) {
     return false;
   }
+  while(this->hasNext() > 512) {
+    this->readPosition += 512;
+    this->loadNextSector();
+  }
+  while(this->hasNext() > 0) {
+    this->nextByte();
+  }
+  uint32_t write = this->size % 512;
+  for(int i = 0; i < length; i++) {
+    if(write >= 512) {
+      this->writeBuffer();
+      if(this->fat->chain(this->nextFileCluster) == 0) {
+        return false;
+      }
+      this->loadNextSector();
+      write = 0;
+    }
+    this->buffer[write] = data[i];
+
+    write++;
+    this->size++;
+    this->readPosition++;
+  }
+  this->writeBuffer();
+
+  FatFile* parent = (FatFile*) this->getParent();
+  if(parent != 0) {
+    parent->updateChild(this->firstFileCluster, this->size);
+    delete parent;
+    return true;
+  }
   return false;
 }
 
@@ -218,124 +373,32 @@ String* FatFile::getFilename() {
   return this->filename;
 }
 
-
-Fat::Fat(Partition* partition) {
-  this->bpb = (fatBPB*) MemoryManager::activeMemoryManager->malloc(sizeof(fatBPB));
-  partition->read(0, (uint8_t*) this->bpb, sizeof(fatBPB));
-  this->partition = partition;
-
-  this->fatStart = bpb->reservedSectors;
-  this->dataStart = this->fatStart + (bpb->tableSize * bpb->fatCopies);
-  this->rootStart = this->dataStart + bpb->sectorsPerCluster*bpb->rootCluster - 2;
-  this->sectorsPerCluster = bpb->sectorsPerCluster;
-
-  this->fat = (uint32_t*) MemoryManager::activeMemoryManager->malloc(this->bpb->tableSize * 512);
-  uint8_t* fatData = (uint8_t*) this->fat;
-  for(int s = 0; s < this->bpb->tableSize; s++) {
-    this->partition->read(this->fatStart + s, fatData + (s * 512), 512);
+bool FatFile::remove() {
+  if(this->directory && this->numChildren() > 2) {
+    return false;
   }
-}
-Fat::~Fat() {
-  this->flushFat();
-  this->partition = 0;
-  if(this->fat != 0) {
-    delete this->fat;
+  FatFile* parent = (FatFile*) this->getParent();
+  if(parent == 0) {
+    return false;
   }
-  if(this->bpb != 0) {
-    delete this->bpb;
+  parent->deleteChild(this->firstFileCluster);
+  delete parent;
+  this->fat->deleteChain(this->firstFileCluster);
+  return true;
+}
+
+bool FatFile::rename(String* name) {
+  FatFile* parent = (FatFile*) this->getParent();
+  if(parent == 0) {
+    return false;
   }
-  this->fat = 0;
-  this->bpb = 0;
-}
-
-File* Fat::getRoot() {
-  return new FatFile(this, true, this->bpb->rootCluster, 0, new String(), 0);
-}
-String* Fat::getName() {
-  return new String();
-}
-String* Fat::getType() {
-  return new String("FAT32");
-}
-
-void Fat::flushFat() {
-  uint32_t fatSize = this->bpb->tableSize;
-  uint64_t sectorOffset = 0;
-  uint8_t* fatData = (uint8_t*) this->fat;
-  printf("\nFlushing FAT\n");
-  for(int f = 0; f < this->bpb->fatCopies; f++) {
-    for(int s = 0; s < fatSize; s++) {
-      this->partition->write(this->fatStart + sectorOffset, fatData + (s * 512), 512);
-      sectorOffset++;
-    }
+  if(this->filename != 0) {
+    delete this->filename;
   }
-  printHex32(fatSize);
-}
-
-void tmpReadDir(partition::Partition* ata, fatBPB bpb, uint32_t fatStart, uint32_t dataStart, uint32_t dirSector, bool isRoot = true, uint8_t dirDepth = 0) {
-  fatDirectoryEntry dirEntry[16];
-  ata->read(dirSector, (uint8_t*) &dirEntry[0], 16 * sizeof(fatDirectoryEntry));
-
-  uint8_t buf[513];
-  uint8_t* buffer = (uint8_t*) &buf;
-  uint8_t fatBuf[513];
-  uint8_t* fatBuffer = (uint8_t*) &fatBuf;
-  for(int i = 0; i < 16; i++) {
-    if(dirEntry[i].name[0] == 0) {
-      break;
-    }
-    if(dirEntry[i].name[0] == 0xE5 || (dirEntry[i].attributes & 0x0F) == 0x0F) {
-      continue;
-    }
-    String* fname = new String((char*) &dirEntry[i].name, 11);
-    for(int i = 0; i < dirDepth; i++) printf("  ");
-    printf("File: ");
-    printf(fname->getCharPtr());
-    printf(" attr: ");
-    printHex8(dirEntry[i].attributes);
-    delete fname;
-
-    uint32_t firstFileCluster = ((uint32_t) dirEntry[i].firstClusterHi) << 16 | ((uint32_t) dirEntry[i].firstClusterLow);
-
-    if((dirEntry[i].attributes & 0x10) == 0x10) { // Directory
-      int32_t dsize = dirEntry[i].size;
-      printf(" dir size: ");
-      printHex8(dsize);
-      printf("\n");
-      if(isRoot || i >= 2) {
-        uint32_t fileSector = dataStart + bpb.sectorsPerCluster * (firstFileCluster-2);
-        tmpReadDir(ata, bpb, fatStart, dataStart, fileSector, false, dirDepth + 1);
-      }
-      continue;
-    }
-
-    int32_t size = dirEntry[i].size;
-
-    uint32_t nextFileCluster = firstFileCluster;
-
-    printf(" content: ");
-    while(size > 0) {
-      uint32_t fileSector = dataStart + bpb.sectorsPerCluster * (nextFileCluster-2);
-      uint32_t sectorOffset = 0;
-      while(size > 0) {
-        ata->read(fileSector + sectorOffset, buffer, 512);
-        buffer[dirEntry[i].size > 512 ? 512 : size] = 0;
-        printf((char*) buffer);
-
-        size -= 512;
-
-        if(++sectorOffset > bpb.sectorsPerCluster) {
-          break;
-        }
-      }
-
-      uint32_t sectorCurrentCluster = nextFileCluster / (512/sizeof(uint32_t));
-      ata->read(fatStart + sectorCurrentCluster, fatBuffer, 512);
-      uint32_t sectorCurrentClusterOffset = nextFileCluster % (512/sizeof(uint32_t));
-      nextFileCluster = ((uint32_t*) fatBuffer)[sectorCurrentClusterOffset] & 0x0FFFFFFF;
-    }
-    printf("\n");
-  }
+  this->filename = this->getRealFilename(name);
+  bool ret = parent->updateChild(this->firstFileCluster, this->size, this->filename);
+  delete parent;
+  return ret;
 }
 
 void recursivePrintFile(File* file, int depth) {
@@ -362,29 +425,134 @@ void recursivePrintFile(File* file, int depth) {
   }
 }
 
-void Fat::readBPB(partition::Partition* partition) {
-  fatBPB bpb;
 
-  partition->read(0, (uint8_t*) &bpb, sizeof(fatBPB));
+Fat::Fat(Partition* partition) {
+  this->bpb = (fatBPB*) MemoryManager::activeMemoryManager->malloc(sizeof(fatBPB) > 512 ? sizeof(fatBPB) : 512);
+  partition->read(0, (uint8_t*) this->bpb, 512);
+  this->info = (FATInfo*) MemoryManager::activeMemoryManager->malloc(sizeof(FATInfo) > 512 ? sizeof(FATInfo) : 512);
+  partition->read(this->bpb->fatInfo, (uint8_t*) this->info, 512);
+  this->partition = partition;
 
-  uint32_t fatStart = bpb.reservedSectors;
-  uint32_t tableSize = bpb.tableSize;
-  uint32_t dataStart = fatStart + (tableSize * bpb.fatCopies);
+  this->fatStart = bpb->reservedSectors;
+  this->dataStart = this->fatStart + (bpb->tableSize * bpb->fatCopies);
+  this->rootStart = this->dataStart + bpb->sectorsPerCluster*bpb->rootCluster - 2;
+  this->sectorsPerCluster = bpb->sectorsPerCluster;
 
-  uint32_t rootStart = dataStart + bpb.sectorsPerCluster*bpb.rootCluster - 2;
-
-  tmpReadDir(partition, bpb, fatStart, dataStart, rootStart);
-  printf("Rootstart: ");
-  Fat* fat = new Fat(partition);
-  File* file = fat->getRoot();
-  printf("Root has 0x");
-  printHex32(file->numChildren());
-  printf(" children!\n");
-
+  File* file = this->getRoot();
   recursivePrintFile(file, 0);
 
+  printf("Writing to RADIUM.TXT\n");
+  String* data = new String("Radon.txt");
+  String* fname = new String("Radium.txt");
+  File* radium = file->getChildByName(fname);
+  if(radium != 0) {
+    bool result = radium->remove();
+    if(result) {
+      printf("SUCCESS\n");
+    } else {
+      printf("FAILED\n");
+    }
+    delete radium;
+  } else {
+    printf("ERROR: Radium.txt not found!\n");
+  }
+  delete data;
+  delete fname;
   delete file;
-  delete fat;
+}
+Fat::~Fat() {
+  if(this->info != 0) {
+    this->partition->write(this->bpb->fatInfo, (uint8_t*) this->info, 512);
+    delete this->info;
+  }
+  if(this->bpb != 0) {
+    delete this->bpb;
+  }
+  this->bpb = 0;
+  this->partition = 0;
+}
+
+uint32_t Fat::chain(uint32_t lastCluster, bool force) {
+  uint32_t search = this->info->startAvailableClusters;
+  if(search == 0xFFFFFFFF) {
+    search = 2;
+  }
+  uint32_t buffer[128];
+  uint32_t result = 1;
+
+  uint32_t sectorCurrentCluster = lastCluster / (512/sizeof(uint32_t));
+  this->partition->read(this->fatStart + sectorCurrentCluster, (uint8_t*) &buffer[0], 512);
+  uint32_t sectorCurrentClusterOffset = lastCluster % (512/sizeof(uint32_t));
+  uint32_t clusterRead = buffer[sectorCurrentClusterOffset] & 0x0FFFFFFF;
+  if(clusterRead < 0x0FFFFFF8 && !force) {
+    return clusterRead;
+  }
+
+  uint32_t sectorLastCluster = 0xFFFFFFFF;
+  uint32_t totalClusters = this->bpb->tableSize / 4;
+  while(result != 0 && search < totalClusters) {
+    search++;
+    sectorCurrentCluster = search / (512/sizeof(uint32_t));
+    if(sectorCurrentCluster != sectorLastCluster) {
+      sectorLastCluster = sectorCurrentCluster;
+      this->partition->read(this->fatStart + sectorCurrentCluster, (uint8_t*) &buffer[0], 512);
+    }
+    sectorCurrentClusterOffset = search % (512/sizeof(uint32_t));
+    result = buffer[sectorCurrentClusterOffset] & 0x0FFFFFFF;
+  }
+  if(result != 0) {
+    return 0;
+  }
+  buffer[sectorCurrentClusterOffset] |= 0x0FFFFFF8;
+  this->partition->write(this->fatStart + sectorCurrentCluster, (uint8_t*) &buffer[0], 512);
+  
+  sectorCurrentCluster = lastCluster / (512/sizeof(uint32_t));
+  this->partition->read(this->fatStart + sectorCurrentCluster, (uint8_t*) &buffer[0], 512);
+  sectorCurrentClusterOffset = lastCluster % (512/sizeof(uint32_t));
+  buffer[sectorCurrentClusterOffset] &= 0xF0000000;
+  buffer[sectorCurrentClusterOffset] |= search;
+  this->partition->write(this->fatStart + sectorCurrentCluster, (uint8_t*) &buffer[0], 512);
+
+  this->info->startAvailableClusters = search;
+  if(this->info->freeClusterCount != 0xFFFFFFFF) {
+    this->info->freeClusterCount--;
+  }
+  return search;
+}
+
+bool Fat::deleteChain(uint32_t startCluster) {
+  uint32_t cluster = startCluster;
+  uint32_t loadedSector = cluster / (512/sizeof(uint32_t));
+  uint32_t sectorCurrentCluster;
+  uint32_t sectorCurrentClusterOffset;
+  uint32_t buffer[128];
+  this->partition->read(this->fatStart + loadedSector, (uint8_t*) &buffer[0], 512);
+  while(cluster >= 0x0FFFFFF8 && cluster != 0) {
+    sectorCurrentCluster = cluster / (512/sizeof(uint32_t));
+    if(sectorCurrentCluster != loadedSector) {
+      this->partition->write(this->fatStart + loadedSector, (uint8_t*) &buffer[0], 512);
+      this->partition->read(this->fatStart + sectorCurrentCluster, (uint8_t*) &buffer[0], 512);
+      loadedSector = sectorCurrentCluster;
+    }
+    sectorCurrentClusterOffset = cluster % (512/sizeof(uint32_t));
+    cluster = buffer[sectorCurrentClusterOffset] & 0x0FFFFFFF;
+    buffer[sectorCurrentClusterOffset] = 0;
+    if(this->info->freeClusterCount != 0xFFFFFFFF) {
+      this->info->freeClusterCount--;
+    }
+  }
+  this->partition->write(this->fatStart + loadedSector, (uint8_t*) &buffer[0], 512);
+  return true;
+}
+
+File* Fat::getRoot() {
+  return new FatFile(this, true, this->bpb->rootCluster, 0, new String(), 0);
+}
+String* Fat::getName() {
+  return new String();
+}
+String* Fat::getType() {
+  return new String("FAT32");
 }
 
 bool Fat::isFat(Partition* partition) {
@@ -392,12 +560,17 @@ bool Fat::isFat(Partition* partition) {
 
   partition->read(0, (uint8_t*) &bpb, sizeof(fatBPB));
 
-  if(bpb.signature != 29 && bpb.signature != 28) {
-    return false;
-  }
+  printf("Typelabel: ");
   String* typeLabel = new String((char*) bpb.fatTypeLabel, 8);
+  printf(typeLabel->getCharPtr());
   bool hasFatLabel = typeLabel->contains("FAT32");
   delete typeLabel;
+
+  if(bpb.signature != 0x29 && bpb.signature != 0x28) {
+    printf("Signature: ");
+    printHex32(bpb.signature);
+    return false;
+  }
 
   return hasFatLabel;
 }
