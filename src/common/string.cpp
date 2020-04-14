@@ -127,7 +127,7 @@ bool String::contains(char* str, uint32_t strlen) {
       x++;
     } else if(x != 0) {
       i -= (x-1);
-      x == 0;
+      x = 0;
     }
     if(x >= strlen) {
       return true;

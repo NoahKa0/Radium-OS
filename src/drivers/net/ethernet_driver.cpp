@@ -12,7 +12,7 @@ EthernetDriver::EthernetDriver()
 :Driver()
 {
   this->etherFrameProvider = 0;
-  this->defaultMessage = "default EthernetDriver. This doesn't do anything!\n";
+  this->defaultMessage = "default EthernetDriver.\n";
 }
 
 EthernetDriver::~EthernetDriver() {}

@@ -82,8 +82,9 @@
         common::int32_t readPosition;
         common::uint8_t* buffer;
         common::String* filename;
+        bool root;
 
-        FatFile(Fat* fat, bool isFolder, common::uint32_t firstFileCluster, common::uint32_t parentCluster, common::String* filename, common::uint32_t size = 0);
+        FatFile(Fat* fat, bool isFolder, common::uint32_t firstFileCluster, common::uint32_t parentCluster, common::String* filename, common::uint32_t size = 0, bool root = false);
         void loadNextSector();
         void reset();
 
@@ -124,6 +125,7 @@
         common::uint32_t rootStart;
         common::uint8_t sectorsPerCluster;
 
+        void writeFat(common::uint32_t sector, common::uint8_t* data);
         common::uint32_t chain(common::uint32_t lastCluster, bool force = false);
         bool deleteChain(common::uint32_t startCluster);
       public:

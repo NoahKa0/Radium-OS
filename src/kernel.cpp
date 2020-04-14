@@ -28,7 +28,7 @@
 
 #include <timer.h>
 #include <common/string.h>
-#include <test/cli.h>
+#include <cli/cli.h>
 
 using namespace sys;
 using namespace sys::common;
@@ -153,7 +153,7 @@ TransmissionControlProtocolProvider* getTCP() {
   return tcp;
 }
 
-test::Cli* myCli;
+cli::Cli* myCli;
 
 class PrintKeyboardHandler:public KeyboardEventHandler {
 public:
@@ -218,7 +218,7 @@ void taskA() {
   }
   SystemTimer::sleep(1000);
 
-  myCli = new test::Cli();
+  myCli = new cli::Cli();
   myCli->run();
   delete myCli;
   myCli = 0;

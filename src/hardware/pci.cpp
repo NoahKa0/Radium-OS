@@ -204,7 +204,6 @@ Driver* PeripheralComponentInterconnect::getDriver(PeripheralComponentDeviceDesc
     case 0x1022: // AMD
       switch(dev->deviceId) {
         case 0x2000: // am79c973
-          printf("AMD am79c973 ");
           driver = (amd_am79c973*)MemoryManager::activeMemoryManager->malloc(sizeof(amd_am79c973));
           if(driver != 0) {
             new (driver) amd_am79c973(dev, interruptManager);
@@ -216,7 +215,6 @@ Driver* PeripheralComponentInterconnect::getDriver(PeripheralComponentDeviceDesc
     case 0x14E4:
       switch(dev->deviceId) {
         case 0x1677:
-          printf("NetXtreme BCM5751");
           driver = (broadcom_BCM5751*)MemoryManager::activeMemoryManager->malloc(sizeof(broadcom_BCM5751));
           if(driver != 0) {
             new (driver) broadcom_BCM5751(dev, interruptManager);
@@ -243,7 +241,6 @@ Driver* PeripheralComponentInterconnect::getDriver(PeripheralComponentDeviceDesc
     case 0x03: // graphics
       switch(dev->subclassId) {
         case 0x00: // VGA
-          printf("VGA ");
           break;
       }
       break;
