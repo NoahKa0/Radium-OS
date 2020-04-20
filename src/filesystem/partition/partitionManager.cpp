@@ -103,6 +103,19 @@ uint32_t PartitionManager::numPartitions(uint32_t device) {
 }
 
 Partition* PartitionManager::getPartition(uint32_t device, uint32_t partition) {
+  if(device >= this->deviceCount || this->devices[device]->partition == 0) {
+    return 0;
+  }
+  partitionEntry* entry = this->devices[device]->partition;
+
+  uint32_t numPartitions = 0;
+  while(entry != 0 && numPartitions != partition) {
+    numPartitions++;
+    entry = entry->next;
+  }
+  if(numPartitions == partition && entry != 0) {
+    return entry->partition;
+  }
   return 0;
 }
 

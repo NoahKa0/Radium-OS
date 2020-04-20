@@ -9,6 +9,8 @@ File::File(FileSystem* fileSystem) {
 
 File::~File() {}
 
+void File::reset() {}
+
 bool File::isFolder() {
   return false;
 }

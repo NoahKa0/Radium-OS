@@ -14,6 +14,9 @@ void printf(char*);
 void printHex32(uint32_t);
 void printHex8(uint8_t);
 
+
+filesystem::File* Cmd::workingDirectory = 0;
+
 Cmd::Cmd() {}
 Cmd::~Cmd() {}
 void Cmd::run(common::String** args, common::uint32_t argsLength) {}
@@ -69,7 +72,7 @@ void Cli::onKeyDown(char c) {
 }
 
 void Cli::run() {
-  printf(">");
+  this->showCommandInput();
   while(this->running) {
     if(this->command != 0) {
       printf("\n");
@@ -96,7 +99,7 @@ void Cli::run() {
         } else {
           printf("Invalid command!\n");
         }
-        printf(">");
+        this->showCommandInput();
         this->command = 0;
         delete command;
         delete read;
@@ -123,8 +126,18 @@ void Cli::run() {
       delete command;
       delete read;
       delete cmd;
-      printf("\n>");
+      this->showCommandInput();
     }
     asm("hlt");
   }
+}
+
+void Cli::showCommandInput() {
+  printf("\n");
+  if(Cmd::workingDirectory != 0) {
+    String* filename = Cmd::workingDirectory->getFilename()->trim(' ');
+    printf(filename->getCharPtr());
+    delete filename;
+  }
+  printf(">");
 }

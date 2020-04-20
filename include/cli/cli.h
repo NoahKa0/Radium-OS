@@ -6,11 +6,16 @@
   #include <drivers/keyboard.h>
   #include <net/icmp.h>
   #include <net/tcp.h>
-  #include <filesystem/partition/partitionManager.h>
+  #include <filesystem/filesystem.h>
 
   namespace sys {
     namespace cli {
+      class Cli;
+
       class Cmd {
+      friend class Cli;
+      protected:
+        static filesystem::File* workingDirectory;
       public:
         Cmd();
         virtual ~Cmd();
@@ -34,6 +39,7 @@
         virtual void onKeyDown(char);
 
         void run();
+        void showCommandInput();
       };
     }
   }

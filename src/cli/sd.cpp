@@ -20,6 +20,7 @@ void CmdSD::run(String** args, uint32_t argsLength) {
     printf("--- HELP ---\n");
     printf("list: List all storage devices\n");
     printf("mount <device>: Mount a device\n");
+    printf("unmount <device>: Unmount a device\n");
     return;
   }
 
@@ -78,6 +79,10 @@ void CmdSD::run(String** args, uint32_t argsLength) {
       printf("Device 0x");
       printHex32(deviceId);
       if(result) {
+        if(this->workingDirectory != 0) {
+          delete this->workingDirectory;
+          this->workingDirectory = 0;
+        }
         printf(" unmounted!");
       } else {
         printf(" device is not mounted!");

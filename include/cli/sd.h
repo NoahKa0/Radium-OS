@@ -4,6 +4,7 @@
   #include <cli/cli.h>
   #include <common/types.h>
   #include <common/string.h>
+  #include <filesystem/partition/partitionManager.h>
 
   namespace sys {
     namespace cli {

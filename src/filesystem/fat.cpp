@@ -117,6 +117,9 @@ String* FatFile::getRealFilename(String* filename) {
 }
 
 void FatFile::reset() {
+  if(this->directory) {
+    this->size = 0;
+  }
   this->nextFileCluster = firstFileCluster;
   this->readPosition = 0;
   this->sectorOffset = 0;

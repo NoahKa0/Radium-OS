@@ -76,6 +76,25 @@ String* String::substring(uint32_t start, uint32_t end) {
   return ret;
 }
 
+String* String::trim(char c) {
+  uint32_t start = 0;
+  uint32_t end = this->length - 1;
+  if(end < 0) {
+    return new String();
+  }
+  while(this->chars[start] == c && start < this->length) {
+    start++;
+  }
+  while(this->chars[end] == c && end > 0) {
+    end--;
+  }
+  String* str = this->substring(start, end+1);
+  if(str == 0) {
+    return new String();
+  }
+  return str;
+}
+
 uint32_t String::strpos(char c, uint32_t occurrence) {
   uint32_t currentOccurrence = 0;
   for(int i = 0; i < this->length; i++) {

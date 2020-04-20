@@ -14,6 +14,8 @@
       public:
         File(FileSystem* fileSystem);
         virtual ~File();
+
+        virtual void reset();
         virtual bool isFolder();
         virtual File* getParent();
         virtual File* getChild(common::uint32_t file);

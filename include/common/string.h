@@ -18,6 +18,7 @@ namespace sys {
       uint32_t occurrences(char c);
       String* split(char c, uint32_t occurrence);
       String* substring(uint32_t start, uint32_t end = 0);
+      String* trim(char c);
       uint32_t strpos(char c, uint32_t occurrence = 0);
       char* getCharPtr();
       char charAt(uint32_t index);

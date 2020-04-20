@@ -26,6 +26,8 @@
           drivers::storage::StorageDevice* getDevice();
 
           void findFileSystem();
+
+          FileSystem* getFileSystem();
         };
       }
     }

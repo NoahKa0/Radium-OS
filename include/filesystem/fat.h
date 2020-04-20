@@ -86,7 +86,6 @@
 
         FatFile(Fat* fat, bool isFolder, common::uint32_t firstFileCluster, common::uint32_t parentCluster, common::String* filename, common::uint32_t size = 0, bool root = false);
         void loadNextSector();
-        void reset();
 
         void writeBuffer();
         bool updateChild(common::uint32_t childCluster, common::uint32_t size, common::String* name = 0);
@@ -96,6 +95,7 @@
       public:
         ~FatFile();
 
+        virtual void reset();
         virtual bool isFolder();
         virtual File* getParent();
         virtual File* getChild(common::uint32_t file);

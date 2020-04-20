@@ -3,6 +3,7 @@
 
 using namespace sys;
 using namespace sys::common;
+using namespace sys::filesystem;
 using namespace sys::filesystem::partition;
 using namespace sys::drivers::storage;
 
@@ -44,4 +45,8 @@ void Partition::findFileSystem() {
   if(Fat::isFat(this)) {
     this->filesystem = new Fat(this);
   }
+}
+
+FileSystem* Partition::getFileSystem() {
+  return this->filesystem;
 }
