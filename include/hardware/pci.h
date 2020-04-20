@@ -26,6 +26,7 @@
       private:
         PeripheralComponentInterconnect* pci;
       public:
+        BaseAddressRegister bar[6];
         sys::common::uint32_t portBase;
         sys::common::uint32_t addressBase;
         sys::common::uint32_t interrupt;

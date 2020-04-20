@@ -10,8 +10,8 @@ String::String() {
   this->length = 0;
 }
 
-String::String(char* str) {
-  this->length = String::findLength(str);
+String::String(char* str, uint32_t length) {
+  this->length = String::findLength(str, length);
   this->chars = (char *)MemoryManager::activeMemoryManager->malloc(sizeof(char) * (this->length + 1));
   for(int i = 0; i < this->length; i++) {
     this->chars[i] = str[i];
@@ -76,6 +76,25 @@ String* String::substring(uint32_t start, uint32_t end) {
   return ret;
 }
 
+String* String::trim(char c) {
+  uint32_t start = 0;
+  uint32_t end = this->length - 1;
+  if(end < 0) {
+    return new String();
+  }
+  while(this->chars[start] == c && start < this->length) {
+    start++;
+  }
+  while(this->chars[end] == c && end > 0) {
+    end--;
+  }
+  String* str = this->substring(start, end+1);
+  if(str == 0) {
+    return new String();
+  }
+  return str;
+}
+
 uint32_t String::strpos(char c, uint32_t occurrence) {
   uint32_t currentOccurrence = 0;
   for(int i = 0; i < this->length; i++) {
@@ -88,6 +107,13 @@ uint32_t String::strpos(char c, uint32_t occurrence) {
     }
   }
   return this->length;
+}
+
+char String::charAt(uint32_t index) {
+  if(index >= this->length) {
+    return 0;
+  }
+  return this->chars[index];
 }
 
 char* String::getCharPtr() {
@@ -120,7 +146,7 @@ bool String::contains(char* str, uint32_t strlen) {
       x++;
     } else if(x != 0) {
       i -= (x-1);
-      x == 0;
+      x = 0;
     }
     if(x >= strlen) {
       return true;
@@ -155,12 +181,30 @@ void String::append(char* str) {
   this->length = totalLen;
 }
 
-uint32_t String::findLength(char* str) {
+void String::toLower() {
+  for(int i = 0; i < this->length; i++) {
+    if(this->chars[i] >= 'A' && this->chars[i] <= 'Z') {
+      this->chars[i] = this->chars[i] | 0x20;
+    }
+  }
+}
+void String::toUpper() {
+  for(int i = 0; i < this->length; i++) {
+    if(this->chars[i] >= 'a' && this->chars[i] <= 'z') {
+      this->chars[i] = this->chars[i] & ~0x20;
+    }
+  }
+}
+
+uint32_t String::findLength(char* str, uint32_t max) {
+  if(max == 0) {
+    max = ~max;
+  }
   char c = 0;
   uint32_t i = 0;
   do {
     c = str[i];
     i++;
-  } while(c != 0);
+  } while(c != 0 && i <= max);
   return i - 1; // Ignore 0.
 }

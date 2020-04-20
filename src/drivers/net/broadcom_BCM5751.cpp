@@ -25,7 +25,7 @@ Block* broadcom_BCM5751::allocb(common::uint32_t size) {
   b = (Block*) MemoryManager::activeMemoryManager->mallocalign(sizeof(Block)+size+(64)+32, 32);
   
   if(b == 0) {
-    printf("broadcom_BCM5751-allocb->malloc failed!\nPANIC!\n");
+    printf("BCM5751->allocb->malloc failed!");
     while(true) {
       asm("cli");
       asm("hlt");
@@ -57,7 +57,7 @@ Block* broadcom_BCM5751::allocb(common::uint32_t size) {
     b->rp -= mod;
   }
   if(b->rp < b->base) {
-    printf("broadcom_BCM5751-allocb rp < base!\nPANIC!\n");
+    printf("BCM5751->allocb rp < base!");
     while(true) {
       asm("cli");
       asm("hlt");
@@ -174,7 +174,7 @@ void broadcom_BCM5751::checklink() {
     printf("bcm: link partner supports neither 10/100/1000 Mbps\n"); 
     goto out;
   }
-  printf("broadcom_BCM5751: ");
+  printf("bcm: ");
   printHex32(this->mbps);
   printf("Mbps ");
   if(this->ctlr.duplex) {
@@ -200,7 +200,7 @@ InterruptHandler(device->interrupt + 0x20, interruptManager) // hardware interru
 {
   this->device = device;
   if(device->memoryMapped != true) {
-    printf("BCM5751 bar is not set to memory mapped!\nPANIC!");
+    printf("BCM5751 bar is not set to memory mapped!");
     while(true) {
       asm("cli");
       asm("hlt");
@@ -430,7 +430,7 @@ common::uint32_t broadcom_BCM5751::handleInterrupt(common::uint32_t esp) {
 	if(status & Error) {
     if(csr32(nic, FlowAttention)) {
       if(csr32(nic, FlowAttention) & 0xF8FF8080UL) {
-        printf("bcm: fatal error!\nPANIC!");
+        printf("bcm: fatal error!");
         while(true) {
           asm("cli");
           asm("hlt");
@@ -446,7 +446,7 @@ common::uint32_t broadcom_BCM5751::handleInterrupt(common::uint32_t esp) {
     }
     if(csr32(nic, RISCState)) {
       if(csr32(nic, RISCState) & 0x78000403) {
-        printf("bcm: RISC halted!\nPANIC!");
+        printf("bcm: RISC halted!");
         while(true) {
           asm("cli");
           asm("hlt");
@@ -529,7 +529,6 @@ void broadcom_BCM5751::receive() {
 		bp = this->ctlr.rxs[pkt[7]];
 
     if(bp == 0) {
-			printf("bcm: nil block -- shouldn't happen\n");
 			break;
 		}
     

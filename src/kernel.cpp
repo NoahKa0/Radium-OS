@@ -10,8 +10,9 @@
 #include <drivers/keyboard.h>
 #include <drivers/mouse.h>
 #include <drivers/vga.h>
-#include <drivers/ata.h>
 #include <drivers/net/ethernet_driver.h>
+
+#include <filesystem/partition/mbr.h>
 
 #include <net/etherframe.h>
 #include <net/arp.h>
@@ -27,12 +28,13 @@
 
 #include <timer.h>
 #include <common/string.h>
-#include <test/cli.h>
+#include <cli/cli.h>
 
 using namespace sys;
 using namespace sys::common;
 using namespace sys::drivers;
 using namespace sys::hardware;
+using namespace sys::filesystem::partition;
 using namespace sys::net;
 
 static VideoGraphicsArray* videoGraphicsArray = 0;
@@ -151,7 +153,7 @@ TransmissionControlProtocolProvider* getTCP() {
   return tcp;
 }
 
-test::Cli* myCli;
+cli::Cli* myCli;
 
 class PrintKeyboardHandler:public KeyboardEventHandler {
 public:
@@ -216,7 +218,7 @@ void taskA() {
   }
   SystemTimer::sleep(1000);
 
-  myCli = new test::Cli();
+  myCli = new cli::Cli();
   myCli->run();
   delete myCli;
   myCli = 0;
@@ -279,6 +281,7 @@ extern "C" void kernelMain(void* multiboot_structure, uint32_t magicNumber) {
     InterruptManager interrupts(&gdt, &taskManager);
     SystemCallHandler systemCallHandler(&interrupts);
     
+    PartitionManager partitionManager;
     DriverManager driverManager;
     
     PrintKeyboardHandler keyboardHandler;
@@ -295,6 +298,7 @@ extern "C" void kernelMain(void* multiboot_structure, uint32_t magicNumber) {
     VideoGraphicsArray vga;
     videoGraphicsArray = &vga;
     
+    /**
     printf("ATA Primary: master: ");
     AdvancedTechnologyAttachment ataPM(0x1F0, true);
     ataPM.identify();
@@ -310,6 +314,9 @@ extern "C" void kernelMain(void* multiboot_structure, uint32_t magicNumber) {
     AdvancedTechnologyAttachment ataSS(0x170, false);
     ataSS.identify();
     printf("\n");
+
+    MBR::readMBR(&ataPM);
+    */
     
     printf("Initialising SystemTimer\n");
     new SystemTimer();
