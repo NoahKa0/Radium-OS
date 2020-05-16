@@ -65,6 +65,7 @@
         common::uint32_t sequenceNumber;
         
         common::uint64_t lastTransmit;
+        common::uint32_t size;
       } __attribute__((packed));
       
       class TransmissionControlProtocolProvider;
@@ -85,6 +86,9 @@
         TransmissionControlProtocolSocketState state;
         
         common::uint32_t nextBytes;
+
+        common::uint8_t sizeUnprocessedPackets;
+        TransmissionControlProtocolPacket** unprocessedPackets;
         
         common::uint8_t* recvBufferPtr;
         common::uint16_t recvBufferSize;
@@ -108,6 +112,9 @@
         TransmissionControlProtocolPacket* getSendPacket(common::uint16_t n);
         void deleteSendPacket(common::uint16_t n);
         bool addSendPacket(TransmissionControlProtocolPacket* packet);
+
+        bool addUnprocessedPacket(TransmissionControlProtocolPacket* packet);
+        TransmissionControlProtocolPacket* getUnprocessedPacket();
         
       public:
         TransmissionControlProtocolSocket(TransmissionControlProtocolProvider* backend);

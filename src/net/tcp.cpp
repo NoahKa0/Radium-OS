@@ -34,6 +34,12 @@ TransmissionControlProtocolSocket::TransmissionControlProtocolSocket(Transmissio
   for(uint32_t i = 0; i < this->recvBufferSize; i++) {
     recvBuffer[i] = 0;
   }
+
+  this->sizeUnprocessedPackets = 128;
+  this->unprocessedPackets = (TransmissionControlProtocolPacket**) MemoryManager::activeMemoryManager->malloc(sizeof(TransmissionControlProtocolPacket*) * this->sizeUnprocessedPackets);
+  for(uint32_t i = 0; i < this->sizeUnprocessedPackets; i++) {
+    this->unprocessedPackets[i] = 0;
+  }
   
   this->lastRecivedTime = SystemTimer::getTimeInInterrupts();
   
@@ -63,6 +69,15 @@ TransmissionControlProtocolSocket::~TransmissionControlProtocolSocket() {
   }
   delete rbuffer;
   this->recvBufferPtr = 0;
+
+  for(uint8_t i = 0; i < this->sizeUnprocessedPackets; i++) {
+    if(this->unprocessedPackets[i] != 0) {
+      delete this->unprocessedPackets[i]->data;
+      delete this->unprocessedPackets[i];
+      this->unprocessedPackets[i] = 0;
+    }
+  }
+  delete this->unprocessedPackets;
 }
 
 uint32_t TransmissionControlProtocolSocket::hasNext() {
@@ -112,6 +127,43 @@ void TransmissionControlProtocolSocket::removeOldPackets(uint32_t acknum) {
     }
   }
 }
+
+bool TransmissionControlProtocolSocket::addUnprocessedPacket(TransmissionControlProtocolPacket* packet) {
+  for(uint8_t i = 0; i < this->sizeUnprocessedPackets; i++) {
+    if(this->unprocessedPackets[i] == 0) {
+      this->unprocessedPackets[i] = packet;
+      return true;
+    }
+    if(bigEndian32(this->unprocessedPackets[i]->sequenceNumber) < this->acknowledgementNumber && this->acknowledgementNumber & 0xF0000000 == 0) {
+      delete this->unprocessedPackets[i]->data;
+      delete this->unprocessedPackets[i];
+      this->unprocessedPackets[i] = 0;
+    }
+  }
+  delete this->unprocessedPackets[this->sizeUnprocessedPackets-1]->data;
+  delete this->unprocessedPackets[this->sizeUnprocessedPackets-1];
+  this->unprocessedPackets[this->sizeUnprocessedPackets-1] = packet;
+  return true;
+}
+TransmissionControlProtocolPacket* TransmissionControlProtocolSocket::getUnprocessedPacket() {
+  for(uint8_t i = 0; i < this->sizeUnprocessedPackets; i++) {
+    if(this->unprocessedPackets[i] != 0) {
+      if(bigEndian32(this->unprocessedPackets[i]->sequenceNumber) == this->acknowledgementNumber) {
+        TransmissionControlProtocolPacket* ret = this->unprocessedPackets[i];
+        this->unprocessedPackets[i] = 0;
+        return ret;
+      }
+
+      if(bigEndian32(this->unprocessedPackets[i]->sequenceNumber) < this->acknowledgementNumber && this->acknowledgementNumber & 0xF0000000 == 0) {
+        delete this->unprocessedPackets[i]->data;
+        delete this->unprocessedPackets[i];
+        this->unprocessedPackets[i] = 0;
+      }
+    }
+  }
+  return 0;
+}
+
 
 TransmissionControlProtocolPacket* TransmissionControlProtocolSocket::getRecvPacket(common::uint16_t n) {
   if(this->recvBufferPtr == 0 || n >= this->recvBufferSize) return 0;
@@ -339,20 +391,24 @@ bool TransmissionControlProtocolProvider::onInternetProtocolReceived(uint32_t sr
             TransmissionControlProtocolPacket* packet = (TransmissionControlProtocolPacket*) packetPtr;
             packet->lastTransmit = 0; // Doesn't matter.
             packet->length = size;
-            packet->sequenceNumber = 0; // Doesn't matter.
+            packet->sequenceNumber = header->sequenceNumber;
             // recvPacketPtr will get freed when packet gets deleted from socket.
             packet->data = recvPacketPtr;
+            packet->size = size - (header->headerSize32*4);
+            socket->addUnprocessedPacket(packet);
             
-            // If packet is added to buffer, acknowledge packet
-            if(socket->addRecvPacket(packet, size - (header->headerSize32*4))) {
-              socket->acknowledgementNumber += size - (header->headerSize32*4);
+            packet = socket->getUnprocessedPacket();
+            while(packet != 0) {
+              // If packet is added to buffer, acknowledge packet
+              if(socket->addRecvPacket(packet, packet->size)) {
+                socket->acknowledgementNumber += packet->size;
+              }
+              packet = socket->getUnprocessedPacket();
             }
+            this->sendTCP(socket, 0,0, ACK, true);
           } else {
             MemoryManager::activeMemoryManager->free(recvPacketPtr); // Packet not added, delete recvPacketPtr
           }
-        }
-        if(!reset && size - (header->headerSize32*4) > 0) {
-          this->sendTCP(socket, 0,0, ACK, true);
         }
         break;
     }
@@ -397,7 +453,7 @@ void TransmissionControlProtocolProvider::sendTCP(TransmissionControlProtocolSoc
   header->windowSize = 0xFFFF;
   header->urgent = 0;
   
-  header->options = ((flags & SYN) != 0) ? 0xB4050402 : 0;
+  header->options = ((flags & SYN) != 0) ? 0x00030402 : 0;
   
   socket->sequenceNumber += length;
   
