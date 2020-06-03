@@ -3,6 +3,7 @@
 
   #include <common/types.h>
   #include <common/string.h>
+  #include <common/array.h>
   #include <filesystem/partition/partition.h>
   #include <filesystem/filesystem.h>
 
@@ -81,15 +82,16 @@
         common::int32_t size;
         common::int32_t readPosition;
         common::uint8_t* buffer;
-        common::String* filename;
+        common::Array* path;
         bool root;
 
-        FatFile(Fat* fat, bool isFolder, common::uint32_t firstFileCluster, common::uint32_t parentCluster, common::String* filename, common::uint32_t size = 0, bool root = false);
+        FatFile(Fat* fat, bool isFolder, common::uint32_t firstFileCluster, common::uint32_t parentCluster, common::Array* path, common::uint32_t size = 0, bool root = false);
         void loadNextSector();
 
         void writeBuffer();
         bool updateChild(common::uint32_t childCluster, common::uint32_t size, common::String* name = 0);
         bool deleteChild(common::uint32_t childCluster);
+        common::Array* copyCurrentPath();
 
         static common::String* getRealFilename(common::String* filename);
       public:

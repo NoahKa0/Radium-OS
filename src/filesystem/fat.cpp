@@ -5,7 +5,7 @@ using namespace sys::common;
 using namespace sys::filesystem;
 using namespace sys::filesystem::partition;
 
-FatFile::FatFile(Fat* fat, bool isFolder, uint32_t firstFileCluster, uint32_t parentCluster, String* filename, uint32_t size, bool root)
+FatFile::FatFile(Fat* fat, bool isFolder, uint32_t firstFileCluster, uint32_t parentCluster, Array* path, uint32_t size, bool root)
 :File(fat)
 {
   this->root = root;
@@ -18,13 +18,13 @@ FatFile::FatFile(Fat* fat, bool isFolder, uint32_t firstFileCluster, uint32_t pa
   this->size = isFolder ? 0 : size;
   this->readPosition = 0;
   this->sectorOffset = 0;
-  this->filename = filename;
+  this->path = path;
   this->buffer = (uint8_t*) MemoryManager::activeMemoryManager->mallocalign(512, 4);
 
   this->reset();
 }
 FatFile::~FatFile() {
-  delete this->filename;
+  delete this->path;
   delete buffer;
 }
 
@@ -149,27 +149,37 @@ void FatFile::writeBuffer() {
   this->sectorOffset++;
 }
 
+Array* FatFile::copyCurrentPath() {
+  Array* ret = new Array(true);
+  for(int i = 0; i < this->path->getLength(); i++) {
+    ret->add((uint8_t*) new String(((String*) (this->path->get(i)))->getCharPtr()));
+  }
+  return ret;
+}
+
 bool FatFile::isFolder() {
   return this->directory;
 }
 File* FatFile::getParent() {
+  Array* parentPath = this->copyCurrentPath();
+  parentPath->remove(parentPath->getLength() - 1);
   if(this->directory) {
     if(this->nextFileCluster != this->firstFileCluster) {
       this->reset();
     }
     fatDirectoryEntry* entry = (fatDirectoryEntry*) this->buffer;
     if(entry[1].name[0] != '.' || entry[1].name[1] != '.') {
+      delete parentPath;
       return 0;
     }
     uint32_t firstFileCluster = ((uint32_t) entry[1].firstClusterHi) << 16 | ((uint32_t) entry[1].firstClusterLow);
     if(firstFileCluster == 0) {
+      delete parentPath;
       return this->fat->getRoot();
     }
-    return new FatFile(this->fat, true, firstFileCluster, 0, new String((char*) entry[1].name, 11));
-  } else {
-    return new FatFile(this->fat, true, this->parentCluster, 0, 0);
+    return new FatFile(this->fat, true, firstFileCluster, 0, parentPath);
   }
-  return 0;
+  return new FatFile(this->fat, true, this->parentCluster, 0, parentPath);
 }
 File* FatFile::getChild(uint32_t file) {
   if(!this->directory) {
@@ -195,7 +205,9 @@ File* FatFile::getChild(uint32_t file) {
       if(firstFileCluster == 0) {
         return this->fat->getRoot();
       }
-      return new FatFile(this->fat, directory, firstFileCluster, this->firstFileCluster, new String((char*) entry[i].name, 11), entry[i].size);
+      Array* childPath = this->copyCurrentPath();
+      childPath->add((uint8_t*) new String((char*) entry[i].name, 11));
+      return new FatFile(this->fat, directory, firstFileCluster, this->firstFileCluster, childPath, entry[i].size);
     }
     total++;
   }
@@ -206,6 +218,18 @@ File* FatFile::getChildByName(String* file) {
     return 0;
   }
   String* realName = this->getRealFilename(file);
+  if(realName->equals(".          ") || realName->equals("..         ")) {
+    File* parent = this->getParent();
+    if(realName->getCharPtr()[1] == '.') {
+      delete realName;
+      return parent;
+    } else {
+      File* me = parent->getChildByName(this->getFilename());
+      delete realName;
+      delete parent;
+      return me;
+    }
+  }
 
   if(this->nextFileCluster != this->firstFileCluster) {
     this->reset();
@@ -228,7 +252,9 @@ File* FatFile::getChildByName(String* file) {
       if(firstFileCluster == 0) {
         return this->fat->getRoot();
       }
-      return new FatFile(this->fat, directory, firstFileCluster, this->firstFileCluster, new String((char*) entry[i].name, 11), entry[i].size);
+      Array* childPath = this->copyCurrentPath();
+      childPath->add((uint8_t*) new String((char*) entry[i].name, 11));
+      return new FatFile(this->fat, directory, firstFileCluster, this->firstFileCluster, childPath, entry[i].size);
     }
   }
   delete realName;
@@ -422,7 +448,7 @@ void FatFile::read(uint8_t* buffer, uint32_t length) {
 }
 
 String* FatFile::getFilename() {
-  return this->filename;
+  return (String*) this->path->get(this->path->getLength() - 1);
 }
 
 bool FatFile::remove() {
@@ -452,11 +478,8 @@ bool FatFile::rename(String* name) {
   if(parent == 0) {
     return false;
   }
-  if(this->filename != 0) {
-    delete this->filename;
-  }
-  this->filename = this->getRealFilename(name);
-  bool ret = parent->updateChild(this->firstFileCluster, this->size, this->filename);
+  this->path->set(this->path->getLength() - 1, (uint8_t*) this->getRealFilename(name));
+  bool ret = parent->updateChild(this->firstFileCluster, this->size, this->getFilename());
   delete parent;
   return ret;
 }
@@ -578,7 +601,9 @@ bool Fat::deleteChain(uint32_t startCluster) {
 }
 
 File* Fat::getRoot() {
-  return new FatFile(this, true, this->bpb->rootCluster, 0, new String(), 0);
+  Array* path = new Array(true);
+  path->add((uint8_t*) (new String("")));
+  return new FatFile(this, true, this->bpb->rootCluster, 0, path, 0);
 }
 String* Fat::getName() {
   return new String();
