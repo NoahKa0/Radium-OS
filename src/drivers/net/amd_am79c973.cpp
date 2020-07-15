@@ -192,3 +192,13 @@ uint32_t amd_am79c973::getIpAddress() {
 void amd_am79c973::setIpAddress(uint32_t ip) {
   initBlock.logicalAddress = ip;
 }
+
+Driver* amd_am79c973::getDriver(PeripheralComponentDeviceDescriptor* device, InterruptManager* interruptManager) {
+  Driver* ret = 0;
+  if(device->vendorId == 0x1022 // AMD
+  && (device->deviceId == 0x2000 || device->deviceId == 0x2001))
+  {
+    ret = new amd_am79c973(device, interruptManager);
+  }
+  return ret;
+}

@@ -133,8 +133,7 @@ bool TransmissionControlProtocolSocket::addUnprocessedPacket(TransmissionControl
     if(this->unprocessedPackets[i] == 0) {
       this->unprocessedPackets[i] = packet;
       return true;
-    }
-    if(bigEndian32(this->unprocessedPackets[i]->sequenceNumber) < this->acknowledgementNumber && this->acknowledgementNumber & 0xF0000000 == 0) {
+    } else if(bigEndian32(this->unprocessedPackets[i]->sequenceNumber) < this->acknowledgementNumber && this->acknowledgementNumber & 0xF0000000 == 0) {
       delete this->unprocessedPackets[i]->data;
       delete this->unprocessedPackets[i];
       this->unprocessedPackets[i] = 0;
@@ -365,7 +364,7 @@ bool TransmissionControlProtocolProvider::onInternetProtocolReceived(uint32_t sr
         // NO BREAK.
       default:
         socket->removeOldPackets(socket->sequenceNumber);
-        if(bigEndian32(header->sequenceNumber) == socket->acknowledgementNumber && size - (header->headerSize32*4) > 0) {
+        if(size - (header->headerSize32*4) > 0) {
           // Save checksum
           uint16_t recvChecksum = header->checksum;
           header->checksum = 0; // Checksum should be 0 when recalculating.

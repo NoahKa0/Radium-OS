@@ -48,11 +48,6 @@ static InternetControlMessageProtocol* icmp = 0;
 static UserDatagramProtocolProvider* udp = 0;
 static DynamicHostConfigurationProtocol* dhcp = 0;
 static TransmissionControlProtocolProvider* tcp = 0;
-static char* nicName = 0; // This is almost wordplay XD (nic = network interface card).
-
-void setNicName(char* name) {
-  nicName = name;
-}
 
 void setSelectedEthernetDriver(EthernetDriver* drv) {
   currentEthernetDriver = drv;
@@ -298,26 +293,6 @@ extern "C" void kernelMain(void* multiboot_structure, uint32_t magicNumber) {
     VideoGraphicsArray vga;
     videoGraphicsArray = &vga;
     
-    /**
-    printf("ATA Primary: master: ");
-    AdvancedTechnologyAttachment ataPM(0x1F0, true);
-    ataPM.identify();
-    printf(" slave: ");
-    AdvancedTechnologyAttachment ataPS(0x1F0, false);
-    ataPS.identify();
-    printf("\n");
-    
-    printf("ATA Secondary: master: ");
-    AdvancedTechnologyAttachment ataSM(0x170, true);
-    ataSM.identify();
-    printf(" slave: ");
-    AdvancedTechnologyAttachment ataSS(0x170, false);
-    ataSS.identify();
-    printf("\n");
-
-    MBR::readMBR(&ataPM);
-    */
-    
     printf("Initialising SystemTimer\n");
     new SystemTimer();
     
@@ -336,13 +311,7 @@ extern "C" void kernelMain(void* multiboot_structure, uint32_t magicNumber) {
       tcp = new TransmissionControlProtocolProvider(ipv4);
       dhcp = new DynamicHostConfigurationProtocol(udp, ipv4);
     } else {
-      if(nicName != 0) {
-        printf("NO SOPPURT: ");
-        printf(nicName);
-      } else {
-        printf("NO DRIVER REGISTERED!");
-      }
-      printf("\n");
+      printf("NO DRIVER REGISTERED!\n");
     }
     
     taskManager.enable();

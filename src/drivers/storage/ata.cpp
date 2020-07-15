@@ -202,3 +202,13 @@ void AdvancedTechnologyAttachment::flush() {
 uint64_t AdvancedTechnologyAttachment::getSectorCount() {
   return this->sectorCount;
 }
+
+Driver* AdvancedTechnologyAttachment::getDriver(PeripheralComponentDeviceDescriptor* device, InterruptManager* interruptManager) {
+  Driver* ret = 0;
+
+  if(device->classId == 0x01 && device->subclassId == 0x01) {
+    ret = new AdvancedTechnologyAttachment(device, interruptManager);
+  }
+
+  return ret;
+}

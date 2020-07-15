@@ -566,3 +566,13 @@ bool broadcom_BCM5751::hasLink() {
 void broadcom_BCM5751::setIpAddress(uint32_t ip) {
   this->ipAddr = ip;
 }
+
+Driver* broadcom_BCM5751::getDriver(PeripheralComponentDeviceDescriptor* device, InterruptManager* interruptManager) {
+  Driver* ret = 0;
+
+  if(device->vendorId == 0x14E4 && device->deviceId == 0x1677) {
+    ret = new broadcom_BCM5751(device, interruptManager);
+  }
+
+  return ret;
+}

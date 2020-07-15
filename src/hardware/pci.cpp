@@ -186,68 +186,12 @@ void setNicName(char* name);
 
 Driver* PeripheralComponentInterconnect::getDriver(PeripheralComponentDeviceDescriptor* dev, InterruptManager* interruptManager) {
   
-  Driver* driver = 0;
+  Driver* driver = Driver::getDriver(dev, interruptManager);
   
-  // TODO This should not be handled here
-    
-  switch(dev->vendorId) {
-    case 0x8086: // Intel
-      switch(dev->deviceId) {
-        case 0x100E:
-          setNicName("Intel 0x100E");
-          break;
-        case 0x1017:
-          setNicName("Intel 0x1017");
-          break;
-      }
-      break;
-    case 0x1022: // AMD
-      switch(dev->deviceId) {
-        case 0x2000: // am79c973
-          driver = (amd_am79c973*)MemoryManager::activeMemoryManager->malloc(sizeof(amd_am79c973));
-          if(driver != 0) {
-            new (driver) amd_am79c973(dev, interruptManager);
-          }
-          return driver;
-          break;
-      }
-      break;
-    case 0x14E4:
-      switch(dev->deviceId) {
-        case 0x1677:
-          driver = (broadcom_BCM5751*)MemoryManager::activeMemoryManager->malloc(sizeof(broadcom_BCM5751));
-          if(driver != 0) {
-            new (driver) broadcom_BCM5751(dev, interruptManager);
-          }
-          return driver;
-          break;
-      }
-      break;
-  }
-
-
-  switch(dev->classId) {
-    case 0x01: // Mass stroage device.
-      switch(dev->subclassId) {
-        case 0x01: // IDE
-          driver = (storage::AdvancedTechnologyAttachment*)MemoryManager::activeMemoryManager->malloc(sizeof(storage::AdvancedTechnologyAttachment));
-          if(driver != 0) {
-            new (driver) storage::AdvancedTechnologyAttachment(dev, interruptManager);
-          }
-          return driver;
-          break;
-      }
-    break;
-    case 0x03: // graphics
-      switch(dev->subclassId) {
-        case 0x00: // VGA
-          break;
-      }
-      break;
+  if(driver == 0) {
+    delete dev;
   }
   
-  delete dev;
-  
-  return 0;
+  return driver;
 }
 
