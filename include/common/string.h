@@ -11,7 +11,7 @@ namespace sys {
       uint32_t length;
     public:
       String();
-      String(char* str, common::uint32_t length = 0);
+      String(const char* str, common::uint32_t length = 0);
       ~String();
 
       uint32_t getLength();
@@ -23,12 +23,12 @@ namespace sys {
       char* getCharPtr();
       char charAt(uint32_t index);
       int64_t parseInt();
-      bool contains(char* str, uint32_t strlen = 0);
-      bool equals(char* str);
-      void append(char* str);
+      bool contains(const char* str, uint32_t strlen = 0);
+      bool equals(const char* str);
+      void append(const char* str);
       void toLower();
       void toUpper();
-      static uint32_t findLength(char* str, common::uint32_t max = 0);
+      static uint32_t findLength(const char* str, common::uint32_t max = 0);
     };
   }
 }

@@ -7,7 +7,7 @@ using namespace sys::hardware;
 using namespace sys::common;
 using namespace sys::drivers;
 
-void printf(char* str);
+void printf(const char* str);
 void printHex32(uint32_t num);
 
 PeripheralComponentDeviceDescriptor::PeripheralComponentDeviceDescriptor(PeripheralComponentInterconnect* pci) {

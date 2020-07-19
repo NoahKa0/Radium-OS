@@ -71,7 +71,7 @@ void enableVGA() {
   }
 }
 
-void printf(char* str) {
+void printf(const char* str) {
   static uint16_t* videoMemory = (uint16_t*)0xB8000;
   static uint8_t x = 0, y = 0;
   
@@ -138,6 +138,11 @@ void printHex32(uint32_t num) {
     txt[7] = hex[num & 0xF];
     
     printf(txt);
+}
+
+void printHex64(uint64_t num) {
+  printHex32(num >> 32);
+  printHex32(num);
 }
 
 InternetControlMessageProtocol* getICMP() {
@@ -293,7 +298,6 @@ extern "C" void kernelMain(void* multiboot_structure, uint32_t magicNumber) {
     VideoGraphicsArray vga;
     videoGraphicsArray = &vga;
     
-    printf("Initialising SystemTimer\n");
     new SystemTimer();
     
     printf("Enabling interrupts and activating drivers...\n");

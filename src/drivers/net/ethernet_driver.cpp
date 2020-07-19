@@ -6,7 +6,7 @@ using namespace sys::drivers;
 using namespace sys::hardware;
 using namespace sys::net;
 
-void printf(char* str);
+void printf(const char* str);
 
 EthernetDriver::EthernetDriver()
 :Driver()

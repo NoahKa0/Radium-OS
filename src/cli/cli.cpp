@@ -10,7 +10,7 @@ using namespace sys;
 using namespace sys::cli;
 using namespace sys::common;
 
-void printf(char*);
+void printf(const char*);
 void printHex32(uint32_t);
 void printHex8(uint8_t);
 

@@ -7,7 +7,7 @@ using namespace sys::common;
 using namespace sys::filesystem;
 using namespace sys::filesystem::partition;
 
-void printf(char*);
+void printf(const char*);
 void printHex32(uint32_t);
 void printHex8(uint8_t);
 

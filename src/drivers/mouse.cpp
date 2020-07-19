@@ -4,8 +4,6 @@ using namespace sys::common;
 using namespace sys::drivers;
 using namespace sys::hardware;
 
-void printf(char* str);
-
 MouseEventHandler::MouseEventHandler() {}
 MouseEventHandler::~MouseEventHandler() {}
 

@@ -5,7 +5,7 @@ using namespace sys::common;
 using namespace sys::filesystem::partition;
 using namespace sys::drivers::storage;
 
-void printf(char*);
+void printf(const char*);
 void printHex8(uint8_t);
 
 bool MBR::isMBR(StorageDevice* device) {

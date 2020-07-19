@@ -10,7 +10,7 @@ String::String() {
   this->length = 0;
 }
 
-String::String(char* str, uint32_t length) {
+String::String(const char* str, uint32_t length) {
   this->length = String::findLength(str, length);
   this->chars = (char *)MemoryManager::activeMemoryManager->malloc(sizeof(char) * (this->length + 1));
   for(int i = 0; i < this->length; i++) {
@@ -135,7 +135,7 @@ int64_t String::parseInt() {
   return ret;
 }
 
-bool String::contains(char* str, uint32_t strlen) {
+bool String::contains(const char* str, uint32_t strlen) {
   if(strlen == 0) {
     strlen = String::findLength(str);
   }
@@ -155,12 +155,12 @@ bool String::contains(char* str, uint32_t strlen) {
   return false;
 }
 
-bool String::equals(char* str) {
+bool String::equals(const char* str) {
   uint32_t strlen = String::findLength(str);
   return (strlen == this->length && this->contains(str, strlen));
 }
 
-void String::append(char* str) {
+void String::append(const char* str) {
   uint32_t strLen = String::findLength(str);
   uint32_t totalLen = this->length+strLen;
   char* tmp = (char *)MemoryManager::activeMemoryManager->malloc(sizeof(char) * (totalLen + 1));
@@ -196,7 +196,7 @@ void String::toUpper() {
   }
 }
 
-uint32_t String::findLength(char* str, uint32_t max) {
+uint32_t String::findLength(const char* str, uint32_t max) {
   if(max == 0) {
     max = ~max;
   }

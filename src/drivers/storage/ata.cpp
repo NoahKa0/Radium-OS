@@ -6,7 +6,7 @@ using namespace sys::drivers;
 using namespace sys::drivers::storage;
 using namespace sys::hardware;
 
-void printf(char* str);
+void printf(const char* str);
 void printHex32(uint32_t num);
 void printHex8(uint8_t num);
 
@@ -86,8 +86,13 @@ void AdvancedTechnologyAttachment::identify() {
     data[i] = dataPort.read();
   }
 
+  uint64_t size48A = data[101];
+  uint64_t size48B = data[100];
+  uint64_t size48C = data[103];
+  uint64_t size48D = data[102];
+
   uint64_t size28 = data[61] << 16 | data[60];
-  uint64_t size48 = data[101] << 16 | data[100] | data[103] << 48 | data[102] << 32;
+  uint64_t size48 = size48A << 16 | size48B | size48C << 48 | size48D << 32;
   if(size48 == 0) {
     this->sectorCount = size28;
   } else {

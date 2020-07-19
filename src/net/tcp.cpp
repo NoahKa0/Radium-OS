@@ -121,7 +121,7 @@ void TransmissionControlProtocolSocket::removeOldPackets(uint32_t acknum) {
     // Check to see if packet sequenceNumber is acked.
     // The second part is to detect when the ack number wraps around
     if(packet != 0
-      && (packet->sequenceNumber < acknum || ((packet->sequenceNumber & 0xF0000000) != 0 && (acknum & 0xFF000000) == 0)))
+      && (packet->sequenceNumber <= acknum || ((packet->sequenceNumber & 0xF0000000) != 0 && (acknum & 0xFF000000) == 0)))
     {
       this->deleteSendPacket(i);
     }

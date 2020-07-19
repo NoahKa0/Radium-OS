@@ -9,7 +9,7 @@ InternetControlMessageProtocol::InternetControlMessageProtocol(InternetProtocolV
 
 InternetControlMessageProtocol::~InternetControlMessageProtocol() {}
 
-void printf(char* txt);
+void printf(const char* txt);
 void printHex8(uint8_t num);
 void printHex32(uint32_t num);
 

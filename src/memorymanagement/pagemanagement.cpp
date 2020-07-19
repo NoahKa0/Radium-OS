@@ -6,9 +6,6 @@ using namespace sys::common;
 
 PageManager* PageManager::activePageManager = 0;
 
-void printf(char*);
-void printHex32(uint32_t);
-
 PageManager::PageManager() {
   activePageManager = this;
 
@@ -76,4 +73,5 @@ common::uint32_t* PageManager::createPageDictionary() {
       this->kernelDictionary[i] = record;
     }
   }
+  return dictionary;
 }

@@ -9,7 +9,7 @@ SystemCallHandler::SystemCallHandler(InterruptManager* interruptManager)
 
 SystemCallHandler::~SystemCallHandler() {}
 
-void printf(char* str);
+void printf(const char* str);
 
 uint32_t SystemCallHandler::handleInterrupt(sys::common::uint32_t esp) {
   CPUState* cpuState = (CPUState*) esp;

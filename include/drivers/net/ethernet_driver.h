@@ -16,7 +16,7 @@
     namespace drivers {
       class EthernetDriver : public Driver {
       private:
-        char* defaultMessage;
+        const char* defaultMessage;
       protected:
         net::EtherFrameProvider* etherFrameProvider;
       public:
