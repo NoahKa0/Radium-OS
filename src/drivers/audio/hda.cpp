@@ -41,6 +41,7 @@ InterruptHandler(device->interrupt + 0x20, interruptManager){
   for(int i = 0; i < this->maxNodes; i++) {
     this->nodes[i].cad = 0;
     this->nodes[i].nid = 0;
+    this->nodes[i].ampGainSteps = 0;
   }
 
   this->bdl_length = 4;
@@ -50,68 +51,93 @@ InterruptHandler(device->interrupt + 0x20, interruptManager){
 HDA::~HDA() {}
 
 void HDA::setupBDL() {
+  uint32_t bufferSize = 0x10000;
+  // INIT OUTPUT WIDGET
+  uint16_t sample_rate = 0; // 0 = 48 khz.
+  uint16_t num_channels = 0; // Channel is count - 1, so this is 1.
+  uint16_t format = 16 | sample_rate | num_channels;
+
+  this->corb_write_cmd(this->nodes[0].cad, this->nodes[0].nid, VERB_SET_STREAM_CHANNEL, 0x10);
+  this->corb_write_cmd(this->nodes[0].cad, this->nodes[0].nid, VERB_SET_FORMAT, format);
+  csr32(this->baseAddr, SDnCTL + SDnFMT) = format;
+
+
   this->bdl_start = (HDA_BDLE*) MemoryManager::activeMemoryManager->mallocalign(this->bdl_length * sizeof(HDA_BDLE), 128);
   for(int i = 0; i < this->bdl_length; i++) {
-    this->bdl_start[i].length = 6000 * sizeof(uint32_t);
+    this->bdl_start[i].length = bufferSize * sizeof(uint32_t);
     this->bdl_start[i].address = (uint64_t) MemoryManager::activeMemoryManager->mallocalign(this->bdl_start[i].length, 128);
-    this->bdl_start[i].IOC = 1;
-    this->bdl_start[i].reserved1 = 1;
-    this->bdl_start[i].reserved2 = 0;
-    for(int w = 0; w < 6000; w++) { // Debug sqaure wave at 600 hz.
-      uint32_t t = ((w / 4) % 2) == 0 ? 0 : -1;
+    this->bdl_start[i].flags = 1;
+    for(int w = 0; w < bufferSize; w++) { // Debug sqaure wave at 600 hz.
+      uint32_t t = ((w / 8) % 2) == 0 ? 0 : -1;
       t &= 0xFFFFFF00;
-      *((uint32_t*) this->bdl_start[w].address) = t;
+      ((uint32_t*) this->bdl_start[i].address)[w] = t;
     }
   }
 
-  csr8(this->baseAddr, 0x83) &= ~0x20;
-  printHex8(csr8(this->baseAddr, 0x83));
+  csr8(this->baseAddr, SDnCTL + 2) = 0x10;
+  csr32(this->baseAddr, SDnCTL + SDnCBL) = this->bdl_length * bufferSize * 4;
+  csr16(this->baseAddr, SDnCTL + SDnLVI) = this->bdl_length - 1;
 
-  csr8(this->baseAddr, SDnCTL) = 0; // Clear
-  csr8(this->baseAddr, SDnCTL) = 0x01; // Reset
-  SystemTimer::sleep(150);
-  while(csr8(this->baseAddr, SDnCTL) & 0x01 != 0x01) SystemTimer::sleep(50);
-  csr8(this->baseAddr, SDnCTL) &= ~0x01;
-  SystemTimer::sleep(150);
-  while(csr8(this->baseAddr, SDnCTL) & 0x01 != 0) SystemTimer::sleep(50);
+  csr32(this->baseAddr, SDnCTL + SDnBDPL) = (uint32_t) this->bdl_start;
+  csr32(this->baseAddr, SDnCTL + SDnBDPU) = 0;
 
-  csr32(this->baseAddr, SDnCTL) = 1 << 20; // Set stream number (bit 20)
+  csr32(baseAddr, Dplbase) = ((uint32_t) this->bdl_start) + 1;
+	csr32(baseAddr, Dpubase) = 0;
 
-  csr32(this->baseAddr, SDnCBL) = this->bdl_length * 600 * 4;
-  csr16(this->baseAddr, SDnFMT) = 0; // Default 48 kHz.
-  csr16(this->baseAddr, SDnLVI) = this->bdl_length - 1;
+  printf("Playing from cad: 0x");
+  printHex32(this->nodes[0].cad);
+  printf(" nid: 0x");
+  printHex32(this->nodes[0].nid);
+  printf("\n");
 
-  csr32(this->baseAddr, SDnBDPL) = (uint32_t) this->bdl_start;
-  csr32(this->baseAddr, SDnBDPU) = 0;
+  csr16(this->baseAddr, SDnCTL) = 6;
 
-  this->corb_write_cmd(0, 1, 0x707, 0b11100000);
-  this->corb_write_cmd(0, 1, 0x706, 0b00010000);
-  this->corb_write_cmd(0, 1, 0x3 | (0x40 << 4), 0x64);
-  
-  csr8(this->baseAddr, SDnCTL) |= 0b11100; // Enable interrupts
-  csr8(this->baseAddr, SDnCTL) |= 0x10; // Start playing
+  csr32(this->baseAddr, SSYNC) &= 0xFF000000;
+  printf("SSYNC: ");
+  printHex32(csr32(this->baseAddr, SSYNC));
+  printf("\n");
 
-  SystemTimer::sleep(5000);
-  printf("Status: ");
-  printHex8(csr8(this->baseAddr, 0x83));
   printf("\nPlaying: ");
   printHex32(csr32(this->baseAddr, SDnCTL));
+  printf(" ");
+  printHex8(csr8(this->baseAddr, SDnCTL));
   printf("\n");
+  this->setVolume(255);
 }
 
-void HDA::cmd_reset() {
-  this->rirbRp = (csr16(baseAddr, Rirbwp) + 1) % this->rirbSize;
+void HDA::setNode(int node) {
+  uint32_t cad = this->nodes[0].cad;
+  uint32_t nid = this->nodes[0].nid;
+  uint32_t ampGainSteps = this->nodes[0].ampGainSteps;
+
+  this->nodes[0].cad = this->nodes[node].cad;
+  this->nodes[0].nid = this->nodes[node].nid;
+  this->nodes[0].ampGainSteps = this->nodes[node].ampGainSteps;
+
+  this->nodes[node].cad = cad;
+  this->nodes[node].nid = nid;
+  this->nodes[node].ampGainSteps = ampGainSteps;
 }
 
 void HDA::activate() {
   static int cmdbufsize[] = { 2, 16, 256, 2048 };
 
   uint8_t* baseAddr = this->baseAddr;
+
+  csr8(baseAddr, Corbctl) = 0;
+  csr8(baseAddr, Rirbctl) = 0;
+  while(csr8(baseAddr, Corbctl) & Corbdma != 0) SystemTimer::sleep(50);
+  while(csr8(baseAddr, Rirbctl) & Rirbdma != 0) SystemTimer::sleep(50);
   
-  csr32(baseAddr, Gctl) &= ~Rst;
+  csr32(baseAddr, Gctl) = ~Rst;
+  while(csr32(baseAddr, Gctl) & Rst != 0)
   SystemTimer::sleep(150);
+
   csr32(baseAddr, Gctl) |= Rst;
-  while(csr32(baseAddr, Gctl) & Rst != Rst) SystemTimer::sleep(50);
+  while(csr32(baseAddr, Gctl) & Rst == 0) SystemTimer::sleep(50);
+
+  csr16(baseAddr, WakeEn) = 0xFFFF;
+  csr32(baseAddr, Intctl) = 0x800000FF;
 
   if(csr32(baseAddr, Statests) == 0) {
     printf("HDA: No codecs!");
@@ -120,11 +146,6 @@ void HDA::activate() {
       asm("hlt");
     }
   }
-
-  csr8(baseAddr, Corbctl) = 0;
-  while(csr8(baseAddr, Corbctl) & Corbdma != 0) SystemTimer::sleep(50);
-  csr8(baseAddr, Rirbctl) = 0;
-  while(csr8(baseAddr, Rirbctl) & Rirbdma != 0) SystemTimer::sleep(50);
 
   this->corbSize = cmdbufsize[csr8(baseAddr, Corbsz) & 0x3];
   this->corb = (uint32_t*) MemoryManager::activeMemoryManager->mallocalign(4 * this->corbSize, 128);
@@ -141,7 +162,7 @@ void HDA::activate() {
   /* setup controller  */
 	csr32(baseAddr, Dplbase) = 0;
 	csr32(baseAddr, Dpubase) = 0;
-	csr16(baseAddr, Statests) = csr16(baseAddr, Statests);
+	// csr16(baseAddr, Statests) = csr16(baseAddr, Statests);
 	csr8(baseAddr, Rirbsts) = csr8(baseAddr, Rirbsts);
 
   csr32(baseAddr, Corblbase) = (uint32_t) this->corb;
@@ -161,17 +182,17 @@ void HDA::activate() {
 	csr8(baseAddr, Rirbctl) = Rirbdma;
   while(csr8(baseAddr, Rirbctl) & Rirbdma != Rirbdma) SystemTimer::sleep(50);
 
-  csr8(baseAddr, Intctl) |= (1<<31) | (1<<30);
-
+  SystemTimer::sleep(600);
   this->collectAFGNodes();
   this->setupBDL();
 }
 
-bool HDA::storeNode(uint32_t cad, uint32_t nid) {
+bool HDA::storeNode(uint32_t cad, uint32_t nid, uint32_t ampGainSteps) {
   for(int i = 0; i < this->maxNodes; i++) {
     if(this->nodes[i].cad == 0 && this->nodes[i].nid == 0) {
       this->nodes[i].cad = cad;
       this->nodes[i].nid = nid;
+      this->nodes[i].ampGainSteps = ampGainSteps;
       return true;
     }
   }
@@ -179,32 +200,92 @@ bool HDA::storeNode(uint32_t cad, uint32_t nid) {
 }
 
 void HDA::collectAFGNodes() {
+  uint32_t statests = csr32(baseAddr, Statests);
   for(int c = 0; c < 10; c++) {
-    this->corb_write_cmd(c, 0, 0xF00, 0x04);
-    uint64_t response = this->getNextSolicitedResponse();
+    if((statests & (1 << c)) == 0) {
+      continue;
+    }
+    uint64_t response = this->corb_write_cmd(c, 0, VERB_GET, 0x04);
     uint8_t startNode = (response >> 16) & 0xFF;
     uint8_t nodeCount = response & 0xFF;
     for(int n = startNode; n < startNode+nodeCount; n++) {
-      this->corb_write_cmd(c, n, 0xF00, 0x05);
-      uint8_t fg = this->getNextSolicitedResponse() & 0xFF;
+      response = this->corb_write_cmd(c, n, VERB_GET, 0x04)  & 0xFF;
+      uint8_t startWidget = (response >> 16) & 0xFF;
+      uint8_t widgetCount = response & 0xFF;
+      uint8_t fg = this->corb_write_cmd(c, n, VERB_GET, 0x05) & 0xFF;
+
       if(fg == 0x01) { // AFG
-        this->corb_write_cmd(c, n, 0xF00, 0x0C);
-        response = this->getNextSolicitedResponse();
-        if(response != 0) {
-          this->storeNode(c, n);
-          printf("HDA: found node cad=0x");
-          printHex8(c);
-          printf(" nid=0x");
-          printHex8(n);
-          printf("\n");
+        this->corb_write_cmd(c, n, VERB_SET_POWER_STATE, 0);
+        for(int w = startWidget; w < startWidget+widgetCount; w++) {
+          this->initWidget(c, w);
         }
       }
     }
   }
 }
 
-uint64_t HDA::getNextSolicitedResponse() {
+void HDA::initWidget(uint32_t cad, uint32_t nid) {
+  uint32_t type = 0;
+  uint32_t ampCap = 0;
+  uint32_t eapdBtl = 0;
+  uint32_t widgetCap = this->corb_write_cmd(cad, nid, VERB_GET, 0x09);
+
+  if(widgetCap == 0) {
+    return;
+  }
+  type = (widgetCap >> 20) & 0xF;
+
+  ampCap = this->corb_write_cmd(cad, nid, VERB_GET, 18);
+
+  eapdBtl = this->corb_write_cmd(cad, nid, VERB_GET_EAPD_BTL, 0);
+
+  uint32_t pinCap, ctl; // WIDGET PIN
+  switch (type) {
+    case WIDGET_PIN:
+      pinCap = this->corb_write_cmd(cad, nid, VERB_GET, 0x0C);
+      printf("PIN CAP: ");
+      printHex32(pinCap);
+      printf("\n");
+
+      if(pinCap & (1 << 4) == 0) {
+        return;
+      }
+      
+      ctl = this->corb_write_cmd(cad, nid, VERB_GET_PIN_CTL, 0);
+      ctl |= 64; // OUTPUT ENABLE.
+      this->corb_write_cmd(cad, nid, VERB_SET_PIN_CTL, ctl);
+
+      eapdBtl |= 0x2;
+      this->corb_write_cmd(cad, nid, VERB_SET_EAPD_BTL, eapdBtl);
+      break;
+    case WIDGET_OUTPUT:
+      eapdBtl = eapdBtl | 0x2;
+      this->corb_write_cmd(cad, nid, VERB_SET_EAPD_BTL, eapdBtl);
+
+      this->storeNode(cad, nid, (ampCap >> 8) & 0x7F);
+      printf("HDA: found output node cad=0x");
+      printHex8(cad);
+      printf(" nid=0x");
+      printHex8(nid);
+      printf("\n");
+      break;
+    default:
+      return;
+  }
+
+  if((widgetCap & 0x400) != 0) {
+    this->corb_write_cmd(cad, nid, VERB_SET_POWER_STATE, 1);
+  }
+}
+
+uint64_t HDA::corb_write_cmd(uint32_t cad, uint32_t nid, uint32_t verb, uint32_t cmd) {
   uint64_t ret = 0;
+
+  // Write command
+  this->corb[csr16(this->baseAddr, Corbwp) + 1] = (cad << 28) | (nid << 20) | (verb << 8) | cmd;
+  csr16(this->baseAddr, Corbwp) = (csr16(this->baseAddr, Corbwp) + 1) % this->corbSize;
+
+  // Get response
   while(this->rirbRp > csr16(baseAddr, Rirbwp) && csr16(baseAddr, Rirbwp) == this->rirbRp-1) {
     SystemTimer::sleep(50);
   }
@@ -213,9 +294,14 @@ uint64_t HDA::getNextSolicitedResponse() {
   return ret;
 }
 
-void HDA::corb_write_cmd(uint32_t cad, uint32_t nid, uint32_t verb, uint32_t cmd) {
-  this->corb[csr16(this->baseAddr, Corbwp) + 1] = (cad << 28) | (nid << 20) | (verb << 8) | cmd;
-  csr16(this->baseAddr, Corbwp) = (csr16(this->baseAddr, Corbwp) + 1) % this->corbSize;
+void HDA::setVolume(uint8_t volume) {
+  uint32_t vol = volume * this->nodes[0].ampGainSteps / 255;
+  vol |= 0xb000; // Output Amp, Left and Right
+  vol &= ~0x80;
+  printf("Vol: ");
+  printHex32(vol);
+  printf("\n");
+  this->corb_write_cmd(this->nodes[0].cad, this->nodes[0].nid, VERB_SET_AMP_GAIN_MUTE, vol);
 }
 
 int HDA::reset() {

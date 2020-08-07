@@ -139,7 +139,7 @@ PeripheralComponentDeviceDescriptor* PeripheralComponentInterconnect::getDeviceD
   result->interfaceId = read(bus, device, function, 0x09);
   
   result->revision = read(bus, device, function, 0x08);
-  result->interrupt = read(bus, device, function, 0x3C);
+  result->interrupt = read(bus, device, function, 0x3C) & 0xF;
 
   // Default values
   result->addressBase = 0;
