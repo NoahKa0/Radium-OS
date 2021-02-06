@@ -365,15 +365,13 @@ bool TransmissionControlProtocolProvider::onInternetProtocolReceived(uint32_t sr
       default:
         socket->removeOldPackets(socket->sequenceNumber);
         if(size - (header->headerSize32*4) > 0) {
-          // Save checksum
-          uint16_t recvChecksum = header->checksum;
-          header->checksum = 0; // Checksum should be 0 when recalculating.
-          
           uint8_t* recvPacketPtr = (uint8_t*) MemoryManager::activeMemoryManager->malloc(size + sizeof(TransmissionControlProtocolPseudoHeader));
           uint8_t* recvHeaderPtr = recvPacketPtr + sizeof(TransmissionControlProtocolPseudoHeader);
           for(uint32_t i = 0; i < size; i++) {
             recvHeaderPtr[i] = payload[i];
           }
+          // Checksum must be 0 when recalculating!
+          ((TransmissionControlProtocolHeader*) recvHeaderPtr)->checksum = 0;
           
           // Reconstruct pseudoHeader.
           TransmissionControlProtocolPseudoHeader* pseudoHeader = (TransmissionControlProtocolPseudoHeader*) recvPacketPtr;
@@ -385,7 +383,7 @@ bool TransmissionControlProtocolProvider::onInternetProtocolReceived(uint32_t sr
           // Recalculate checksum.
           uint16_t newChecksum = InternetProtocolV4Provider::checksum((uint16_t*) recvPacketPtr, size + sizeof(TransmissionControlProtocolPseudoHeader));
           
-          if(newChecksum == recvChecksum) {
+          if(newChecksum == header->checksum) {
             uint8_t* packetPtr = (uint8_t*) MemoryManager::activeMemoryManager->malloc(sizeof(TransmissionControlProtocolPacket));
             TransmissionControlProtocolPacket* packet = (TransmissionControlProtocolPacket*) packetPtr;
             packet->lastTransmit = 0; // Doesn't matter.
