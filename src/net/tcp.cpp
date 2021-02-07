@@ -447,10 +447,10 @@ void TransmissionControlProtocolProvider::sendTCP(TransmissionControlProtocolSoc
   
   header->reserved = 0;
   header->flags = flags;
-  header->windowSize = 0xFFFF;
+  header->windowSize = 0x3003;
   header->urgent = 0;
   
-  header->options = ((flags & SYN) != 0) ? 0x00030402 : 0;
+  header->options = 0;
   
   socket->sequenceNumber += length;
   
