@@ -43,7 +43,7 @@
               BufferInterruptOnLast = 1 << 2,
               BufferInterruptOnComplete = 1 << 3,
               BufferInterruptOnError = 1 << 4,
-            DescEntryLength = 0x4000,
+            DescEntryLength = 0x8000,
             LastDescEntry = 1 << 14,
             IoC = 1 << 15,
             descArraySize = 32,

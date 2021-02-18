@@ -158,6 +158,8 @@ void AC97::stop() {
   uint8_t tmp = BufferInterruptOnComplete | BufferInterruptOnLast | BufferInterruptOnError;
   this->csr8w(Out | BufferControl, tmp);
   this->active = false;
+  this->writeEntry = this->readEntry;
+  this->writePosition = 0;
 }
 
 bool AC97::isBigEndian() {

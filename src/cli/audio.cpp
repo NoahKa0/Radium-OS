@@ -36,7 +36,7 @@ void CmdAUDIO::run(String** args, uint32_t argsLength) {
     stream->setBigEndian(false);
 
     uint32_t length = tmp->hasNext();
-    uint32_t readAtOnce = 2097152;
+    uint32_t readAtOnce = 0x100000;
     uint8_t* content = (uint8_t*) MemoryManager::activeMemoryManager->malloc(readAtOnce + 1);
     uint32_t read = 0;
     while(read < length) {
