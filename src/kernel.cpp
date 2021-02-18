@@ -12,6 +12,8 @@
 #include <drivers/vga.h>
 #include <drivers/net/ethernet_driver.h>
 
+#include <audio/Audio.h>
+
 #include <filesystem/partition/mbr.h>
 
 #include <net/etherframe.h>
@@ -36,6 +38,7 @@ using namespace sys::drivers;
 using namespace sys::hardware;
 using namespace sys::filesystem::partition;
 using namespace sys::net;
+using namespace sys::audio;
 
 static VideoGraphicsArray* videoGraphicsArray = 0;
 static bool videoEnabled = false;
@@ -280,6 +283,8 @@ extern "C" void kernelMain(void* multiboot_structure, uint32_t magicNumber) {
     printf("Setting up Drivers\n");
     InterruptManager interrupts(&gdt, &taskManager);
     SystemCallHandler systemCallHandler(&interrupts);
+
+    Audio audioManager;
     
     PartitionManager partitionManager;
     DriverManager driverManager;

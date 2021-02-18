@@ -7,6 +7,7 @@
   #include <hardware/interrupts.h>
   #include <memorymanagement/memorymanagement.h>
   #include <hardware/port.h>
+  #include <drivers/audio/AudioDriver.h>
 
   namespace sys {
     namespace drivers {
@@ -17,7 +18,7 @@
           common::uint16_t options;
         }  __attribute__((packed));
 
-        class AC97 : public Driver, public hardware::InterruptHandler {
+        class AC97 : public AudioDriver, public hardware::InterruptHandler {
         private:
           enum {
             GlobalControl = 0x2C,
@@ -70,12 +71,27 @@
           common::uint32_t writeEntry;
           common::uint32_t writePosition;
 
+          common::uint32_t readEntry;
+
+          common::uint8_t volume;
+
+          bool active;
+
           AC97Desc* descriptorsOut;
+
+          void stop();
+          void start();
         public:
           AC97(sys::hardware::PeripheralComponentDeviceDescriptor* device, sys::hardware::InterruptManager* interruptManager);
           ~AC97();
 
-          void setVolume(common::uint8_t volume);
+          virtual bool isBigEndian();
+          virtual common::uint8_t getChannels();
+          virtual common::uint8_t getSampleSize();
+          virtual void write(common::uint8_t* samples, common::uint32_t sizeInBytes);
+          virtual common::uint32_t samplesReady(); // Amount of samples that can be written to the driver without blocking.
+
+          virtual void setVolume(common::uint8_t volume);
 
           virtual void activate();
           virtual int reset();
