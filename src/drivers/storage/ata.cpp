@@ -142,7 +142,6 @@ void AdvancedTechnologyAttachment::read(uint64_t sector, uint8_t* data, int coun
   for(uint16_t i = count+(count%2); i < bytesPerSector; i+=2) {
     dataPort.read();
   }
-  this->write(sector, data, count);
 }
 
 void AdvancedTechnologyAttachment::write(uint64_t sector, uint8_t* data, int count) {
