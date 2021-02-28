@@ -71,6 +71,8 @@
         
         virtual common::uint32_t getIpAddress();
         virtual void setIpAddress(common::uint32_t ip);
+
+        static Driver* getDriver(sys::hardware::PeripheralComponentDeviceDescriptor* device, sys::hardware::InterruptManager* interruptManager);
       };
     }
   }

@@ -25,7 +25,7 @@ void* MemoryManager::malloc(size_t size) {
   return mallocalign(size, 0);
 }
 
-void printf(char*);
+void printf(const char*);
 void printHex32(uint32_t);
 
 void* MemoryManager::mallocalign(size_t size, size_t alignment) {
@@ -109,13 +109,25 @@ void MemoryManager::free(void* pointer) {
 }
 
 void* operator new(unsigned size) {
-  if(sys::MemoryManager::activeMemoryManager == 0) return 0;
+  if(sys::MemoryManager::activeMemoryManager == 0) {
+    printf("PANIC: No active memoryManager!");
+    while(true) {
+      asm("cli");
+      asm("hlt");
+    }
+  }
   
   return sys::MemoryManager::activeMemoryManager->malloc(size);
 }
 
 void* operator new[](unsigned size) {
-  if(sys::MemoryManager::activeMemoryManager == 0) return 0;
+  if(sys::MemoryManager::activeMemoryManager == 0) {
+    printf("PANIC: No active memoryManager!");
+    while(true) {
+      asm("cli");
+      asm("hlt");
+    }
+  }
   
   return sys::MemoryManager::activeMemoryManager->malloc(size);
 }

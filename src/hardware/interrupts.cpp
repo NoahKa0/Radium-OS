@@ -4,7 +4,7 @@ using namespace sys::hardware;
 using namespace sys::common;
 using namespace sys;
 
-void printf(char* str);
+void printf(const char* str);
 void printHex8(uint8_t num);
 
 
@@ -160,8 +160,7 @@ uint32_t InterruptManager::handleInterrupt(uint8_t interruptNumber, uint32_t esp
     if(handlers[interruptNumber] != 0) {
         handlers[interruptNumber]->handleInterrupt(esp);
     } else if(interruptNumber != 0x20 && interruptNumber != 0x2E) {
-        char* txt = "Unhandled interrupt: ";
-        printf(txt);
+        printf("Unhandled interrupt: ");
         printHex8(interruptNumber);
         printf("\n");
     }

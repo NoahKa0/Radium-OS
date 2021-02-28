@@ -3,6 +3,7 @@
 #include <cli/tcp.h>
 #include <cli/sd.h>
 #include <cli/file.h>
+#include <cli/audio.h>
 #include <memorymanagement/memorymanagement.h>
 #include <timer.h>
 
@@ -10,7 +11,7 @@ using namespace sys;
 using namespace sys::cli;
 using namespace sys::common;
 
-void printf(char*);
+void printf(const char*);
 void printHex32(uint32_t);
 void printHex8(uint8_t);
 
@@ -88,6 +89,8 @@ void Cli::run() {
         cmd = new CmdSD();
       } else if(command->equals("file")) {
         cmd = new CmdFILE();
+      } else if(command->equals("audio")) {
+        cmd = new CmdAUDIO();
       } else { // Only show text
         if(command->equals("help")) {
           printf("--- HELP ---\n");

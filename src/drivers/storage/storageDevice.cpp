@@ -8,7 +8,7 @@ using namespace sys::drivers::storage;
 using namespace sys::hardware;
 using namespace sys::filesystem::partition;
 
-void printf(char* str);
+void printf(const char* str);
 void printHex32(uint32_t num);
 void printHex8(uint8_t num);
 

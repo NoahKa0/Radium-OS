@@ -121,7 +121,7 @@ void TransmissionControlProtocolSocket::removeOldPackets(uint32_t acknum) {
     // Check to see if packet sequenceNumber is acked.
     // The second part is to detect when the ack number wraps around
     if(packet != 0
-      && (packet->sequenceNumber < acknum || ((packet->sequenceNumber & 0xF0000000) != 0 && (acknum & 0xFF000000) == 0)))
+      && (packet->sequenceNumber <= acknum || ((packet->sequenceNumber & 0xF0000000) != 0 && (acknum & 0xFF000000) == 0)))
     {
       this->deleteSendPacket(i);
     }
@@ -133,8 +133,7 @@ bool TransmissionControlProtocolSocket::addUnprocessedPacket(TransmissionControl
     if(this->unprocessedPackets[i] == 0) {
       this->unprocessedPackets[i] = packet;
       return true;
-    }
-    if(bigEndian32(this->unprocessedPackets[i]->sequenceNumber) < this->acknowledgementNumber && this->acknowledgementNumber & 0xF0000000 == 0) {
+    } else if(bigEndian32(this->unprocessedPackets[i]->sequenceNumber) < this->acknowledgementNumber && this->acknowledgementNumber & 0xF0000000 == 0) {
       delete this->unprocessedPackets[i]->data;
       delete this->unprocessedPackets[i];
       this->unprocessedPackets[i] = 0;
@@ -365,16 +364,14 @@ bool TransmissionControlProtocolProvider::onInternetProtocolReceived(uint32_t sr
         // NO BREAK.
       default:
         socket->removeOldPackets(socket->sequenceNumber);
-        if(bigEndian32(header->sequenceNumber) == socket->acknowledgementNumber && size - (header->headerSize32*4) > 0) {
-          // Save checksum
-          uint16_t recvChecksum = header->checksum;
-          header->checksum = 0; // Checksum should be 0 when recalculating.
-          
+        if(size - (header->headerSize32*4) > 0) {
           uint8_t* recvPacketPtr = (uint8_t*) MemoryManager::activeMemoryManager->malloc(size + sizeof(TransmissionControlProtocolPseudoHeader));
           uint8_t* recvHeaderPtr = recvPacketPtr + sizeof(TransmissionControlProtocolPseudoHeader);
           for(uint32_t i = 0; i < size; i++) {
             recvHeaderPtr[i] = payload[i];
           }
+          // Checksum must be 0 when recalculating!
+          ((TransmissionControlProtocolHeader*) recvHeaderPtr)->checksum = 0;
           
           // Reconstruct pseudoHeader.
           TransmissionControlProtocolPseudoHeader* pseudoHeader = (TransmissionControlProtocolPseudoHeader*) recvPacketPtr;
@@ -386,7 +383,7 @@ bool TransmissionControlProtocolProvider::onInternetProtocolReceived(uint32_t sr
           // Recalculate checksum.
           uint16_t newChecksum = InternetProtocolV4Provider::checksum((uint16_t*) recvPacketPtr, size + sizeof(TransmissionControlProtocolPseudoHeader));
           
-          if(newChecksum == recvChecksum) {
+          if(newChecksum == header->checksum) {
             uint8_t* packetPtr = (uint8_t*) MemoryManager::activeMemoryManager->malloc(sizeof(TransmissionControlProtocolPacket));
             TransmissionControlProtocolPacket* packet = (TransmissionControlProtocolPacket*) packetPtr;
             packet->lastTransmit = 0; // Doesn't matter.
@@ -450,10 +447,10 @@ void TransmissionControlProtocolProvider::sendTCP(TransmissionControlProtocolSoc
   
   header->reserved = 0;
   header->flags = flags;
-  header->windowSize = 0xFFFF;
+  header->windowSize = 0x3003;
   header->urgent = 0;
   
-  header->options = ((flags & SYN) != 0) ? 0x00030402 : 0;
+  header->options = 0;
   
   socket->sequenceNumber += length;
   

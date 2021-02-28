@@ -5,7 +5,7 @@ using namespace sys::common;
 using namespace sys::drivers;
 using namespace sys::hardware;
 
-void printf(char* str);
+void printf(const char* str);
 void printHex32(uint32_t num);
 void printHex8(uint8_t num);
 void setSelectedEthernetDriver(EthernetDriver* drv);
@@ -191,4 +191,14 @@ uint32_t amd_am79c973::getIpAddress() {
 
 void amd_am79c973::setIpAddress(uint32_t ip) {
   initBlock.logicalAddress = ip;
+}
+
+Driver* amd_am79c973::getDriver(PeripheralComponentDeviceDescriptor* device, InterruptManager* interruptManager) {
+  Driver* ret = 0;
+  if(device->vendorId == 0x1022 // AMD
+  && (device->deviceId == 0x2000 || device->deviceId == 0x2001))
+  {
+    ret = new amd_am79c973(device, interruptManager);
+  }
+  return ret;
 }

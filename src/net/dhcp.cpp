@@ -4,7 +4,7 @@ using namespace sys;
 using namespace sys::common;
 using namespace sys::net;
 
-void printf(char* str);
+void printf(const char* str);
 void printHex32(uint32_t num);
 
 DynamicHostConfigurationProtocol::DynamicHostConfigurationProtocol(UserDatagramProtocolProvider* udp, InternetProtocolV4Provider* ipv4)

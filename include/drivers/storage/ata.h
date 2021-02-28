@@ -37,6 +37,8 @@
           virtual void flush();
 
           virtual common::uint64_t getSectorCount();
+
+          static Driver* getDriver(sys::hardware::PeripheralComponentDeviceDescriptor* device, sys::hardware::InterruptManager* interruptManager);
         };
       }
     }
