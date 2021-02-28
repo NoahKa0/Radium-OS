@@ -5,7 +5,6 @@
 #include <drivers/net/amd_am79c973.h>
 #include <drivers/net/broadcom_BCM5751.h>
 #include <drivers/storage/ata.h>
-#include <drivers/audio/hda.h>
 #include <drivers/audio/AC97.h>
 
 using namespace sys::drivers;
@@ -39,9 +38,6 @@ Driver* Driver::getDriver(PeripheralComponentDeviceDescriptor* device, Interrupt
   if(ret != 0) return ret;
 
   // Audio
-  ret = audio::HDA::getDriver(device, interruptManager);
-  if(ret != 0) return ret;
-
   ret = audio::AC97::getDriver(device, interruptManager);
   if(ret != 0) return ret;
 

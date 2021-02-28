@@ -79,7 +79,6 @@
 
           AC97Desc* descriptorsOut;
 
-          void stop();
           void start();
         public:
           AC97(sys::hardware::PeripheralComponentDeviceDescriptor* device, sys::hardware::InterruptManager* interruptManager);
@@ -90,7 +89,9 @@
           virtual common::uint8_t getSampleSize();
           virtual void write(common::uint8_t* samples, common::uint32_t sizeInBytes);
           virtual common::uint32_t samplesReady(); // Amount of samples that can be written to the driver without blocking.
-
+          virtual common::uint32_t preferedBufferSize();
+          virtual void stop();
+          
           virtual void setVolume(common::uint8_t volume);
 
           virtual void activate();

@@ -10,6 +10,8 @@
   namespace sys {
     namespace cli {
       class CmdAUDIO : public Cmd {
+      private:
+        bool shouldStop;
       public:
         CmdAUDIO();
         virtual ~CmdAUDIO();

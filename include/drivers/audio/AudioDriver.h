@@ -20,6 +20,8 @@
           virtual common::uint8_t getSampleSize(); // Sample size 1 = 8 bit samples, 2 = 16 bit samples, etc.
           virtual void write(common::uint8_t* samples, common::uint32_t sizeInBytes);
           virtual common::uint32_t samplesReady(); // Amount of samples that can safely be written to the driver.
+          virtual common::uint32_t preferedBufferSize(); // The amount of samples that an audioStream should buffer.
+          virtual void stop();
         };
       }
     }

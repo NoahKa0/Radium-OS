@@ -33,3 +33,11 @@ void AudioDriver::write(common::uint8_t* samples, common::uint32_t sizeInBytes) 
 uint32_t AudioDriver::samplesReady() {
   return 0;
 }
+
+uint32_t AudioDriver::preferedBufferSize() {
+  return 0;
+}
+
+void AudioDriver::stop() {
+
+}

@@ -7,14 +7,6 @@ using namespace sys::hardware;
 using namespace sys::drivers;
 using namespace sys::drivers::audio;
 
-
-void printHex8(uint8_t);
-void printHex32(uint32_t);
-void printHex64(uint64_t);
-
-void printf(const char*);
-
-
 void AC97::csr8w(uint32_t reg, uint8_t value) {
   if(this->device->memoryMapped) {
     *((uint8_t*) (this->baseAddr + reg)) = value;
@@ -80,7 +72,7 @@ InterruptHandler(device->interrupt + 0x20, interruptManager){
   this->mixAddr = (uint8_t*) device->bar[0].address;
   this->mixPort = (uint32_t) device->bar[0].address;
 
-  // Enable MAC memory space decode and bus mastering.
+  // Enable bus mastering.
   uint32_t pciCommandRead = this->device->read(0x04);
   pciCommandRead |= 0x07;
   this->device->write(0x04, pciCommandRead);
@@ -113,7 +105,6 @@ AC97::~AC97() {
 }
 
 void AC97::activate() {
-  // TODO
   uint32_t tmp = this->csr32r(GlobalControl);
   tmp &= ~(ReservedControlBits | LinkShutoff); // Unset link shutoff and reserved bits.
   tmp &= ~(Sample20BitEnable); // Disable 20 bit sampling.
@@ -131,7 +122,6 @@ void AC97::activate() {
   this->csr8w(Out | BufferControl, BufferReset);
   while(this->csr8r(Out | BufferControl) & BufferReset != 0) {
     // Waiting
-    printf(".");
   }
 
   this->csr32w(Out | DescArrayAddr, (uint32_t) this->descriptorsOut);
@@ -140,13 +130,11 @@ void AC97::activate() {
 
   this->start();
 
-  printf("\n\n\n\nDriver registered!\n\n\n");
   sys::audio::Audio::activeAudioManager->registerDriver(this);
 }
 
 void AC97::start() {
   if(!this->active && this->readEntry != this->writeEntry && this->volume != 0) {
-    printf("\n\nSending start signal!\n\n");
     uint8_t tmp = BufferTransfer | BufferInterruptOnComplete | BufferInterruptOnLast | BufferInterruptOnError;
     this->csr8w(Out | BufferControl, tmp);
     this->active = true;
@@ -154,7 +142,6 @@ void AC97::start() {
 }
 
 void AC97::stop() {
-  printf("\n\nSending stop signal!\n\n");
   uint8_t tmp = BufferInterruptOnComplete | BufferInterruptOnLast | BufferInterruptOnError;
   this->csr8w(Out | BufferControl, tmp);
   this->active = false;
@@ -179,7 +166,6 @@ void AC97::write(common::uint8_t* samples, common::uint32_t sizeInBytes) {
   uint32_t written = 0;
   bool play = false;
   if(sizeInBytes > bytesReady) {
-    printf("SOUND OVERFLOW!!\n");
     sizeInBytes = bytesReady;
   }
   while(written < sizeInBytes) {
@@ -218,6 +204,10 @@ uint32_t AC97::samplesReady() {
   return DescEntryLength * (diff - 1);
 }
 
+uint32_t AC97::preferedBufferSize() {
+  return DescEntryLength * descArraySize / 4;
+}
+
 void AC97::setVolume(uint8_t volume) {
   this->volume = volume;
   volume = ~volume; // IDK why but volume is inversed?
@@ -248,28 +238,15 @@ uint32_t AC97::handleInterrupt(uint32_t esp) {
     this->stop();
   }
 
+  // For some reason readEntry is 0 when reading item 1?
+  if(this->readEntry == 0 && this->writeEntry == 1 && this->active) {
+    this->stop();
+  }
+
   uint16_t tmp = this->csr16r(Out | StatusRegister);
-  if(tmp & 1 != 0) {
-    printf("Read: ");
-    printHex32(this->readEntry);
-    printf(" write: ");
-    printHex32(this->writeEntry);
-    printf("\n");
-    this->active = false;
-  }
 
-  if(tmp & 2 != 0) {
-    printf("End of transfer!\n");
-  }
-
-  if(tmp & 2 != 0) {
-    printf("Last buffer interrupt\n");
-  }
-  if(tmp & 4 != 0) {
-    printf("IOC interrupt\n");
-  }
   if(tmp & 8 != 0) {
-    printf("Fifo error interrupt\n");
+    this->active = false;
     this->start();
   }
 
