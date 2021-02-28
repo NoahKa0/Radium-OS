@@ -99,6 +99,7 @@ void Cli::run() {
           printf("ping <ip> <times>: Pings an ip\n");
           printf("sd: Shows commands for Storage Devices\n");
           printf("file: Shows commands for files\n");
+          printf("audio <filename>: Plays a wave file\n");
         } else {
           printf("Invalid command!\n");
         }
