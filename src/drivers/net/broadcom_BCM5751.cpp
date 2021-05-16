@@ -8,7 +8,6 @@ using namespace sys::hardware;
 void printf(const char* str);
 void printHex32(uint32_t num);
 void printHex8(uint8_t num);
-void setSelectedEthernetDriver(EthernetDriver* drv);
 
 #define HOWMANY(x, y)	(((x)+((y)-1))/(y))
 #define ROUNDUP(x, y)	(HOWMANY((x), (y))*(y))
@@ -237,7 +236,7 @@ InterruptHandler(device->interrupt + 0x20, interruptManager) // hardware interru
   sendRead = 0;
   sendWrite = 0;
   
-  setSelectedEthernetDriver(this); // Make this instance accessable in kernel.cpp
+  net::NetworkManager::networkManager->registerEthernetDriver(this);
 }
 
 broadcom_BCM5751::~broadcom_BCM5751() {}

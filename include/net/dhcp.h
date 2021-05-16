@@ -2,7 +2,7 @@
 #define __SYS__NET__DHCP_H
 
   #include <common/types.h>
-  #include <net/udp.h>
+  #include <net/udp/UserDatagramProtocolProvider.h>
   #include <net/ipv4.h>
   #include <memorymanagement/memorymanagement.h>
   
@@ -39,12 +39,13 @@
         common::uint32_t ip;
         common::uint32_t subnetmask;
         common::uint32_t defaultGateway;
+        common::uint32_t domainServer;
         common::uint32_t lease;
       } __attribute__((packed));
       
-      class DynamicHostConfigurationProtocol : public UserDatagramProtocolHandler {
+      class DynamicHostConfigurationProtocol : public udp::UserDatagramProtocolHandler {
       private:
-        UserDatagramProtocolSocket* socket;
+        udp::UserDatagramProtocolSocket* socket;
         InternetProtocolV4Provider* ipv4;
         
         common::uint32_t magicCookie;
@@ -52,8 +53,10 @@
         common::uint32_t ip;
         common::uint32_t subnetmask;
         common::uint32_t defaultGateway;
+        common::uint32_t domainServer;
         common::uint32_t lease;
         common::uint32_t ip_firstOffer;
+        bool completed;
         
         common::uint32_t identifier;
         
@@ -61,11 +64,12 @@
         void handleOption(DynamicHostConfigurationOptionsInfo* info, common::uint8_t* option, common::uint8_t code, common::uint32_t size);
         
       public:
-        DynamicHostConfigurationProtocol(UserDatagramProtocolProvider* udp, InternetProtocolV4Provider* ipv4);
+        DynamicHostConfigurationProtocol(udp::UserDatagramProtocolProvider* udp, InternetProtocolV4Provider* ipv4);
         ~DynamicHostConfigurationProtocol();
         
-        virtual void handleUserDatagramProtocolMessage(UserDatagramProtocolSocket* socket, common::uint8_t* data, common::uint32_t length);
+        virtual void handleUserDatagramProtocolMessage(udp::UserDatagramProtocolSocket* socket, common::uint8_t* data, common::uint32_t length);
         
+        bool shouldSend();
         void sendDiscover();
         void handleOffer(DynamicHostConfigurationProtocolHeader* message, DynamicHostConfigurationOptionsInfo* info);
         void sendRequest(DynamicHostConfigurationProtocolHeader* offer);

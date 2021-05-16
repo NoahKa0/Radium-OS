@@ -4,12 +4,12 @@
   #include <cli/cli.h>
   #include <common/types.h>
   #include <common/string.h>
-  #include <net/tcp.h>
+  #include <net/NetworkManager.h>
 
   namespace sys {
     namespace cli {
       class CmdTCP : public Cmd {
-      net::TransmissionControlProtocolSocket* socket;
+      net::tcp::TransmissionControlProtocolSocket* socket;
       public:
         CmdTCP();
         ~CmdTCP();

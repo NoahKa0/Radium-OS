@@ -4,7 +4,7 @@
   #include <cli/cli.h>
   #include <common/types.h>
   #include <common/string.h>
-  #include <net/icmp.h>
+  #include <net/NetworkManager.h>
 
   namespace sys {
     namespace cli {

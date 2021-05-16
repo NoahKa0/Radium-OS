@@ -40,6 +40,13 @@ uint64_t SystemTimer::getTimeInInterrupts() {
   return 0;
 }
 
+uint64_t SystemTimer::getFrequency() {
+  if(SystemTimer::activeTimer != 0) {
+    return SystemTimer::activeTimer->frequency;
+  }
+  return 1;
+}
+
 void SystemTimer::sleep(uint32_t milliseconds) {
   if(SystemTimer::activeTimer == 0) return;
   

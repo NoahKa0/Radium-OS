@@ -8,7 +8,6 @@ using namespace sys::hardware;
 void printf(const char* str);
 void printHex32(uint32_t num);
 void printHex8(uint8_t num);
-void setSelectedEthernetDriver(EthernetDriver* drv);
 
 amd_am79c973::amd_am79c973(PeripheralComponentDeviceDescriptor* device, InterruptManager* interruptManager)
 : EthernetDriver(),
@@ -87,7 +86,7 @@ busControlRegisterDataPort(device->portBase + 0x16)
   // This descriptor is no longer needed.
   delete device;
   
-  setSelectedEthernetDriver(this); // Make this instance accessable in kernel.cpp
+  net::NetworkManager::networkManager->registerEthernetDriver(this);
 }
 
 amd_am79c973::~amd_am79c973() {}
@@ -191,6 +190,10 @@ uint32_t amd_am79c973::getIpAddress() {
 
 void amd_am79c973::setIpAddress(uint32_t ip) {
   initBlock.logicalAddress = ip;
+}
+
+bool amd_am79c973::hasLink() {
+  return true; // TODO check this.
 }
 
 Driver* amd_am79c973::getDriver(PeripheralComponentDeviceDescriptor* device, InterruptManager* interruptManager) {

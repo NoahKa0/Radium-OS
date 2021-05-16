@@ -24,6 +24,8 @@
       void onTimerInterrupt();
       
       static common::uint64_t getTimeInInterrupts();
+
+      static common::uint64_t getFrequency();
       
       static void sleep(common::uint32_t milliseconds);
     };

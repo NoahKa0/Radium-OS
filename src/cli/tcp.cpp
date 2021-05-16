@@ -6,50 +6,33 @@ using namespace sys::common;
 using namespace sys::net;
 
 void printf(const char*);
-void printHex32(uint32_t);
-void printHex8(uint8_t);
-TransmissionControlProtocolProvider* getTCP();
+void printNum(uint32_t);
 
 CmdTCP::CmdTCP() {}
 CmdTCP::~CmdTCP() {}
 
 void CmdTCP::run(common::String** args, common::uint32_t argsLength) {
-  TransmissionControlProtocolProvider* tcp = getTCP();
   bool connectionFailed = false;
-  if(tcp == 0) {
-    printf("No connection!");
-    return;
-  }
   if(argsLength < 2) {
     printf("Usage: <ip> <port>\n");
     return;
   }
-  if(args[0]->occurrences('.') != 3) {
-    printf("IP must be like x.x.x.x");
-    return;
-  }
-  String* ip1 = args[0]->split('.', 0);
-  String* ip2 = args[0]->split('.', 1);
-  String* ip3 = args[0]->split('.', 2);
-  String* ip4 = args[0]->split('.', 3);
-  uint32_t ip_BE = ((ip1->parseInt() & 0xFF))
-              + ((ip2->parseInt() & 0xFF) << 8)
-              + ((ip3->parseInt() & 0xFF) << 16)
-              + ((ip4->parseInt() & 0xFF) << 24);
+  String* ip = NetworkManager::networkManager->getIpString(args[0]);
   uint32_t port = args[1]->parseInt();
   printf("Connecting to: ");
-  printHex8((uint8_t) ip1->parseInt());
-  printf(".");
-  printHex8((uint8_t) ip2->parseInt());
-  printf(".");
-  printHex8((uint8_t) ip3->parseInt());
-  printf(".");
-  printHex8((uint8_t) ip4->parseInt());
-  printf(" on port 0x");
-  printHex32(port);
+  printf(ip->getCharPtr());
+  printf(" on port ");
+  printNum(port);
   printf("... ");
 
-  this->socket = tcp->connect(ip_BE, port);
+  this->socket = NetworkManager::networkManager->connectTCP(ip, port);
+  if (this->socket == 0) {
+    printf("\nCould not resolve: ");
+    printf(args[0]->getCharPtr());
+    printf("\n");
+    delete ip;
+    return;
+  }
 
   for(int i = 0; i < 10 && !this->socket->isConnected(); i++) {
     SystemTimer::sleep(1000);
@@ -84,10 +67,7 @@ void CmdTCP::run(common::String** args, common::uint32_t argsLength) {
     }
   }
 
-  delete ip1;
-  delete ip2;
-  delete ip3;
-  delete ip4;
+  delete ip;
   delete this->socket;
   this->socket = 0;
 }

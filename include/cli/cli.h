@@ -4,8 +4,6 @@
   #include <common/types.h>
   #include <common/string.h>
   #include <drivers/keyboard.h>
-  #include <net/icmp.h>
-  #include <net/tcp.h>
   #include <filesystem/filesystem.h>
 
   namespace sys {

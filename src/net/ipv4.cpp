@@ -35,6 +35,7 @@ InternetProtocolV4Provider::InternetProtocolV4Provider(EtherFrameProvider* backe
   this->arp = arp;
   this->gateway = 0;
   this->subnetMask = 0;
+  this->domainServer = 0;
 }
   
 InternetProtocolV4Provider::~InternetProtocolV4Provider() {}
@@ -123,7 +124,7 @@ uint16_t InternetProtocolV4Provider::checksum(uint16_t* data, uint32_t size) {
     tmp += ((data[i] & 0xFF00) >> 8) | ((data[i] & 0x00FF) << 8);
   }
   if(size % 2) {
-    tmp += ((uint16_t) ((char*) data)[size-1]) << 8;
+    tmp += (((uint16_t) ((char*) data)[size-1]) << 8) & 0xFF00;
   }
   
   while(tmp & 0xFFFF0000) {
@@ -139,4 +140,12 @@ void InternetProtocolV4Provider::setSubnetmask(uint32_t subnetmask) {
 
 void InternetProtocolV4Provider::setGateway(uint32_t gateway) {
   this->gateway = gateway;
+}
+
+void InternetProtocolV4Provider::setDomainServer(uint32_t domainServer) {
+  this->domainServer = domainServer;
+}
+
+uint32_t InternetProtocolV4Provider::getDomainServer() {
+  return this->domainServer;
 }

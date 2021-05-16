@@ -15,6 +15,7 @@
   #include <hardware/port.h>
   #include <memorymanagement/memorymanagement.h>
   #include <timer.h>
+  #include <net/NetworkManager.h>
   
   namespace sys {
     namespace drivers {

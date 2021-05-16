@@ -3,9 +3,11 @@
 using namespace sys;
 using namespace sys::common;
 using namespace sys::net;
+using namespace sys::net::udp;
 
 void printf(const char* str);
 void printHex32(uint32_t num);
+void printNum(uint32_t num);
 
 DynamicHostConfigurationProtocol::DynamicHostConfigurationProtocol(UserDatagramProtocolProvider* udp, InternetProtocolV4Provider* ipv4)
 :UserDatagramProtocolHandler()
@@ -18,7 +20,9 @@ DynamicHostConfigurationProtocol::DynamicHostConfigurationProtocol(UserDatagramP
   this->defaultGateway = 0;
   this->ip = 0;
   this->lease = 0;
+  this->domainServer = 0;
   this->ip_firstOffer = 0;
+  this->completed = false;
   
   this->socket = udp->connect(0xFFFFFFFF, 67, 68); // UDP connect to broadcast address on port 67, receive on port 68.
   this->socket->enableForwardAll(); // Enable forwarding off all UDP packets, even if their destination is not our IP (because we don't have one yet).
@@ -54,6 +58,10 @@ void DynamicHostConfigurationProtocol::handleUserDatagramProtocolMessage(UserDat
     
     MemoryManager::activeMemoryManager->free(info); // Free memory used by info.
   }
+}
+
+bool DynamicHostConfigurationProtocol::shouldSend() {
+  return !this->completed;
 }
 
 void DynamicHostConfigurationProtocol::sendDiscover() {
@@ -94,11 +102,14 @@ void DynamicHostConfigurationProtocol::sendDiscover() {
   message->options[3] = 0; // Pad
   
   message->options[4] = 55; // Option value (request data).
-  message->options[5] = 2; // Option length.
+  message->options[5] = 3; // Option length.
   message->options[6] = 1; // Subnet mask.
   message->options[7] = 3; // Default gateway (router).
+  message->options[8] = 6; // DNS Server.
+
+  message->options[9] = 0; // Pad
   
-  message->options[8] = 255; // End options.
+  message->options[10] = 255; // End options.
   
   this->socket->send(data, sizeof(DynamicHostConfigurationProtocolHeader)); // Send data.
   MemoryManager::activeMemoryManager->free(data); // Mark memory used by message as free.
@@ -113,9 +124,16 @@ void DynamicHostConfigurationProtocol::handleOffer(DynamicHostConfigurationProto
   this->lease = info->lease;
   this->defaultGateway = info->defaultGateway;
   this->subnetmask = info->subnetmask;
+  this->domainServer = info->domainServer;
   
   printf("DHCP Offer, default gateway: ");
-  printHex32(this->defaultGateway);
+  printNum(this->defaultGateway & 0xFF);
+  printf(".");
+  printNum((this->defaultGateway >> 8) & 0xFF);
+  printf(".");
+  printNum((this->defaultGateway >> 16) & 0xFF);
+  printf(".");
+  printNum((this->defaultGateway >> 24) & 0xFF);
   printf("\n");
   
   // Send a request for this ip.
@@ -179,13 +197,21 @@ void DynamicHostConfigurationProtocol::handleAck(DynamicHostConfigurationProtoco
     return;
   }
   
+  this->completed = true;
   printf("DHCP complete: ");
-  printHex32(this->ip);
+  printNum(this->ip & 0xFF);
+  printf(".");
+  printNum((this->ip >> 8) & 0xFF);
+  printf(".");
+  printNum((this->ip >> 16) & 0xFF);
+  printf(".");
+  printNum((this->ip >> 24) & 0xFF);
   printf("\n");
   
   this->ipv4->setSubnetmask(this->subnetmask);
   this->ipv4->setGateway(this->defaultGateway);
   this->ipv4->setIpAddress(this->ip);
+  this->ipv4->setDomainServer(this->domainServer);
   
   this->ipv4->getArp()->broadcastMacAddress(0xFFFFFFFF);
   this->ipv4->getArp()->requestMacAddress(this->defaultGateway);
@@ -224,6 +250,10 @@ void DynamicHostConfigurationProtocol::handleOption(DynamicHostConfigurationOpti
     case 3: // Subnet mask
       if(size < 4) break;
       info->defaultGateway = (option[3] << 24) | (option[2] << 16) | (option[1] << 8) | (option[0]);
+      break;
+    case 6: // Subnet mask
+      if(size < 4) break;
+      info->domainServer = (option[3] << 24) | (option[2] << 16) | (option[1] << 8) | (option[0]);
       break;
     case 51: // Subnet mask
       if(size < 4) break;

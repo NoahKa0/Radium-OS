@@ -46,6 +46,7 @@
         AddressResolutionProtocol* arp;
         common::uint32_t gateway;
         common::uint32_t subnetMask;
+        common::uint32_t domainServer;
       public:
         InternetProtocolV4Provider(EtherFrameProvider* backend, AddressResolutionProtocol* arp);
           
@@ -60,6 +61,8 @@
         
         void setSubnetmask(common::uint32_t subnetmask);
         void setGateway(common::uint32_t gateway);
+        void setDomainServer(common::uint32_t domainServer);
+        common::uint32_t getDomainServer();
       };
     }
   }

@@ -1,50 +1,9 @@
-#include <net/udp.h>
+#include <net/udp/UserDatagramProtocolProvider.h>
 
 using namespace sys;
 using namespace sys::common;
 using namespace sys::net;
-
-UserDatagramProtocolHandler::UserDatagramProtocolHandler() {}
-UserDatagramProtocolHandler::~UserDatagramProtocolHandler() {}
-void UserDatagramProtocolHandler::handleUserDatagramProtocolMessage(UserDatagramProtocolSocket* socket, uint8_t* data, uint32_t length) {}
-
-
-UserDatagramProtocolSocket::UserDatagramProtocolSocket(UserDatagramProtocolProvider* backend) {
-  this->backend = backend;
-}
-
-UserDatagramProtocolSocket::~UserDatagramProtocolSocket() {}
-
-void UserDatagramProtocolSocket::handleUserDatagramProtocolMessage(uint8_t* data, uint32_t length) {
-  if(handler != 0) {
-    handler->handleUserDatagramProtocolMessage(this, data, length);
-  }
-}
-
-void UserDatagramProtocolSocket::setHandler(UserDatagramProtocolHandler* handler) {
-  this->handler = handler;
-}
-
-void UserDatagramProtocolSocket::send(common::uint8_t* data, common::uint16_t length) {
-  backend->sendUDP(this, data, length);
-}
-
-void UserDatagramProtocolSocket::disconnect() {
-  backend->disconnect(this);
-}
-
-void UserDatagramProtocolSocket::enableBroadcasts() {
-  this->forwardBroadcasts = true;
-}
-
-void UserDatagramProtocolSocket::enableForwardAll() {
-  this->forwardAll = true;
-}
-
-void UserDatagramProtocolSocket::setDestinationIp(uint32_t ip) {
-  this->remoteIp = ip;
-}
-
+using namespace sys::net::udp;
 
 UserDatagramProtocolProvider::UserDatagramProtocolProvider(InternetProtocolV4Provider* backend)
 : InternetProtocolV4Handler(backend, 0x11)
@@ -102,10 +61,6 @@ void UserDatagramProtocolProvider::sendUDP(UserDatagramProtocolSocket* socket, u
   this->send(socket->remoteIp, buffer, totalLength);
   
   MemoryManager::activeMemoryManager->free(buffer);
-}
-
-UserDatagramProtocolSocket* UserDatagramProtocolProvider::connect(uint32_t ip, uint16_t port) {
-  return this->connect(ip, port, 0);
 }
 
 UserDatagramProtocolSocket* UserDatagramProtocolProvider::connect(uint32_t ip, uint16_t port, uint16_t localPort) {

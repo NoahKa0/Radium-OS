@@ -16,13 +16,7 @@
 
 #include <filesystem/partition/mbr.h>
 
-#include <net/etherframe.h>
-#include <net/arp.h>
-#include <net/ipv4.h>
-#include <net/icmp.h>
-#include <net/udp.h>
-#include <net/tcp.h>
-#include <net/dhcp.h>
+#include <net/NetworkManager.h>
 
 #include <multitasking.h>
 
@@ -43,19 +37,6 @@ using namespace sys::audio;
 static VideoGraphicsArray* videoGraphicsArray = 0;
 static bool videoEnabled = false;
 
-// Network
-static EthernetDriver* currentEthernetDriver = 0;
-static AddressResolutionProtocol* arp = 0;
-static InternetProtocolV4Provider* ipv4 = 0;
-static InternetControlMessageProtocol* icmp = 0;
-static UserDatagramProtocolProvider* udp = 0;
-static DynamicHostConfigurationProtocol* dhcp = 0;
-static TransmissionControlProtocolProvider* tcp = 0;
-
-void setSelectedEthernetDriver(EthernetDriver* drv) {
-  currentEthernetDriver = drv;
-}
-
 VideoGraphicsArray* getVGA() {
   if(!videoEnabled) return 0;
   return videoGraphicsArray;
@@ -72,6 +53,18 @@ void enableVGA() {
       }
     }
   }
+}
+
+uint32_t swapEndian32(uint32_t n) {
+  return ((n & 0xFF000000) >> 24)
+       | ((n & 0x00FF0000) >> 8)
+       | ((n & 0x0000FF00) << 8)
+       | ((n & 0x000000FF) << 24);
+}
+
+uint16_t SwapEndian16(uint16_t n) {
+  return ((n << 8) & 0xFF00)
+       | ((n >> 8) & 0xFF);
 }
 
 void printf(const char* str) {
@@ -148,12 +141,17 @@ void printHex64(uint64_t num) {
   printHex32(num);
 }
 
-InternetControlMessageProtocol* getICMP() {
-  return icmp;
-}
+void printNum(uint32_t num) {
+  char chars[33]; // Actually it's less, because we convert to base 10.
 
-TransmissionControlProtocolProvider* getTCP() {
-  return tcp;
+  int i = 0;
+  do {
+    chars[32 - 1 - i] = '0' + (num % 10);
+    num /= 10;
+    i++;
+  } while(i < 32 && num != 0);
+  chars[32] = 0;
+  printf(&(chars[32 - i]));
 }
 
 cli::Cli* myCli;
@@ -204,21 +202,20 @@ void sysCall(uint32_t eax, uint32_t ebx) {
 }
 
 void taskA() {
-  if(currentEthernetDriver != 0) {
-    printf("Waiting for connection...");
-    for(int i = 0; i < 15 && !currentEthernetDriver->hasLink(); i++) {
-      SystemTimer::sleep(1000);
-    }
-    if(currentEthernetDriver->hasLink()) {
-      printf(" connected!\n");
-    } else {
-      printf(" no connection!\n");
-    }
+  printf("Checking connection...");
+  int attempts = 0;
+  bool hasLink = false;
+  while(attempts < 15 && !hasLink) {
+    hasLink =  NetworkManager::networkManager->hasLink();
+    SystemTimer::activeTimer->sleep(1000);
+    attempts++;
   }
-          
-  if(dhcp != 0) {
-    dhcp->sendDiscover();
+  if(hasLink) {
+    printf(" connected!\n");
+  } else {
+    printf(" no connection!\n");
   }
+
   SystemTimer::sleep(1000);
 
   myCli = new cli::Cli();
@@ -253,8 +250,7 @@ extern "C" void kernelMain(void* multiboot_structure, uint32_t magicNumber) {
         for(uint8_t x = 0; x < 80; x++) 
             printf(" ");
     printf("\n");
-    
-    printf("Setting up GlobalDescriptorTable\n");
+
     GlobalDescriptorTable gdt;
     
     size_t heap = 10*1024*1024;
@@ -265,11 +261,13 @@ extern "C" void kernelMain(void* multiboot_structure, uint32_t magicNumber) {
     MemoryManager memoryManager(heap, freeMemory);
     
     printf("Detected ");
-    printHex32(freeMemory);
-    printf(" bytes of free memory. Heap starts at: ");
+    printNum(freeMemory);
+    printf(" bytes of free memory. Heap starts at: 0x");
     printHex32(heap);
     printf("\n");
-    
+
+    new NetworkManager();
+
     TaskManager taskManager;
     Task* task1 = new Task(&gdt, taskA);
     Task* task2 = new Task(&gdt, taskB);
@@ -277,7 +275,6 @@ extern "C" void kernelMain(void* multiboot_structure, uint32_t magicNumber) {
     taskManager.addTask(task1);
     taskManager.addTask(task2);
     
-    printf("Setting up paging\n");
     PageManager pageManager;
 
     printf("Setting up Drivers\n");
@@ -305,23 +302,12 @@ extern "C" void kernelMain(void* multiboot_structure, uint32_t magicNumber) {
     
     new SystemTimer();
     
-    printf("Enabling interrupts and activating drivers...\n");
+    printf("Activating drivers...\n");
     interrupts.enableInterrupts();
     driverManager.activateAll();
     
     printf("Setting up networking...\n");
-    EtherFrameProvider* etherframe = 0;
-    if(currentEthernetDriver != 0) {
-      etherframe = new EtherFrameProvider(currentEthernetDriver);
-      arp = new AddressResolutionProtocol(etherframe);
-      ipv4 = new InternetProtocolV4Provider(etherframe, arp); // 0x00FFFFFF = 255.255.255.0 (subnet mask)
-      icmp = new InternetControlMessageProtocol(ipv4);
-      udp = new UserDatagramProtocolProvider(ipv4);
-      tcp = new TransmissionControlProtocolProvider(ipv4);
-      dhcp = new DynamicHostConfigurationProtocol(udp, ipv4);
-    } else {
-      printf("NO DRIVER REGISTERED!\n");
-    }
+    NetworkManager::networkManager->setup();
     
     taskManager.enable();
     while(true);

@@ -8,6 +8,7 @@
   #include <hardware/pci.h>
   #include <hardware/port.h>
   #include <memorymanagement/memorymanagement.h>
+  #include <net/NetworkManager.h>
   
   namespace sys {
     namespace drivers {
@@ -71,6 +72,8 @@
         
         virtual common::uint32_t getIpAddress();
         virtual void setIpAddress(common::uint32_t ip);
+
+        virtual bool hasLink();
 
         static Driver* getDriver(sys::hardware::PeripheralComponentDeviceDescriptor* device, sys::hardware::InterruptManager* interruptManager);
       };

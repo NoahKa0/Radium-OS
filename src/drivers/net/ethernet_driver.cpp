@@ -6,24 +6,17 @@ using namespace sys::drivers;
 using namespace sys::hardware;
 using namespace sys::net;
 
-void printf(const char* str);
-
 EthernetDriver::EthernetDriver()
 :Driver()
 {
   this->etherFrameProvider = 0;
-  this->defaultMessage = "default EthernetDriver.\n";
 }
 
 EthernetDriver::~EthernetDriver() {}
 
-void EthernetDriver::send(uint8_t* buffer, int size) {
-  printf(this->defaultMessage);
-}
+void EthernetDriver::send(uint8_t* buffer, int size) {}
 
-void EthernetDriver::receive() {
-  printf(this->defaultMessage);
-}
+void EthernetDriver::receive() {}
 
 uint64_t EthernetDriver::getMacAddress() {
   return 0;
@@ -33,12 +26,10 @@ uint32_t EthernetDriver::getIpAddress() {
   return 0;
 }
 
-void EthernetDriver::setIpAddress(uint32_t ip) {
-  printf(this->defaultMessage);
-}
+void EthernetDriver::setIpAddress(uint32_t ip) {}
 
 bool EthernetDriver::hasLink() {
-  return true; // Default
+  return false;
 }
 
 void EthernetDriver::setEtherFrameProvider(EtherFrameProvider* efp) {

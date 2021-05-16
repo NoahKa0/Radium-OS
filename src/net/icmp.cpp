@@ -10,7 +10,7 @@ InternetControlMessageProtocol::InternetControlMessageProtocol(InternetProtocolV
 InternetControlMessageProtocol::~InternetControlMessageProtocol() {}
 
 void printf(const char* txt);
-void printHex8(uint8_t num);
+void printNum(uint32_t num);
 void printHex32(uint32_t num);
 
 bool InternetControlMessageProtocol::onInternetProtocolReceived(uint32_t srcIp_BE, uint32_t destIp_BE, uint8_t* payload, uint32_t size) {
@@ -19,13 +19,13 @@ bool InternetControlMessageProtocol::onInternetProtocolReceived(uint32_t srcIp_B
   InternetControlMessageProtocolHeader* msg = (InternetControlMessageProtocolHeader*) payload;
   
   printf("PING FROM: ");
-  printHex8((uint8_t)((srcIp_BE) & 0xFF));
+  printNum((uint8_t)((srcIp_BE) & 0xFF));
   printf(".");
-  printHex8((uint8_t)((srcIp_BE >> 8) & 0xFF));
+  printNum((uint8_t)((srcIp_BE >> 8) & 0xFF));
   printf(".");
-  printHex8((uint8_t)((srcIp_BE >> 16) & 0xFF));
+  printNum((uint8_t)((srcIp_BE >> 16) & 0xFF));
   printf(".");
-  printHex8((uint8_t)((srcIp_BE >> 24) & 0xFF));
+  printNum((uint8_t)((srcIp_BE >> 24) & 0xFF));
   printf(" DATA: ");
   printHex32(msg->data);
   

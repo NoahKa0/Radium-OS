@@ -97,21 +97,6 @@ void PeripheralComponentInterconnect::selectDrivers(DriverManager* driverManager
         if(driver != 0) {
           driverManager->addDriver(driver);
         }
-        
-        printf("PCI BUS ");
-        printHex32(bus);
-        printf(", device ");
-        printHex32(device);
-        printf(", function ");
-        printHex32(function);
-        
-        printf(" = vendor ");
-        printHex32(dd->vendorId);
-        
-        printf(", device ");
-        printHex32(dd->deviceId);
-        
-        printf("\n");
       }
     }
   }
