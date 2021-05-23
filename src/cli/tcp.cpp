@@ -59,8 +59,6 @@ void CmdTCP::run(common::String** args, common::uint32_t argsLength) {
     asm("hlt");
   }
 
-  printf("TCP: Disconnect!\n");
-
   if(!connectionFailed) {
     for(int i = 0; i < 10 && !this->socket->isClosed(); i++) {
       SystemTimer::sleep(1000);

@@ -124,6 +124,9 @@ bool TransmissionControlProtocolProvider::onInternetProtocolReceived(uint32_t sr
         break;
       case FIN:
       case FIN | ACK:
+        if(swapEndian32(header->sequenceNumber) != socket->acknowledgementNumber) { // Fin should be in order.
+          break;
+        }
         if(!this->processData(socket, payload, header, size)) { // FIN can contain data apparently.
           break;
         }
@@ -200,7 +203,7 @@ void TransmissionControlProtocolProvider::sendTCP(TransmissionControlProtocolSoc
   
   header->reserved = 0;
   header->flags = flags;
-  header->windowSize = 0x3003;
+  header->windowSize = 0x4003;
   header->urgent = 0;
   
   header->options = 0;

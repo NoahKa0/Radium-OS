@@ -2,6 +2,7 @@
 #include <cli/ping.h>
 #include <cli/tcp.h>
 #include <cli/sd.h>
+#include <cli/wget.h>
 #include <cli/file.h>
 #include <cli/audio.h>
 #include <memorymanagement/memorymanagement.h>
@@ -76,13 +77,14 @@ void Cli::run() {
   this->showCommandInput();
   while(this->running) {
     if(this->command != 0) {
-      printf("\n");
       String* read = this->command;
       String* command = read->split(' ', 0);
       Cmd* cmd = 0;
 
       if(command->equals("tcp")) {
         cmd = new CmdTCP();
+      } else if(command->equals("wget")) {
+        cmd = new CmdWGET();
       } else if(command->equals("ping")) {
         cmd = new CmdPing();
       } else if(command->equals("sd")) {
@@ -100,6 +102,7 @@ void Cli::run() {
           printf("sd: Shows commands for Storage Devices\n");
           printf("file: Shows commands for files\n");
           printf("audio <filename>: Plays a wave file\n");
+          printf("wget <host> <query>: Downloads a file\n");
         } else {
           printf("Invalid command!\n");
         }

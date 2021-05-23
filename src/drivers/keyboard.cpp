@@ -40,6 +40,7 @@ void KeyboardDriver::activate() {
     asm("sti");
 }
 
+void printHex32(uint32_t);
 uint32_t KeyboardDriver::handleInterrupt(uint32_t esp) {
   while(commandPort.read() & 0x1) {
     uint8_t key = dataPort.read();
@@ -60,6 +61,7 @@ uint32_t KeyboardDriver::handleInterrupt(uint32_t esp) {
         case 0x09: handler->onKeyDown('8'); break;
         case 0x0A: handler->onKeyDown('9'); break;
         case 0x0B: handler->onKeyDown('0'); break;
+        case 0x0C: handler->onKeyDown('-'); break;
 
         case 0x10: handler->onKeyDown('q'); break;
         case 0x11: handler->onKeyDown('w'); break;
@@ -91,10 +93,10 @@ uint32_t KeyboardDriver::handleInterrupt(uint32_t esp) {
         case 0x32: handler->onKeyDown('m'); break;
         case 0x33: handler->onKeyDown(','); break;
         case 0x34: handler->onKeyDown('.'); break;
-        case 0x35: handler->onKeyDown('-'); break;
-
+        
         case 0x1C: handler->onKeyDown('\n'); break;
         case 0x0E: handler->onKeyDown('\b'); break;
+        case 0x35: handler->onKeyDown('/'); break;
         case 0x39: handler->onKeyDown(' '); break;
         
         default:

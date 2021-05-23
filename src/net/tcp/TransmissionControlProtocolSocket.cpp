@@ -85,7 +85,7 @@ void TransmissionControlProtocolSocket::readNext(uint8_t* data, uint32_t length)
   if(length > this->nextBytes) {
     length = this->nextBytes;
   }
-  
+
   uint32_t i = 0;
   while(i < length) {
     TransmissionControlProtocolPacket* packet = this->getRecvPacket(this->recvBufferReadPacket);
@@ -94,8 +94,8 @@ void TransmissionControlProtocolSocket::readNext(uint8_t* data, uint32_t length)
     uint32_t packetLength = packet->length - (header->headerSize32*4);
     if(packetLength-this->recvBufferReadPosition > (length-i)) {
       uint16_t read = length-i;
-      for(uint32_t j = this->recvBufferReadPosition; j < read; j++) {
-        data[i] = pdata[j];
+      for(uint32_t j = 0; j < read; j++) {
+        data[i] = pdata[this->recvBufferReadPosition + j];
         i++;
       }
       this->recvBufferReadPosition += read;

@@ -26,6 +26,8 @@
       static common::uint64_t getTimeInInterrupts();
 
       static common::uint64_t getFrequency();
+
+      static common::uint32_t millisecondsToLength(common::uint32_t milliseconds);
       
       static void sleep(common::uint32_t milliseconds);
     };

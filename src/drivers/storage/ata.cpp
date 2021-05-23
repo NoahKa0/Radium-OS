@@ -107,6 +107,8 @@ void AdvancedTechnologyAttachment::read(uint64_t sector, uint8_t* data, int coun
   if(count > bytesPerSector) {
     return;
   }
+
+  asm("cli");
   
   devicePort.write((master ? 0xE0 : 0xF0) | ((sector & 0x0F000000) >> 24));
   errorPort.write(0);
@@ -128,6 +130,7 @@ void AdvancedTechnologyAttachment::read(uint64_t sector, uint8_t* data, int coun
   }
   if(status & 0x01) {
     printf("ERROR!");
+    asm("sti");
     return;
   }
   
@@ -142,6 +145,7 @@ void AdvancedTechnologyAttachment::read(uint64_t sector, uint8_t* data, int coun
   for(uint16_t i = count+(count%2); i < bytesPerSector; i+=2) {
     dataPort.read();
   }
+  asm("sti");
 }
 
 void AdvancedTechnologyAttachment::write(uint64_t sector, uint8_t* data, int count) {
@@ -151,6 +155,8 @@ void AdvancedTechnologyAttachment::write(uint64_t sector, uint8_t* data, int cou
   if(count > bytesPerSector) {
     return;
   }
+
+  asm("cli");
   
   devicePort.write((master ? 0xE0 : 0xF0) | ((sector & 0x0F000000) >> 24));
   errorPort.write(0);
@@ -172,6 +178,7 @@ void AdvancedTechnologyAttachment::write(uint64_t sector, uint8_t* data, int cou
   }
   if(status & 0x01) {
     printf("ERROR!");
+    asm("sti");
     return;
   }
   
@@ -187,6 +194,7 @@ void AdvancedTechnologyAttachment::write(uint64_t sector, uint8_t* data, int cou
     dataPort.write(0x0000);
   }
   this->flush();
+  asm("sti");
 }
 
 void AdvancedTechnologyAttachment::flush() {

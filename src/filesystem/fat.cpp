@@ -300,7 +300,6 @@ bool FatFile::mkFile(String* filename, bool folder) {
 
   uint32_t chainStart = this->fat->chain(0, true);
   String* realname = this->getRealFilename(filename);
-
   if(this->nextFileCluster != this->firstFileCluster) {
     this->reset();
   }
@@ -331,8 +330,8 @@ bool FatFile::mkFile(String* filename, bool folder) {
       entry[i].writeDate = 0;
       entry[i].size = 0;
 
-      entry[i].firstClusterLow = (uint16_t) (chainStart & 0xFF);
-      entry[i].firstClusterHi = (uint16_t) ((chainStart >> 16) & 0xFF);
+      entry[i].firstClusterLow = (uint16_t) (chainStart & 0xFFFF);
+      entry[i].firstClusterHi = (uint16_t) ((chainStart >> 16) & 0xFFFF);
 
       if(append) {
         if(i+1 < 16) {
@@ -535,6 +534,9 @@ uint32_t Fat::chain(uint32_t lastCluster, bool force) {
 
   uint32_t sectorLastCluster = 0xFFFFFFFF;
   uint32_t totalClusters = this->bpb->tableSize / 4;
+  if (search >= totalClusters) {
+    search = 2;
+  }
   while(result != 0 && search < totalClusters) {
     search++;
     sectorCurrentCluster = search / (512/sizeof(uint32_t));

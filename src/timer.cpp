@@ -47,6 +47,12 @@ uint64_t SystemTimer::getFrequency() {
   return 1;
 }
 
+uint32_t SystemTimer::millisecondsToLength(common::uint32_t milliseconds) {
+  if(SystemTimer::activeTimer == 0) return 0;
+  
+  return (milliseconds*SystemTimer::activeTimer->frequency)/1000;
+}
+
 void SystemTimer::sleep(uint32_t milliseconds) {
   if(SystemTimer::activeTimer == 0) return;
   
