@@ -245,7 +245,10 @@ uint32_t AC97::handleInterrupt(uint32_t esp) {
 
   uint16_t tmp = this->csr16r(Out | StatusRegister);
 
-  if(tmp & 8 != 0) {
+  // This is the stop command without resetting write pointers.
+  if(tmp & 0x03 != 0) {
+    uint8_t tmp = BufferInterruptOnComplete | BufferInterruptOnLast | BufferInterruptOnError;
+    this->csr8w(Out | BufferControl, tmp);
     this->active = false;
     this->start();
   }
