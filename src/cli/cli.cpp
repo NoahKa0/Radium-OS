@@ -5,6 +5,7 @@
 #include <cli/wget.h>
 #include <cli/file.h>
 #include <cli/audio.h>
+#include <cli/snake.h>
 #include <memorymanagement/memorymanagement.h>
 #include <timer.h>
 
@@ -19,10 +20,13 @@ void printHex8(uint8_t);
 
 filesystem::File* Cmd::workingDirectory = 0;
 
-Cmd::Cmd() {}
+Cmd::Cmd() {
+  this->inputEnabled = true;
+}
 Cmd::~Cmd() {}
 void Cmd::run(common::String** args, common::uint32_t argsLength) {}
 void Cmd::onInput(common::String* input) {}
+void Cmd::onKeyDown(char c) {}
 
 
 Cli::Cli() : KeyboardEventHandler() {
@@ -39,6 +43,13 @@ Cli::~Cli() {
 }
 
 void Cli::onKeyDown(char c) {
+  if (this->cmd != 0 && !this->cmd->inputEnabled) {
+    this->cmd->onKeyDown(c);
+    return;
+  }
+  if (this->cmd != 0) {
+    this->cmd->onKeyDown(c);
+  }
   char* charToPrint = " ";
   if(c == '\n') { // New line
     this->cmdBuffer[this->cmdBufferPos] = 0;
@@ -93,6 +104,8 @@ void Cli::run() {
         cmd = new CmdFILE();
       } else if(command->equals("audio")) {
         cmd = new CmdAUDIO();
+      } else if(command->equals("snake")) {
+        cmd = new CmdSnake();
       } else { // Only show text
         if(command->equals("help")) {
           printf("--- HELP ---\n");

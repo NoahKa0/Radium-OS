@@ -14,12 +14,14 @@
       friend class Cli;
       protected:
         static filesystem::File* workingDirectory;
+        bool inputEnabled;
       public:
         Cmd();
         virtual ~Cmd();
 
         virtual void run(common::String** args, common::uint32_t argsLength);
         virtual void onInput(common::String* input);
+        virtual void onKeyDown(char);
       };
 
       class Cli : public drivers::KeyboardEventHandler {
