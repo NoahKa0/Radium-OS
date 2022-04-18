@@ -116,6 +116,7 @@ void Cli::run() {
           printf("file: Shows commands for files\n");
           printf("audio <filename>: Plays a wave file\n");
           printf("wget <host> <query>: Downloads a file\n");
+          printf("snake: Play snake\n");
         } else {
           printf("Invalid command!\n");
         }
