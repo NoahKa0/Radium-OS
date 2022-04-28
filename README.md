@@ -1,9 +1,9 @@
 # Radium OS
 
-I thought it would be a cool idea to build an OS, so i started this side project.
-My goal is to create a basic desktop OS that has a text editor, image viewer, and can download stuff.
+I thought it would be a cool idea to build an OS, so I started this side project.
+My initial goal was to create a basic operating system. It should be able to read and write files, connect to the internet, have audio and video and be able to execute programs.
 
-I will be a more active on this project in February, when i have more time.
+I didn't get around to figuring out how to execute binaries, and since I currently don't have enough time, I don't think this will ever be added. Maybe I'll do it later but for now I'm happy with everything that I learned from this project.
 
 ## Getting Started
 
