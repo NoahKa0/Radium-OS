@@ -442,7 +442,12 @@ void FatFile::read(uint8_t* buffer, uint32_t length) {
     length = this->hasNext();
   }
   for(uint32_t i = 0; i < length; i++) {
-    buffer[i] = this->nextByte();
+    uint8_t read = this->buffer[this->readPosition % 512];
+    this->readPosition++;
+    if(this->readPosition % 512 == 0) {
+      this->loadNextSector();
+    }
+    buffer[i] = read;
   }
 }
 
