@@ -411,7 +411,7 @@ bool FatFile::append(uint8_t* data, uint32_t length) {
 
   FatFile* parent = (FatFile*) this->getParent();
   if(parent != 0) {
-    parent->updateChild(this->firstFileCluster, this->size);
+    parent->updateChild(this->firstFileCluster, this->size, 0);
     delete parent;
     return true;
   }
