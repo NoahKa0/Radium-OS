@@ -5,6 +5,7 @@
 #include <cli/wget.h>
 #include <cli/file.h>
 #include <cli/audio.h>
+#include <cli/waudio.h>
 #include <cli/snake.h>
 #include <memorymanagement/memorymanagement.h>
 #include <timer.h>
@@ -104,6 +105,8 @@ void Cli::run() {
         cmd = new CmdFILE();
       } else if(command->equals("audio")) {
         cmd = new CmdAUDIO();
+      } else if(command->equals("waudio")) {
+        cmd = new CmdWAUDIO();
       } else if(command->equals("snake")) {
         cmd = new CmdSnake();
       } else { // Only show text
@@ -114,8 +117,9 @@ void Cli::run() {
           printf("ping <ip> <times>: Pings an ip\n");
           printf("sd: Shows commands for Storage Devices\n");
           printf("file: Shows commands for files\n");
-          printf("audio <filename>: Plays a wave file\n");
           printf("wget <host> <query>: Downloads a file\n");
+          printf("audio <filename>: Plays a wave file\n");
+          printf("waudio <host> <query>: Skip wget and play an audio file directly over http\n");
           printf("snake: Play snake\n");
         } else {
           printf("Invalid command!\n");

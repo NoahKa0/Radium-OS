@@ -20,7 +20,7 @@ TransmissionControlProtocolSocket::TransmissionControlProtocolSocket(Transmissio
   }
   
   // Initialize receive buffers.
-  this->recvBufferSize = 128;
+  this->recvBufferSize = 16 * 128;
   uint8_t** recvBuffer = new uint8_t*[this->recvBufferSize]; // New array of uint8_t* returns a pointer to that array (so it's a pointer to a pointer),
   this->recvBufferPtr = (uint8_t*)recvBuffer;
   this->recvBufferPosition = 0;
@@ -130,16 +130,28 @@ bool TransmissionControlProtocolSocket::addUnprocessedPacket(TransmissionControl
     if(this->unprocessedPackets[i] == 0) {
       this->unprocessedPackets[i] = packet;
       return true;
-    } else if(swapEndian32(this->unprocessedPackets[i]->sequenceNumber) < this->acknowledgementNumber && this->acknowledgementNumber & 0xF0000000 == 0) {
+    }
+  }
+
+  // Clear buffers and try again.
+  for(uint8_t i = 0; i < this->sizeUnprocessedPackets; i++) {
+    if(this->unprocessedPackets[i] != 0 && (swapEndian32(this->unprocessedPackets[i]->sequenceNumber) < this->acknowledgementNumber && (this->acknowledgementNumber & 0x80000000 == 0 || swapEndian32(this->unprocessedPackets[i]->sequenceNumber) & 0xF0000000 != 0)) || (swapEndian32(this->unprocessedPackets[i]->sequenceNumber) & 0x80000000 != 0 && this->acknowledgementNumber & 0xF0000000 == 0)) {
       delete this->unprocessedPackets[i]->data;
       delete this->unprocessedPackets[i];
       this->unprocessedPackets[i] = 0;
     }
   }
-  delete this->unprocessedPackets[this->sizeUnprocessedPackets-1]->data;
-  delete this->unprocessedPackets[this->sizeUnprocessedPackets-1];
-  this->unprocessedPackets[this->sizeUnprocessedPackets-1] = packet;
-  return true;
+  for(uint8_t i = 0; i < this->sizeUnprocessedPackets; i++) {
+    if(this->unprocessedPackets[i] == 0) {
+      this->unprocessedPackets[i] = packet;
+      return true;
+    }
+  }
+
+  // Failed
+  delete packet->data;
+  delete packet;
+  return false;
 }
 TransmissionControlProtocolPacket* TransmissionControlProtocolSocket::getUnprocessedPacket() {
   for(uint8_t i = 0; i < this->sizeUnprocessedPackets; i++) {
@@ -148,12 +160,6 @@ TransmissionControlProtocolPacket* TransmissionControlProtocolSocket::getUnproce
         TransmissionControlProtocolPacket* ret = this->unprocessedPackets[i];
         this->unprocessedPackets[i] = 0;
         return ret;
-      }
-
-      if(swapEndian32(this->unprocessedPackets[i]->sequenceNumber) < this->acknowledgementNumber && this->acknowledgementNumber & 0xF0000000 == 0) {
-        delete this->unprocessedPackets[i]->data;
-        delete this->unprocessedPackets[i];
-        this->unprocessedPackets[i] = 0;
       }
     }
   }

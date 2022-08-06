@@ -55,7 +55,9 @@ bool TransmissionControlProtocolProvider::processData(TransmissionControlProtoco
   // recvPacketPtr will get freed when packet gets deleted from socket.
   packet->data = recvPacketPtr;
   packet->size = size - (header->headerSize32*4);
-  socket->addUnprocessedPacket(packet);
+  if (!socket->addUnprocessedPacket(packet)) {
+    return false;
+  }
   
   packet = socket->getUnprocessedPacket();
   while(packet != 0) {
@@ -203,9 +205,11 @@ void TransmissionControlProtocolProvider::sendTCP(TransmissionControlProtocolSoc
   
   header->reserved = 0;
   header->flags = flags;
-  header->windowSize = 0x4003;
+  header->windowSize = 0xFF0C;
+  //header->windowSize = 0xFFFF;
   header->urgent = 0;
   
+  //header->options = 0x00030402;
   header->options = 0;
   
   socket->sequenceNumber += length;

@@ -49,12 +49,12 @@
         
         BufferDescriptor* sendBufferDescr;
         common::uint8_t sendBufferDescrMemory[2*1024+15];
-        common::uint8_t sendBuffers[2*1024+15][8];
+        common::uint8_t sendBuffers[(2*1024+15) * 8];
         common::uint8_t currentSendBuffer;
         
         BufferDescriptor* reciveBufferDescr;
         common::uint8_t reciveBufferDescrMemory[2*1024+15];
-        common::uint8_t reciveBuffers[2*1024+15][8];
+        common::uint8_t reciveBuffers[(2*1024+15) * 8];
         common::uint8_t currentReciveBuffer;
         
       public:

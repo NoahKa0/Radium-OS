@@ -70,7 +70,7 @@ busControlRegisterDataPort(device->portBase + 0x16)
     sendBufferDescr[i].flags2 = 0;
     sendBufferDescr[i].available = 0;
 
-    reciveBufferDescr[i].address = (((uint32_t)&reciveBuffers[i]) + 15 ) & ~(uint32_t)0xF;
+    reciveBufferDescr[i].address = (((uint32_t)&reciveBuffers[i * (2*1024)]) + 15 ) & ~(uint32_t)0xF;
     reciveBufferDescr[i].flags = 0xF7FF
                              | 0x80000000;
     reciveBufferDescr[i].flags2 = 0;
@@ -157,7 +157,11 @@ void amd_am79c973::send(common::uint8_t* buffer, int size) {
 }
 
 void amd_am79c973::receive() {
-  while((reciveBufferDescr[currentReciveBuffer].flags & 0x80000000) == 0) {
+  do {
+    if ((reciveBufferDescr[currentReciveBuffer].flags & 0x80000000) != 0) {
+      currentReciveBuffer = (currentReciveBuffer+1) % 8;
+      continue;
+    }
     if(!(reciveBufferDescr[currentReciveBuffer].flags & 0x40000000) // Check for error bits
     && (reciveBufferDescr[currentReciveBuffer].flags & 0x03000000) == 0x03000000) // Check for startOfPacket and EndOfPacket bits
     {
@@ -177,7 +181,7 @@ void amd_am79c973::receive() {
     reciveBufferDescr[currentReciveBuffer].flags = 0x8000F7FF;
     
     currentReciveBuffer = (currentReciveBuffer+1) % 8;
-  }
+  } while (currentReciveBuffer != 0);
 }
 
 uint64_t amd_am79c973::getMacAddress() {
