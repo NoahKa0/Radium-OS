@@ -64,7 +64,7 @@ busControlRegisterDataPort(device->portBase + 0x16)
   initBlock.reciveBufferDescrAddress = (uint32_t)reciveBufferDescr;
   
   for(uint8_t i = 0; i < 8; i++) {
-    sendBufferDescr[i].address = (((uint32_t)&sendBuffers[i]) + 15 ) & ~(uint32_t)0xF;
+    sendBufferDescr[i].address = (((uint32_t)&sendBuffers[i * (2*1024)]) + 15 ) & ~(uint32_t)0xF;
     sendBufferDescr[i].flags = 0x7FF
                              | 0xF000;
     sendBufferDescr[i].flags2 = 0;
