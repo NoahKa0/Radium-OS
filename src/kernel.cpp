@@ -161,6 +161,19 @@ void printNum(uint32_t num) {
   printf(&(chars[32 - i]));
 }
 
+void printIp(uint32_t ip, bool bigEndian) {
+  if (!bigEndian) {
+    ip = swapEndian32(ip);
+  }
+  printNum((uint8_t)((ip) & 0xFF));
+  printf(".");
+  printNum((uint8_t)((ip >> 8) & 0xFF));
+  printf(".");
+  printNum((uint8_t)((ip >> 16) & 0xFF));
+  printf(".");
+  printNum((uint8_t)((ip >> 24) & 0xFF));
+}
+
 cli::Cli* myCli;
 
 class PrintKeyboardHandler:public KeyboardEventHandler {

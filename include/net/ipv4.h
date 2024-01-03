@@ -36,7 +36,7 @@
         ~InternetProtocolV4Handler();
         
         virtual bool onInternetProtocolReceived(common::uint32_t srcIp_BE, common::uint32_t destIp_BE, common::uint8_t* payload, common::uint32_t size);
-        virtual void send(common::uint32_t destIp_BE, common::uint8_t* payload, common::uint32_t size);
+        virtual void send(common::uint32_t destIp_BE, common::uint8_t* payload, common::uint32_t size, common::uint8_t ttl = 0x40);
       };
       
       class InternetProtocolV4Provider : public EtherFrameHandler {
@@ -53,7 +53,7 @@
         ~InternetProtocolV4Provider();
         
         virtual bool onEtherFrameReceived(common::uint8_t* etherFramePayload, common::uint32_t size);
-        virtual void send(common::uint32_t destIpAddress, common::uint8_t protocol, common::uint8_t* etherFramePayload, common::uint32_t size);
+        virtual void send(common::uint32_t destIpAddress, common::uint8_t protocol, common::uint8_t* etherFramePayload, common::uint32_t size, common::uint8_t ttl);
         
         AddressResolutionProtocol* getArp();
         

@@ -15,12 +15,16 @@
       } __attribute__((packed));
       
       class InternetControlMessageProtocol : public InternetProtocolV4Handler {
+      private:
+        bool isWaiting;
+        bool hasResponse;
+        common::uint32_t responseIp;
       public:
         InternetControlMessageProtocol(InternetProtocolV4Provider* backend);
         ~InternetControlMessageProtocol();
         
         virtual bool onInternetProtocolReceived(common::uint32_t srcIp_BE, common::uint32_t destIp_BE, common::uint8_t* payload, common::uint32_t size);
-        void ping(common::uint32_t ip_be);
+        common::uint32_t ping(common::uint32_t ip_be, common::uint8_t ttl);
       };
     }
   }

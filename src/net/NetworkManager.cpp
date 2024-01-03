@@ -56,13 +56,13 @@ void NetworkManager::setup() {
   this->hasLink();
 }
 
-void NetworkManager::ping(String* dest) {
+uint32_t NetworkManager::ping(String* dest, uint8_t ttl) {
   this->hasLink();
   uint32_t ip = this->parseIp(dest);
   if (this->icmp == 0 || ip == 0) {
-    return;
+    return 0;
   }
-  this->icmp->ping(ip);
+  return this->icmp->ping(ip, ttl);
 }
 
 TransmissionControlProtocolSocket* NetworkManager::connectTCP(String* dest, uint16_t port, uint16_t localPort) {
