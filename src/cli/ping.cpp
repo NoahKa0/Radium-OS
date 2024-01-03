@@ -6,8 +6,8 @@ using namespace sys::common;
 using namespace sys::net;
 
 void printf(const char*);
-void printHex32(uint32_t);
-void printHex8(uint8_t);
+void printNum(uint32_t);
+void printIp(uint32_t ip, bool bigEndian);
 
 CmdPing::CmdPing() : Cmd() {}
 CmdPing::~CmdPing() {}
@@ -22,20 +22,28 @@ void CmdPing::run(String** args, uint32_t argsLength) {
   if (times > 30) {
     times = 30;
   }
+  uint32_t dstIp_BE = NetworkManager::networkManager->parseIp(ip);
   printf("Pinging ");
-  printf(ip->getCharPtr());
-  printf(" 0x");
-  printHex32(times);
+  printIp(dstIp_BE, true);
+  printf(" ");
+  printNum(times);
   printf(" times\n");
 
   for(int i = 0; i < times; i++) {
     printf("PINGING: ");
-    printf(ip->getCharPtr());
-    printf("\n");
+    printIp(dstIp_BE, true);
+    printf(": ");
 
-    NetworkManager::networkManager->ping(ip);
+    uint32_t responseIp = NetworkManager::networkManager->ping(ip, 0x40);
+    if (responseIp == 0) {
+      printf("*\n");
+    } else {
+      printf("RESPONSE FROM: ");
+      printIp(responseIp, true);
+      printf("\n");
+    }
 
-    SystemTimer::sleep(500);
+    SystemTimer::sleep(250);
   }
 
   delete ip;

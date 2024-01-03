@@ -21,8 +21,8 @@ bool InternetProtocolV4Handler::onInternetProtocolReceived(uint32_t srcIp_BE, ui
   return false;
 }
 
-void InternetProtocolV4Handler::send(uint32_t destIp_BE, uint8_t* payload, uint32_t size) {
-  backend->send(destIp_BE, this->ipProtocol, payload, size);
+void InternetProtocolV4Handler::send(uint32_t destIp_BE, uint8_t* payload, uint32_t size, uint8_t ttl) {
+  backend->send(destIp_BE, this->ipProtocol, payload, size, ttl);
 }
 
 
@@ -75,7 +75,7 @@ bool InternetProtocolV4Provider::onEtherFrameReceived(uint8_t* etherFramePayload
   return sendBack;
 }
 
-void InternetProtocolV4Provider::send(uint32_t destIpAddress, uint8_t protocol, uint8_t* etherFramePayload, uint32_t size) {
+void InternetProtocolV4Provider::send(uint32_t destIpAddress, uint8_t protocol, uint8_t* etherFramePayload, uint32_t size, uint8_t ttl) {
   uint8_t* buffer = (uint8_t*) MemoryManager::activeMemoryManager->malloc(sizeof(InternetProtocolV4Message) + size);
   InternetProtocolV4Message* message = (InternetProtocolV4Message*) buffer;
   
@@ -90,7 +90,7 @@ void InternetProtocolV4Provider::send(uint32_t destIpAddress, uint8_t protocol, 
   
   message->flagsAndFragmentOffset = 0x0040;
   
-  message->timeToLive = 0x40;
+  message->timeToLive = ttl;
   message->protocol = protocol;
   message->destAddress = destIpAddress;
   message->srcAddress = backend->getIpAddress();

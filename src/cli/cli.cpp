@@ -1,5 +1,6 @@
 #include <cli/cli.h>
 #include <cli/ping.h>
+#include <cli/traceroute.h>
 #include <cli/tcp.h>
 #include <cli/sd.h>
 #include <cli/wget.h>
@@ -99,6 +100,8 @@ void Cli::run() {
         cmd = new CmdWGET();
       } else if(command->equals("ping")) {
         cmd = new CmdPing();
+      } else if(command->equals("traceroute")) {
+        cmd = new CmdTraceRoute();
       } else if(command->equals("sd")) {
         cmd = new CmdSD();
       } else if(command->equals("file")) {
@@ -113,8 +116,9 @@ void Cli::run() {
         if(command->equals("help")) {
           printf("--- HELP ---\n");
           printf("help: Shows this\n");
-          printf("tcp <ip> <port>: Send and receive text over TCP\n");
-          printf("ping <ip> <times>: Pings an ip\n");
+          printf("tcp <host> <port>: Send and receive text over TCP\n");
+          printf("ping <host> <times>: Pings a host\n");
+          printf("traceroute <host>: Traces the route to a host\n");
           printf("sd: Shows commands for Storage Devices\n");
           printf("file: Shows commands for files\n");
           printf("wget <host> <query>: Downloads a file\n");

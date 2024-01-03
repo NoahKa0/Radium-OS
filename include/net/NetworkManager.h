@@ -30,7 +30,6 @@
         drivers::EthernetDriver* currentDriver;
         drivers::EthernetDriver* fallbackDriver;
 
-        common::uint32_t parseIp(common::String* ip);
         common::uint32_t stringToIp(common::String* ip);
         common::uint32_t resolveIp(common::String* ip);
       public:
@@ -42,7 +41,7 @@
         void registerEthernetDriver(drivers::EthernetDriver* drv);
         void setup();
 
-        void ping(common::String* dest);
+        common::uint32_t ping(common::String* dest, common::uint8_t ttl);
         tcp::TransmissionControlProtocolSocket* connectTCP(common::String* dest, common::uint16_t port, common::uint16_t localPort = 0);
         udp::UserDatagramProtocolSocket* connectUDP(common::String* dest, common::uint16_t port, common::uint16_t localPort = 0);
 
@@ -50,6 +49,7 @@
         bool foundDriver();
 
         common::String* getIpString(common::String* dest);
+        common::uint32_t parseIp(common::String* ip);
       };
     }
   }
