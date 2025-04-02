@@ -44,6 +44,7 @@
       protected:
         InternetProtocolV4Handler* handlers[255];
         AddressResolutionProtocol* arp;
+        common::uint8_t* byteBuffer;
         common::uint32_t gateway;
         common::uint32_t subnetMask;
         common::uint32_t domainServer;

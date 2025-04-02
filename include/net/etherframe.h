@@ -42,6 +42,7 @@
         friend class EtherFrameHandler;
       protected:
         EtherFrameHandler* handlers[65535];
+        common::uint8_t* byteBuffer;
         drivers::EthernetDriver* ethernetDriver;
       public:
         EtherFrameProvider(drivers::EthernetDriver* backend);

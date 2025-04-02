@@ -30,6 +30,8 @@
                 InterruptHandler* handlers[256];
                 
                 TaskManager* taskManager;
+
+                common::uint32_t lockCount;
                 
                 struct GateDescriptor {
                     sys::common::uint16_t handlerAdressLowBits;
@@ -64,6 +66,10 @@
             public:
                 InterruptManager(sys::GlobalDescriptorTable* gdt, TaskManager* taskManager);
                 ~InterruptManager();
+
+                static void lock();
+                static void unlock();
+                static bool isLocked();
                 
                 void enableInterrupts();
                 void disableInterrupts();

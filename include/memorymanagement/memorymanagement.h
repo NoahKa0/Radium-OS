@@ -13,6 +13,7 @@
     class MemoryManager {
     protected:
       MemoryChunk* first;
+      MemoryChunk* firstFree;
     public:
       static MemoryManager* activeMemoryManager;
       

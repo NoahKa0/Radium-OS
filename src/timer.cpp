@@ -1,7 +1,9 @@
 #include <timer.h>
+#include <hardware/interrupts.h>
 
 using namespace sys;
 using namespace sys::common;
+using namespace sys::hardware;
 
 /**
   This timer should be improved, it assumes that the PIT is configured correctly by the BIOS (~18,2 interrupts per second).
@@ -53,12 +55,19 @@ uint32_t SystemTimer::millisecondsToLength(common::uint32_t milliseconds) {
   return (milliseconds*SystemTimer::activeTimer->frequency)/1000;
 }
 
+void printf(const char* str);
+
 void SystemTimer::sleep(uint32_t milliseconds) {
   if(SystemTimer::activeTimer == 0) return;
+
+  if (InterruptManager::isLocked()) {
+    printf("WARNING: Cannot sleep with interrupts disabled!");
+    return;
+  }
   
   uint32_t sleepTime = (milliseconds*SystemTimer::activeTimer->frequency)/1000;
   uint32_t currentTime = SystemTimer::getTimeInInterrupts();
-  while(SystemTimer::getTimeInInterrupts() < currentTime+sleepTime) {
+  do {
     asm("hlt");
-  }
+  } while(SystemTimer::getTimeInInterrupts() < currentTime+sleepTime);
 }

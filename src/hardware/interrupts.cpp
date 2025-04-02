@@ -128,6 +128,8 @@ picSlaveData(0xA1)
     idt_pointer.base = (uint32_t) interruptDescriptorTable;
     
     asm volatile("lidt %0" : : "m" (idt_pointer));
+
+    lockCount = 0;
 }
 
 InterruptManager::~InterruptManager() {}
@@ -145,6 +147,29 @@ void InterruptManager::disableInterrupts() {
         activeInterruptManager = 0;
         asm("cli");
     }
+}
+
+void InterruptManager::lock() {
+    if(activeInterruptManager != 0) {
+        asm("cli");
+        activeInterruptManager->lockCount++;
+    }
+}
+
+void InterruptManager::unlock() {
+    if(activeInterruptManager != 0) {
+        activeInterruptManager->lockCount--;
+        if (activeInterruptManager->lockCount <= 0) {
+            asm("sti");
+        }
+    }
+}
+
+bool InterruptManager::isLocked() {
+    if(activeInterruptManager != 0) {
+        return activeInterruptManager->lockCount < 0;
+    }
+    return false;
 }
 
 // esp is the current stack pointer.

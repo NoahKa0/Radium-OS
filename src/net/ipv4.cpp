@@ -36,9 +36,13 @@ InternetProtocolV4Provider::InternetProtocolV4Provider(EtherFrameProvider* backe
   this->gateway = 0;
   this->subnetMask = 0;
   this->domainServer = 0;
+  this->byteBuffer = (uint8_t*) MemoryManager::activeMemoryManager->malloc(65535);
 }
   
-InternetProtocolV4Provider::~InternetProtocolV4Provider() {}
+InternetProtocolV4Provider::~InternetProtocolV4Provider() {
+  MemoryManager::activeMemoryManager->free(this->byteBuffer);
+  this->byteBuffer = 0;
+}
 
 bool InternetProtocolV4Provider::onEtherFrameReceived(uint8_t* etherFramePayload, uint32_t size) {
   if(size < sizeof(InternetProtocolV4Message)) return false;
@@ -76,8 +80,10 @@ bool InternetProtocolV4Provider::onEtherFrameReceived(uint8_t* etherFramePayload
 }
 
 void InternetProtocolV4Provider::send(uint32_t destIpAddress, uint8_t protocol, uint8_t* etherFramePayload, uint32_t size, uint8_t ttl) {
-  uint8_t* buffer = (uint8_t*) MemoryManager::activeMemoryManager->malloc(sizeof(InternetProtocolV4Message) + size);
-  InternetProtocolV4Message* message = (InternetProtocolV4Message*) buffer;
+  if (sizeof(InternetProtocolV4Message) + size > 65535) { // Too big cannot send.
+    return;
+  }
+  InternetProtocolV4Message* message = (InternetProtocolV4Message*) this->byteBuffer;
   
   message->version = 4;
   message->headerLength = sizeof(InternetProtocolV4Message)/4;
@@ -98,7 +104,7 @@ void InternetProtocolV4Provider::send(uint32_t destIpAddress, uint8_t protocol, 
   message->checksum = 0; // Checksum also uses this value to calculate full checksum. Package will drop if not 0.
   message->checksum = checksum((uint16_t*) message, sizeof(InternetProtocolV4Message));
   
-  uint8_t* dataTarget = buffer + sizeof(InternetProtocolV4Message);
+  uint8_t* dataTarget = this->byteBuffer + sizeof(InternetProtocolV4Message);
   for(uint32_t i = 0; i < size; i++) {
     dataTarget[i] = etherFramePayload[i];
   }
@@ -108,9 +114,7 @@ void InternetProtocolV4Provider::send(uint32_t destIpAddress, uint8_t protocol, 
     route = gateway;
   }
   
-  backend->send(arp->resolve(route), this->etherType, buffer, sizeof(InternetProtocolV4Message) + size);
-  
-  MemoryManager::activeMemoryManager->free(buffer);
+  backend->send(arp->resolve(route), this->etherType, this->byteBuffer, sizeof(InternetProtocolV4Message) + size);
 }
 
 AddressResolutionProtocol* InternetProtocolV4Provider::getArp() {

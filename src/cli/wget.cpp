@@ -37,7 +37,7 @@ void CmdWGET::run(common::String** args, common::uint32_t argsLength) {
   printf("Enter filename: ");
 
   while (this->appendFile == 0 && !this->enteredFile) {
-    asm("hlt");
+    SystemTimer::sleep(10);
   }
 
   if (this->appendFile == 0) {
@@ -111,7 +111,7 @@ void CmdWGET::run(common::String** args, common::uint32_t argsLength) {
       } else {
         this->socket->sendExpiredPackets();
       }
-      asm("hlt");
+      SystemTimer::sleep(10);
     }
     this->workingDirectory->reset();
   } else {

@@ -1,10 +1,12 @@
 #include <net/tcp/TransmissionControlProtocolSocket.h>
 #include <net/tcp/TransmissionControlProtocolProvider.h>
+#include <hardware/interrupts.h>
 
 using namespace sys;
 using namespace sys::common;
 using namespace sys::net;
 using namespace sys::net::tcp;
+using namespace sys::hardware;
 
 uint32_t swapEndian32(uint32_t n);
 
@@ -82,6 +84,8 @@ uint32_t TransmissionControlProtocolSocket::hasNext() {
 }
 
 void TransmissionControlProtocolSocket::readNext(uint8_t* data, uint32_t length) {
+  InterruptManager::lock();
+
   if(length > this->nextBytes) {
     length = this->nextBytes;
   }
@@ -110,6 +114,7 @@ void TransmissionControlProtocolSocket::readNext(uint8_t* data, uint32_t length)
     }
   }
   this->nextBytes -= length;
+  InterruptManager::unlock();
 }
 
 void TransmissionControlProtocolSocket::removeOldPackets(uint32_t acknum) {
@@ -135,7 +140,7 @@ bool TransmissionControlProtocolSocket::addUnprocessedPacket(TransmissionControl
 
   // Clear buffers and try again.
   for(uint8_t i = 0; i < this->sizeUnprocessedPackets; i++) {
-    if(this->unprocessedPackets[i] != 0 && (swapEndian32(this->unprocessedPackets[i]->sequenceNumber) < this->acknowledgementNumber && (this->acknowledgementNumber & 0x80000000 == 0 || swapEndian32(this->unprocessedPackets[i]->sequenceNumber) & 0xF0000000 != 0)) || (swapEndian32(this->unprocessedPackets[i]->sequenceNumber) & 0x80000000 != 0 && this->acknowledgementNumber & 0xF0000000 == 0)) {
+    if(this->unprocessedPackets[i] != 0 && (swapEndian32(this->unprocessedPackets[i]->sequenceNumber) < this->acknowledgementNumber && !(this->acknowledgementNumber & 0xFFFFF000 == 0xFFFFF000 && swapEndian32(this->unprocessedPackets[i]->sequenceNumber) < 0xFFF))) {
       delete this->unprocessedPackets[i]->data;
       delete this->unprocessedPackets[i];
       this->unprocessedPackets[i] = 0;
