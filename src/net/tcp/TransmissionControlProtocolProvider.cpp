@@ -64,8 +64,12 @@ bool TransmissionControlProtocolProvider::processData(TransmissionControlProtoco
     // If packet is added to buffer, acknowledge packet
     if(socket->addRecvPacket(packet, packet->size)) {
       socket->acknowledgementNumber += packet->size;
+      packet = socket->getUnprocessedPacket();
+    } else {
+      delete packet->data;
+      delete packet;
+      packet = socket->getUnprocessedPacket();
     }
-    packet = socket->getUnprocessedPacket();
   }
   return true;
 }
@@ -205,12 +209,12 @@ void TransmissionControlProtocolProvider::sendTCP(TransmissionControlProtocolSoc
   
   header->reserved = 0;
   header->flags = flags;
-  header->windowSize = 0xFF0C;
-  //header->windowSize = 0xFFFF;
+  //header->windowSize = 0xFF0C;
+  header->windowSize = 0xFFFF;
   header->urgent = 0;
   
-  //header->options = 0x00030402;
-  header->options = 0;
+  header->options = 0x00030402;
+  //header->options = 0;
   
   socket->sequenceNumber += length;
   
@@ -259,7 +263,6 @@ void TransmissionControlProtocolProvider::sendExpiredPackets(TransmissionControl
     // If lastTransmit was more than 18 PIT interrupts ago (that's about one second), resend.
     if(packet != 0 && packet->lastTransmit + 9 < SystemTimer::getTimeInInterrupts()) {
       uint8_t* headerPtr = packet->data + sizeof(TransmissionControlProtocolPseudoHeader);
-      
       this->send(socket->remoteIp, headerPtr, packet->length);
       packet->lastTransmit = SystemTimer::getTimeInInterrupts();
     }

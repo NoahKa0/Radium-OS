@@ -1,10 +1,12 @@
 #include <net/etherframe.h>
 #include <memorymanagement/memorymanagement.h>
+#include <hardware/interrupts.h>
 
 using namespace sys;
 using namespace sys::common;
 using namespace sys::net;
 using namespace sys::drivers;
+using namespace sys::hardware;
 
 EtherFrameHandler::EtherFrameHandler(EtherFrameProvider* backend, common::uint16_t etherType) {
   this->backend = backend;
@@ -42,14 +44,20 @@ uint64_t EtherFrameHandler::getMacAddress() {
 EtherFrameProvider::EtherFrameProvider(EthernetDriver* backend) {
   this->ethernetDriver = backend;
   backend->setEtherFrameProvider(this);
+  this->byteBuffer = (uint8_t*) MemoryManager::activeMemoryManager->malloc(65535);
   for(uint32_t i = 0; i < 65535; i++) {
     handlers[i] = 0;
   }
 }
 
-EtherFrameProvider::~EtherFrameProvider() {}
+EtherFrameProvider::~EtherFrameProvider() {
+  MemoryManager::activeMemoryManager->free(this->byteBuffer);
+  this->byteBuffer = 0;
+}
 
 bool EtherFrameProvider::onRawDataRecived(uint8_t* buffer, uint32_t size) {
+  InterruptManager::lock();
+
   if(size < sizeof(EtherFrameHeader)) return false;
   
   EtherFrameHeader* header = (EtherFrameHeader*) buffer;
@@ -67,24 +75,27 @@ bool EtherFrameProvider::onRawDataRecived(uint8_t* buffer, uint32_t size) {
     header->srcMac = this->ethernetDriver->getMacAddress();
   }
   
+  InterruptManager::unlock();
+
   return sendBack;
 }
 
 void EtherFrameProvider::send(uint64_t destMacAddress_BE, uint16_t etherType_BE, uint8_t* buffer, uint32_t size) {
-  uint8_t* buffer2 = (uint8_t*) MemoryManager::activeMemoryManager->malloc(sizeof(EtherFrameHeader) + size);
-  EtherFrameHeader* header = (EtherFrameHeader*) buffer2;
+  if (sizeof(EtherFrameHeader) + size > 65535) { // Too big for buffer, cannot send.
+    return;
+  }
+  EtherFrameHeader* header = (EtherFrameHeader*) this->byteBuffer;
   
   header->destMac = destMacAddress_BE;
   header->srcMac = this->ethernetDriver->getMacAddress();
   header->etherType = etherType_BE;
   
-  uint8_t* dst = buffer2 + sizeof(EtherFrameHeader);
+  uint8_t* dst = this->byteBuffer + sizeof(EtherFrameHeader);
   for(uint32_t i = 0; i < size; i++) {
     dst[i] = buffer[i];
   }
   
-  this->ethernetDriver->send(buffer2, size + sizeof(EtherFrameHeader));
-  MemoryManager::activeMemoryManager->free(buffer2);
+  this->ethernetDriver->send(this->byteBuffer, size + sizeof(EtherFrameHeader));
 }
 
 uint64_t EtherFrameProvider::getMacAddress() {

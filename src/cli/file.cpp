@@ -125,7 +125,7 @@ void CmdFILE::run(String** args, uint32_t argsLength) {
       if(tmp != 0) {
         this->appendFile = tmp;
         while(this->appendFile != 0) {
-          asm("hlt");
+          SystemTimer::sleep(10);
         }
         this->workingDirectory->reset();
       } else {

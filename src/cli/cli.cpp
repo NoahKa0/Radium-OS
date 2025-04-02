@@ -157,7 +157,7 @@ void Cli::run() {
       delete cmd;
       this->showCommandInput();
     }
-    asm("hlt");
+    SystemTimer::sleep(10);
   }
 }
 

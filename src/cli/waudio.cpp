@@ -74,14 +74,13 @@ void CmdWAUDIO::run(String** args, uint32_t argsLength) {
 
   if (responseCode == 200) {
     printf("Buffering...");
-    SystemTimer::sleep(5000);
+    SystemTimer::sleep(500);
     printf("\n");
     while((socket->isConnected() || socket->hasNext() != 0) && !this->shouldStop && bytesReceived < contentLength) {
       if(socket->hasNext() != 0) {
         uint32_t bytesToRead;
         do {
           bytesToRead = socket->hasNext();
-          SystemTimer::sleep(150);
         } while(bytesToRead < socket->hasNext() && bytesToRead < readAtOnce);
         if (bytesToRead > readAtOnce) {
           bytesToRead = readAtOnce;
@@ -105,7 +104,7 @@ void CmdWAUDIO::run(String** args, uint32_t argsLength) {
       } else {
         socket->sendExpiredPackets();
       }
-      asm("hlt");
+      SystemTimer::sleep(1);
     }
   } else {
     printf("HTTP failed: ");

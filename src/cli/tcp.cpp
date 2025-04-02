@@ -56,7 +56,7 @@ void CmdTCP::run(common::String** args, common::uint32_t argsLength) {
     } else {
       this->socket->sendExpiredPackets();
     }
-    asm("hlt");
+    SystemTimer::sleep(10);
   }
 
   if(!connectionFailed) {

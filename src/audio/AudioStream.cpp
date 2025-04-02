@@ -70,7 +70,7 @@ void AudioStream::flush() {
   while(sizeInBytes > 0) {
     sleep = 0;
     while(this->driver->samplesReady() == 0) {
-      SystemTimer::sleep(80);
+      SystemTimer::sleep(1);
       sleep++;
       if(sleep > 100) {
         this->driver->stop();

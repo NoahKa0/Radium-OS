@@ -1,7 +1,9 @@
 #include <memorymanagement/memorymanagement.h>
+#include <hardware/interrupts.h>
 
 using namespace sys;
 using namespace sys::common;
+using namespace sys::hardware;
 
 MemoryManager* MemoryManager::activeMemoryManager = 0;
 
@@ -16,6 +18,7 @@ MemoryManager::MemoryManager(size_t start, size_t size) {
     first->next = 0;
     first->allocated = false;
     first->size = size - sizeof(MemoryChunk);
+    firstFree = first;
   }
 }
 
@@ -29,9 +32,11 @@ void printf(const char*);
 void printHex32(uint32_t);
 
 void* MemoryManager::mallocalign(size_t size, size_t alignment) {
+  InterruptManager::lock();
+
   MemoryChunk* result = 0;
   
-  for(MemoryChunk* i = first; i != 0 && result == 0; i = i->next) {
+  for(MemoryChunk* i = firstFree; i != 0 && result == 0; i = i->next) {
     if(i->size > size + alignment && !i->allocated) {
       result = i;
     }
@@ -87,10 +92,16 @@ void* MemoryManager::mallocalign(size_t size, size_t alignment) {
     result->next = tmp;
   }
 
+  firstFree = result->next;
+
+  InterruptManager::unlock();
+
   return (void*) (((size_t) result) + sizeof(MemoryChunk));
 }
 
 void MemoryManager::free(void* pointer) {
+  InterruptManager::lock();
+
   MemoryChunk* chunk = (MemoryChunk*) ((size_t) pointer - sizeof(MemoryChunk));
 
   chunk->allocated = false;
@@ -106,6 +117,10 @@ void MemoryManager::free(void* pointer) {
   }
   i->previous = chunk;
   chunk->next = i;
+
+  firstFree = chunk;
+
+  InterruptManager::unlock();
 }
 
 void* operator new(unsigned size) {
