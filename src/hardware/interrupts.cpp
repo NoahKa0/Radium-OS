@@ -175,7 +175,11 @@ bool InterruptManager::isLocked() {
 // esp is the current stack pointer.
 uint32_t InterruptManager::onInterrupt(uint8_t interruptNumber, uint32_t esp) {
     if(activeInterruptManager != 0) {
-        return activeInterruptManager->handleInterrupt(interruptNumber, esp);
+        // Make sure that locking mechanism doesn't "sti" while in an interrupt...
+        activeInterruptManager->lockCount++;
+        uint32_t newEsp = activeInterruptManager->handleInterrupt(interruptNumber, esp);
+        activeInterruptManager->lockCount--;
+        return newEsp;
     }
     return esp;
 }

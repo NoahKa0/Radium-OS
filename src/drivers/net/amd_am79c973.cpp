@@ -176,7 +176,7 @@ void amd_am79c973::receive() {
         }
       }
     }
-    
+
     reciveBufferDescr[currentReciveBuffer].flags2 = 0;
     reciveBufferDescr[currentReciveBuffer].flags = 0x8000F7FF;
     

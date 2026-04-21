@@ -23,11 +23,11 @@ VideoGraphicsArray::~VideoGraphicsArray() {}
 
 void VideoGraphicsArray::writeRegisters(uint8_t* registers) {
   miscPort.write(*registers);
-  *registers++;
+  registers++;
   for(uint8_t i = 0; i < 5; i++) {
     sequencerIndexPort.write(i);
     sequencerDataPort.write(*registers);
-    *registers++;
+    registers++;
   }
   
   ctrlIndexPort.write(0x03);
@@ -41,20 +41,20 @@ void VideoGraphicsArray::writeRegisters(uint8_t* registers) {
   for(uint8_t i = 0; i < 25; i++) {
     ctrlIndexPort.write(i);
     ctrlDataPort.write(*registers);
-    *registers++;
+    registers++;
   }
   
   for(uint8_t i = 0; i < 9; i++) {
     graphicsControllerIndexPort.write(i);
     graphicsControllerDataPort.write(*registers);
-    *registers++;
+    registers++;
   }
   
   for(uint8_t i = 0; i < 21; i++) {
     attributeControllerResetPort.read();
     attributeControllerIndexPort.write(i);
     attributeControllerWritePort.write(*registers);
-    *registers++;
+    registers++;
   }
   
   attributeControllerResetPort.read();

@@ -23,6 +23,7 @@ DynamicHostConfigurationProtocol::DynamicHostConfigurationProtocol(UserDatagramP
   this->domainServer = 0;
   this->ip_firstOffer = 0;
   this->completed = false;
+  this->last_start = 0;
   
   this->socket = udp->connect(0xFFFFFFFF, 67, 68); // UDP connect to broadcast address on port 67, receive on port 68.
   this->socket->enableForwardAll(); // Enable forwarding off all UDP packets, even if their destination is not our IP (because we don't have one yet).
@@ -61,10 +62,23 @@ void DynamicHostConfigurationProtocol::handleUserDatagramProtocolMessage(UserDat
 }
 
 bool DynamicHostConfigurationProtocol::shouldSend() {
+  uint64_t current = SystemTimer::activeTimer->getTimeInInterrupts();
+  uint64_t timeSinceLastStart = current - this->last_start;
+
+  // Cannot divide 64 bit
+  uint32_t timeSinceLastStart32 = (uint32_t)timeSinceLastStart;
+  if (this->last_start != 0 && timeSinceLastStart32 / (uint32_t)SystemTimer::getFrequency() < 5) {
+    return false; // Too soon.
+  }
   return !this->completed;
 }
 
 void DynamicHostConfigurationProtocol::sendDiscover() {
+  this->last_start = SystemTimer::activeTimer->getTimeInInterrupts();
+  if (this->last_start == 0) {
+    this->last_start = 1; // 0 can lead to double send.
+  }
+
   printf("DHCP Sending discover\n");
   // Set socket to use broadcast address.
   this->socket->setDestinationIp(0xFFFFFFFF);

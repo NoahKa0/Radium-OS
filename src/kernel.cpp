@@ -55,6 +55,15 @@ void enableVGA() {
   }
 }
 
+void setColor(uint16_t color) {
+  static uint16_t* videoMemory = (uint16_t*)0xB8000;
+  for(uint8_t x = 0; x < 80; x++) {
+    for(uint8_t y = 0; y < 26; y++) {
+      videoMemory[y*80+x] = (videoMemory[y*80+x] & 0x00FF) | (color << 8);
+    }
+  }
+}
+
 uint32_t swapEndian32(uint32_t n) {
   return ((n & 0xFF000000) >> 24)
        | ((n & 0x00FF0000) >> 8)
