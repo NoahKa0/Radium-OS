@@ -4,6 +4,8 @@
 #include <cli/tcp.h>
 #include <cli/sd.h>
 #include <cli/wget.h>
+#include <cli/wbmp.h>
+#include <cli/color.h>
 #include <cli/file.h>
 #include <cli/audio.h>
 #include <cli/waudio.h>
@@ -98,6 +100,10 @@ void Cli::run() {
         cmd = new CmdTCP();
       } else if(command->equals("wget")) {
         cmd = new CmdWGET();
+      } else if(command->equals("wbmp")) {
+        cmd = new CmdWBMP();
+      } else if(command->equals("color")) {
+        cmd = new CmdColor();
       } else if(command->equals("ping")) {
         cmd = new CmdPing();
       } else if(command->equals("traceroute")) {
@@ -122,9 +128,11 @@ void Cli::run() {
           printf("sd: Shows commands for Storage Devices\n");
           printf("file: Shows commands for files\n");
           printf("wget <host> <query>: Downloads a file\n");
+          printf("wbmp <host> <query>: Downloads and shows a BMP file\n");
           printf("audio <filename>: Plays a wave file\n");
           printf("waudio <host> <query>: Skip wget and play an audio file directly over http\n");
           printf("snake: Play snake\n");
+          printf("color: Set color\n");
         } else {
           printf("Invalid command!\n");
         }

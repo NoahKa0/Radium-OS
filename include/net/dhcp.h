@@ -5,6 +5,7 @@
   #include <net/udp/UserDatagramProtocolProvider.h>
   #include <net/ipv4.h>
   #include <memorymanagement/memorymanagement.h>
+  #include <timer.h>
   
   namespace sys {
     namespace net {
@@ -56,6 +57,7 @@
         common::uint32_t domainServer;
         common::uint32_t lease;
         common::uint32_t ip_firstOffer;
+        common::uint64_t last_start;
         bool completed;
         
         common::uint32_t identifier;
