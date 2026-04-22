@@ -65,9 +65,9 @@ void SystemTimer::sleep(uint32_t milliseconds) {
     return;
   }
   
-  uint32_t sleepTime = (milliseconds*SystemTimer::activeTimer->frequency)/1000;
-  uint32_t currentTime = SystemTimer::getTimeInInterrupts();
+  uint64_t sleepTime = (milliseconds*SystemTimer::activeTimer->frequency);
+  uint64_t currentTime = SystemTimer::getTimeInInterrupts() * 1000;
   do {
     asm("hlt");
-  } while(SystemTimer::getTimeInInterrupts() < currentTime+sleepTime);
+  } while(SystemTimer::getTimeInInterrupts() * 1000 < currentTime+sleepTime);
 }
